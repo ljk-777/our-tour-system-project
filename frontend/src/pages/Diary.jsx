@@ -9,14 +9,27 @@ const MOOD_ICON = { '愉悦':'😊', '激动':'🤩', '满足':'😌', '宁静':
 
 function DiaryCard({ diary, onLike, requireAuth }) {
   const [expanded, setExpanded] = useState(false);
+  const [hovered, setHovered]   = useState(false);
   const isLong = diary.content?.length > 120;
 
   return (
-    <div className="card p-5 transition-all">
+    <div className="card p-5"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        transform: hovered ? 'translateY(-5px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 12px 32px rgba(0,0,0,0.12)' : 'none',
+        transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+      }}
+    >
       <div className="flex items-start gap-3">
         {/* 头像 */}
         <div className="shrink-0">
-          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl"
+            style={{
+              transform: hovered ? 'scale(1.18)' : 'scale(1)',
+              transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
             {diary.userAvatar}
           </div>
         </div>
@@ -268,8 +281,10 @@ export default function Diary() {
         </div>
       ) : (
         <div className="space-y-4">
-          {diaries.map(d => (
-            <DiaryCard key={d.id} diary={d} onLike={handleLike} requireAuth={requireAuth} />
+          {diaries.map((d, i) => (
+            <div key={d.id} style={{ animation: `itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i, 6) * 60}ms both` }}>
+              <DiaryCard diary={d} onLike={handleLike} requireAuth={requireAuth} />
+            </div>
           ))}
         </div>
       )}

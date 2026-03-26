@@ -154,11 +154,29 @@ export default function Plaza() {
             </div>
           ) : (
             <div className="space-y-4">
-              {posts.map(post => (
-                <div key={post.id} className="card p-5 hover:shadow-md transition-shadow">
+              {posts.map((post, i) => (
+                <div key={post.id} className="card p-5"
+                  style={{
+                    transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+                    animation: `itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i, 6) * 55}ms both`,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)';
+                    const av = e.currentTarget.querySelector('[data-av]');
+                    if (av) av.style.transform = 'scale(1.18)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                    const av = e.currentTarget.querySelector('[data-av]');
+                    if (av) av.style.transform = 'scale(1)';
+                  }}
+                >
                   {/* 用户信息 */}
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-100 to-teal-100 rounded-full">
+                    <span data-av className="text-2xl w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-100 to-teal-100 rounded-full"
+                      style={{ transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}>
                       {post.userAvatar}
                     </span>
                     <div className="flex-1">
@@ -229,7 +247,8 @@ export default function Plaza() {
             <div className="space-y-3">
               {featuredSpots.map((spot, i) => (
                 <Link key={spot.id} to={`/spots/${spot.id}`}
-                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-xl transition-colors group">
+                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-xl transition-colors group"
+                  style={{ animation: `popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) ${i * 70}ms both` }}>
                   <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
                     i === 0 ? 'bg-yellow-400 text-white' :
                     i === 1 ? 'bg-gray-300 text-white' :
@@ -296,10 +315,11 @@ export default function Plaza() {
                 { label: '旅行日记', value: `${posts.length}+`, color: 'text-purple-600' },
                 { label: '道路图边数', value: '240+', color: 'text-teal-600' },
                 { label: '注册用户', value: '10+', color: 'text-orange-600' },
-              ].map(item => (
+              ].map((item, i) => (
                 <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                   <span className="text-gray-500">{item.label}</span>
-                  <span className={`font-semibold ${item.color}`}>{item.value}</span>
+                  <span className={`font-semibold ${item.color} animate-count-up`}
+                    style={{ animationDelay: `${i * 100}ms` }}>{item.value}</span>
                 </div>
               ))}
             </div>

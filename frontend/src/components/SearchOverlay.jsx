@@ -18,6 +18,7 @@ export default function SearchOverlay({ onClose }) {
   const [q, setQ]               = useState('');
   const [results, setResults]   = useState([]);
   const [loading, setLoading]   = useState(false);
+  const [focused, setFocused]   = useState(false);
   const inputRef                = useRef(null);
   const navigate                = useNavigate();
 
@@ -61,7 +62,8 @@ export default function SearchOverlay({ onClose }) {
   };
 
   return (
-    // 背景遮罩
+    <>
+    {/* 背景遮罩 */}
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh]"
       style={{ background: 'rgba(2,8,30,0.85)', backdropFilter: 'blur(8px)' }}
@@ -69,13 +71,20 @@ export default function SearchOverlay({ onClose }) {
     >
       <div className="w-full max-w-2xl px-4 animate-slide-up">
         {/* 搜索框 */}
-        <div className="flex items-center gap-3 bg-white/8 border border-white/15 rounded-2xl px-5 py-4 mb-4 shadow-2xl">
-          <span className="text-sky-400 text-xl">🔍</span>
+        <div className="flex items-center gap-3 bg-white/8 border border-white/15 rounded-2xl px-5 py-4 mb-4"
+          style={{
+            transform: focused ? 'scale(1.025)' : 'scale(1)',
+            boxShadow: focused ? '0 24px 64px rgba(0,0,0,0.70)' : '0 8px 32px rgba(0,0,0,0.45)',
+            transition: 'transform 0.30s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.30s ease',
+          }}>
+          <span className="text-sky-400 text-xl" style={{ transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)', transform: focused ? 'scale(1.20)' : 'scale(1)' }}>🔍</span>
           <input
             ref={inputRef}
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && q && goToSearch()}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder="搜索景区、城市、高校..."
             className="flex-1 bg-transparent text-white text-lg placeholder-white/25 outline-none"
           />
@@ -94,7 +103,8 @@ export default function SearchOverlay({ onClose }) {
 
         {/* 搜索结果 */}
         {results.length > 0 && (
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+            style={{ animation: 'searchResultsIn 0.28s cubic-bezier(0.16,1,0.3,1) both', transformOrigin: 'top' }}>
             {results.slice(0, 8).map((spot, i) => (
               <button
                 key={spot.id}
@@ -128,11 +138,12 @@ export default function SearchOverlay({ onClose }) {
         {/* 快捷入口（无关键词时） */}
         {!q && (
           <div className="grid grid-cols-4 gap-3 mt-2">
-            {['北京','上海','杭州','成都','西安','云南','北大','故宫'].map(kw => (
+            {['北京','上海','杭州','成都','西安','云南','北大','故宫'].map((kw, i) => (
               <button
                 key={kw}
                 onClick={() => setQ(kw)}
                 className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-white/60 hover:text-white text-sm transition-all"
+                style={{ animation: `popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) ${i * 40}ms both` }}
               >
                 {kw}
               </button>
@@ -141,5 +152,12 @@ export default function SearchOverlay({ onClose }) {
         )}
       </div>
     </div>
+    <style>{`
+      @keyframes searchResultsIn {
+        from { opacity: 0; transform: scaleY(0.88) translateY(-8px); }
+        to   { opacity: 1; transform: scaleY(1) translateY(0); }
+      }
+    `}</style>
+    </>
   );
 }

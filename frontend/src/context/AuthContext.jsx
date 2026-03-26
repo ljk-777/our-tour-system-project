@@ -89,10 +89,12 @@ export function AuthProvider({ children }) {
     return payload;
   }, []);
 
-  /** 注册：调用 API，自动登录 */
-  const register = useCallback(async (username, nickname) => {
-    const res = await apiRegister({ username, nickname: nickname || username });
-    const payload = trimUser(res.data.data);
+  /** 注册：调用 API，自动登录（avatar 可为 emoji 字符串或 base64 图片）*/
+  const register = useCallback(async (username, avatar) => {
+    const res = await apiRegister({ username, nickname: username, avatar: avatar || '🧭' });
+    // 若 avatar 为 base64 图片，后端内存存储字符串可能很大；
+    // 同时在 localStorage 里保存，保证前端始终能读到
+    const payload = trimUser({ ...res.data.data, avatar: avatar || res.data.data?.avatar || '🧭' });
     localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
     localStorage.removeItem(GUEST_KEY);
     setUser(payload);

@@ -34,7 +34,7 @@ function ProtectedRoute({ children }) {
  */
 function StandardLayout({ children }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#070b18' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#f5f5f7' }}>
       <Navbar />
       <main className="flex-1 pb-14 lg:pb-0">
         {children}

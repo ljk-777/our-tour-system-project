@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
+import BrandIcon from './BrandIcon.jsx';
 
 const NAV_LINKS = [
-  { to: '/',        label: '首页',   icon: '🏠' },
-  { to: '/spots',   label: '发现',   icon: '🗺️' },
-  { to: '/route',   label: '路线',   icon: '🧭' },
-  { to: '/diary',   label: '日记',   icon: '📖' },
-  { to: '/plaza',   label: '广场',   icon: '🌏' },
-  { to: '/profile', label: '旅行者', icon: '👥' },
-  { to: '/algo',    label: '算法',   icon: '⚙️' },
+  { to: '/',        label: '首页'   },
+  { to: '/spots',   label: '发现'   },
+  { to: '/route',   label: '路线'   },
+  { to: '/diary',   label: '日记'   },
+  { to: '/plaza',   label: '广场'   },
+  { to: '/profile', label: '旅行者' },
+  { to: '/algo',    label: '算法'   },
 ];
 
 const SECTIONS = [
@@ -32,47 +33,38 @@ const SECTIONS = [
   {
     title: '核心算法',
     items: [
-      { color: '#38bdf8', text: 'Dijkstra 最短路径' },
-      { color: '#fcd34d', text: 'MinHeap TopK 推荐' },
-      { color: '#2dd4bf', text: 'Trie 前缀补全' },
-      { color: '#f87171', text: 'KMP 字符串匹配' },
-      { color: '#a78bfa', text: '2-opt 路径优化' },
-      { color: '#fb923c', text: '倒排索引全文检索' },
+      { color: '#0071e3', text: 'Dijkstra 最短路径' },
+      { color: '#34c759', text: 'MinHeap TopK 推荐' },
+      { color: '#ff9500', text: 'Trie 前缀补全' },
+      { color: '#ff3b30', text: 'KMP 字符串匹配' },
+      { color: '#af52de', text: '2-opt 路径优化' },
+      { color: '#ff6b35', text: '倒排索引全文检索' },
     ],
   },
 ];
 
 export function FooterFull() {
   return (
-    <footer style={{ background: '#05091a', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+    <footer style={{ background: '#f5f5f7', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
         {/* 上方区域 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 pb-8"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
 
           {/* 品牌 */}
           <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <span className="text-2xl" style={{ filter: 'drop-shadow(0 0 6px rgba(14,165,233,0.4))' }}>🧭</span>
-              <span className="font-bold text-lg"
-                style={{ background: 'linear-gradient(135deg,#38bdf8,#2dd4bf)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Our Tour
-              </span>
+            <div className="flex items-center gap-2 mb-4">
+              <BrandIcon size={26} variant="dark" />
+              <div className="flex flex-col leading-none">
+                <span className="font-bold text-base" style={{ color: '#1d1d1f' }}>迹刻</span>
+                <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: '#aeaeb2' }}>waylog</span>
+              </div>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.32)' }}>
+            <p className="text-sm leading-relaxed" style={{ color: '#86868b' }}>
               旅游系统课程设计项目，涵盖景点发现、智能路线规划、旅行日记、算法可视化演示等功能。
             </p>
-            <div className="mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.18)' }}>
+            <div className="mt-4 text-xs" style={{ color: '#aeaeb2' }}>
               265 景点 · 210+ 道路 · 11 用户
-            </div>
-            {/* Phase 标注 */}
-            <div className="mt-4 flex flex-col gap-1">
-              {['Phase 1: 当前版本 ✓', 'Phase 2: 地图集成 →', 'Phase 3: 3D 地球 →'].map((p, i) => (
-                <div key={p} className="text-xs font-mono"
-                  style={{ color: i === 0 ? 'rgba(14,165,233,0.60)' : 'rgba(255,255,255,0.15)' }}>
-                  {p}
-                </div>
-              ))}
             </div>
           </div>
 
@@ -80,7 +72,7 @@ export function FooterFull() {
           {SECTIONS.map(s => (
             <div key={s.title}>
               <h4 className="text-xs font-semibold mb-4 tracking-widest uppercase"
-                style={{ color: 'rgba(255,255,255,0.30)' }}>
+                style={{ color: '#aeaeb2' }}>
                 {s.title}
               </h4>
               {s.links && (
@@ -89,9 +81,9 @@ export function FooterFull() {
                     <li key={l.to}>
                       <Link to={l.to}
                         className="text-sm transition-colors duration-150"
-                        style={{ color: 'rgba(255,255,255,0.38)' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.38)'}>
+                        style={{ color: '#6e6e73' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#0071e3'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#6e6e73'}>
                         {l.label}
                       </Link>
                     </li>
@@ -101,8 +93,8 @@ export function FooterFull() {
               {s.items && (
                 <ul className="space-y-2">
                   {s.items.map(item => (
-                    <li key={item.text} className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.color, boxShadow: `0 0 5px ${item.color}60` }} />
+                    <li key={item.text} className="flex items-center gap-2 text-xs" style={{ color: '#86868b' }}>
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.color }} />
                       {item.text}
                     </li>
                   ))}
@@ -114,8 +106,8 @@ export function FooterFull() {
 
         {/* 版权行 */}
         <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs"
-          style={{ color: 'rgba(255,255,255,0.18)' }}>
-          <div>© 2025 Our Tour System · 旅游系统课程设计</div>
+          style={{ color: '#aeaeb2' }}>
+          <div>© 2025 迹刻 waylog · 旅游系统课程设计</div>
           <div className="flex items-center gap-4">
             <span>React + Vite + Tailwind</span>
             <span>Node.js + Express</span>
@@ -132,10 +124,10 @@ export function MobileBottomNav() {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
       style={{
-        background: 'rgba(7,11,24,0.95)',
+        background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(0,0,0,0.08)',
       }}>
       <div className="grid grid-cols-7 h-14">
         {NAV_LINKS.map(link => {
@@ -143,10 +135,7 @@ export function MobileBottomNav() {
           return (
             <Link key={link.to} to={link.to}
               className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all duration-150"
-              style={{ color: active ? '#38bdf8' : 'rgba(255,255,255,0.35)' }}>
-              <span className={`text-lg leading-none transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
-                {link.icon}
-              </span>
+              style={{ color: active ? '#0071e3' : '#aeaeb2' }}>
               <span className="leading-tight">{link.label}</span>
             </Link>
           );

@@ -91,7 +91,7 @@ export default function Explore() {
       <div className="absolute top-20 left-0 right-0 flex flex-col items-center pointer-events-none z-10 pt-2"
         style={{ animation: 'itemSlideIn 0.55s cubic-bezier(0.16,1,0.3,1) 0.18s both' }}>
         <div className="text-xs text-sky-400/50 font-mono tracking-[0.3em] uppercase mb-2">
-          {user?.city || '探索世界'} · {user?.nickname || user?.username || (isGuest ? '访客旅行者' : 'Our Tour')}
+          {user?.city || '探索世界'} · {user?.nickname || user?.username || (isGuest ? '访客旅行者' : '迹刻 waylog')}
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-white/90 text-center tracking-wide">
           探索每一处{' '}
