@@ -256,7 +256,7 @@ const edges = [
   { from:37, to:36, dist:2000, time:8,  transport:'walk' },
   { from:257,to:36, dist:600,  time:2,  transport:'walk' },   // 建行 -> 西湖
   { from:241,to:36, dist:700,  time:3,  transport:'walk' },   // 药店 -> 西湖
-  { from:38, to:6,  dist:60000,time:90, transport:'car' },    // 灵隐寺 -> 香山（跨城）
+  { from:38, to:6,  dist:1200000,time:300,transport:'car' },    // 灵隐寺 -> 香山（跨城约1200km）
   { from:36, to:238,dist:1000, time:4,  transport:'walk' },   // 西湖 -> 急救站
 
   // ============================================================
@@ -307,6 +307,12 @@ const edges = [
   { from:22, to:36, dist:180000, time:60, transport:'car' },  // 上海 -> 杭州
   { from:36, to:91, dist:900000, time:180,transport:'car' },  // 杭州 -> 桂林
   { from:82, to:81, dist:12000,  time:30, transport:'bus' },  // 大雁塔 -> 兵马俑
+
+  // 北京内部补充路径
+  { from:1,  to:20, dist:4200,  time:18, transport:'subway' }, // 故宫 -> 雍和宫
+  { from:20, to:5,  dist:8000,  time:25, transport:'subway' }, // 雍和宫 -> 圆明园
+  { from:1,  to:4,  dist:15000, time:40, transport:'subway' }, // 故宫 -> 颐和园（直达）
+  { from:1,  to:6,  dist:18000, time:45, transport:'bus' },    // 故宫 -> 香山
 ];
 
 module.exports = { edges };
