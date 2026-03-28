@@ -70,11 +70,43 @@ router.get('/recommend', (req, res) => {
   res.json({ success: true, data: result });
 });
 
+// GET /api/spots/foods?city=北京&cuisine=川菜 — 美食推荐
+router.get('/foods', (req, res) => {
+  const { city, cuisine, limit = 10 } = req.query;
+  let pool = spotRepo.getAll().filter(s => s.type === 'restaurant');
+  if (city) pool = pool.filter(s => s.city === city);
+  if (cuisine) pool = pool.filter(s => s.tags && s.tags.some(t => t.includes(cuisine)));
+  const result = topK(pool, Number(limit));
+  res.json({ success: true, data: result, total: pool.length });
+});
+
 // GET /api/spots/:id — 景点详情
 router.get('/:id', (req, res) => {
   const spot = spotRepo.findById(req.params.id);
   if (!spot) return res.status(404).json({ success: false, message: '景点不存在' });
   res.json({ success: true, data: spot });
+});
+
+// POST /api/spots — 创建景点
+router.post('/', (req, res) => {
+  const { name, type, city, province, lat, lng, description, rating, tags, entranceFee, openHours } = req.body;
+  if (!name || !type || !city) return res.status(400).json({ success: false, message: '名称、类型、城市不能为空' });
+  const spot = spotRepo.create({ name, type, city, province, lat, lng, description, rating: rating || 4.0, tags: tags || [], entranceFee: entranceFee || 0, openHours: openHours || '全天' });
+  res.json({ success: true, data: spot, message: '景点创建成功' });
+});
+
+// PUT /api/spots/:id — 更新景点
+router.put('/:id', (req, res) => {
+  const spot = spotRepo.update(req.params.id, req.body);
+  if (!spot) return res.status(404).json({ success: false, message: '景点不存在' });
+  res.json({ success: true, data: spot, message: '景点更新成功' });
+});
+
+// DELETE /api/spots/:id — 删除景点
+router.delete('/:id', (req, res) => {
+  const deleted = spotRepo.delete(req.params.id);
+  if (!deleted) return res.status(404).json({ success: false, message: '景点不存在' });
+  res.json({ success: true, message: '景点已删除' });
 });
 
 module.exports = router;

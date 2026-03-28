@@ -7,9 +7,11 @@ const NAV_LINKS = [
   { to: '/spots',   label: '发现',    icon: '🗺️' },
   { to: '/route',   label: '路线',    icon: '🧭' },
   { to: '/diary',   label: '日记',    icon: '📖' },
+  { to: '/foods',   label: '美食',    icon: '🍜' },
   { to: '/plaza',   label: '广场',    icon: '🌏' },
   { to: '/profile', label: '旅行者',  icon: '👥' },
   { to: '/algo',    label: '算法',    icon: '⚙️' },
+  { to: '/admin',   label: '管理',    icon: '🔧' },
 ];
 
 export default function Navbar() {

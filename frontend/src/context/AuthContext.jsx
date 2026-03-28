@@ -80,24 +80,40 @@ export function AuthProvider({ children }) {
 
   /** 登录：调用 API，保存到 localStorage */
   const login = useCallback(async (username) => {
-    const res = await apiLogin({ username });
-    const payload = trimUser(res.data.data);
-    localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
-    localStorage.removeItem(GUEST_KEY);
-    setUser(payload);
-    setIsGuest(false);
-    return payload;
+    try {
+      const res = await apiLogin({ username });
+      const payload = trimUser(res.data.data);
+      localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
+      localStorage.removeItem(GUEST_KEY);
+      setUser(payload);
+      setIsGuest(false);
+      return { ok: true, ...payload };
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 401) {
+        return { ok: false, message: '用户不存在' };
+      }
+      throw err;
+    }
   }, []);
 
   /** 注册：调用 API，自动登录 */
   const register = useCallback(async (username, nickname) => {
-    const res = await apiRegister({ username, nickname: nickname || username });
-    const payload = trimUser(res.data.data);
-    localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
-    localStorage.removeItem(GUEST_KEY);
-    setUser(payload);
-    setIsGuest(false);
-    return payload;
+    try {
+      const res = await apiRegister({ username, nickname: nickname || username });
+      const payload = trimUser(res.data.data);
+      localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
+      localStorage.removeItem(GUEST_KEY);
+      setUser(payload);
+      setIsGuest(false);
+      return { ok: true, ...payload };
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 409) {
+        return { ok: false, message: '用户名已存在' };
+      }
+      throw err;
+    }
   }, []);
 
   /** 免登录进入（访客模式） */
