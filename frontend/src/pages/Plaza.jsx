@@ -19,6 +19,7 @@ export default function Plaza() {
   const requireAuth = useRequireAuth();
   const [activeTab, setActiveTab] = useState('hot');
   const [posts, setPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [featuredSpots, setFeaturedSpots] = useState([]);
   const [showPost, setShowPost] = useState(false);
@@ -38,8 +39,20 @@ export default function Plaza() {
   }, [activeTab]);
 
   const handleLike = async (id) => {
-    await likeDiary(id);
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: p.likes + 1 } : p));
+    if (likedPosts.has(id)) {
+      // 取消点赞
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: Math.max(0, p.likes - 1) } : p));
+    } else {
+      // 点赞
+      const res = await likeDiary(id);
+      setLikedPosts(prev => new Set([...prev, id]));
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: res.data.likes } : p));
+    }
   };
 
   const handlePost = async (e) => {
@@ -197,8 +210,8 @@ export default function Plaza() {
                   {/* 互动栏 */}
                   <div className="flex items-center gap-4 pt-3 border-t border-gray-50">
                     <button onClick={() => requireAuth(PERMISSIONS.LIKE, () => handleLike(post.id))}
-                      className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors text-sm">
-                      <span>❤️</span>
+                      className={`flex items-center gap-1.5 transition-colors text-sm ${likedPosts.has(post.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}>
+                      <span>{likedPosts.has(post.id) ? '❤️' : '🤍'}</span>
                       <span>{post.likes || 0}</span>
                     </button>
                     <span className="flex items-center gap-1.5 text-gray-400 text-sm">

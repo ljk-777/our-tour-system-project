@@ -1,6 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider }  from './context/AuthContext.jsx';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth }  from './context/AuthContext.jsx';
 import { getStoredUser, isGuestMode } from './hooks/useAuth.js';
+
+/** ScrollToTop — 路由切换时自动滚动到顶部 */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 // 布局
 import Navbar  from './components/Navbar.jsx';
@@ -19,6 +27,8 @@ import Diary        from './pages/Diary.jsx';
 import Plaza        from './pages/Plaza.jsx';
 import Profile      from './pages/Profile.jsx';
 import AlgoDemo     from './pages/AlgoDemo.jsx';
+import Admin        from './pages/Admin.jsx';
+import Foods        from './pages/Foods.jsx';
 
 /**
  * ProtectedRoute — 需要登录或访客身份才能访问
@@ -30,12 +40,35 @@ function ProtectedRoute({ children }) {
 }
 
 /**
+ * GuestBanner — 访客模式顶部提示条
+ */
+function GuestBanner() {
+  const { isGuest } = useAuth();
+  if (!isGuest) return null;
+  return (
+    <div style={{ background: 'linear-gradient(90deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06))', borderBottom: '1px solid rgba(245,158,11,0.15)' }}
+      className="px-4 py-2.5 flex items-center justify-between text-sm">
+      <span className="flex items-center gap-2" style={{ color: '#fcd34d' }}>
+        <span>👤</span>
+        <span>当前为<b>访客模式</b>，可浏览内容，但点赞、评论、发帖等功能需要</span>
+        <Link to="/auth" className="underline hover:no-underline font-semibold">登录</Link>
+      </span>
+      <Link to="/auth" className="shrink-0 text-xs font-semibold px-3 py-1 rounded-lg transition-colors"
+        style={{ background: 'rgba(245,158,11,0.2)', color: '#fcd34d' }}>
+        登录 / 注册
+      </Link>
+    </div>
+  );
+}
+
+/**
  * StandardLayout — 带 Navbar + Footer 的标准页布局
  */
 function StandardLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#070b18' }}>
       <Navbar />
+      <GuestBanner />
       <main className="flex-1 pb-14 lg:pb-0">
         {children}
       </main>
@@ -49,6 +82,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* ── 认证入口（全屏，无 Navbar）──────────────── */}
           <Route path="/auth"  element={<Auth />} />
@@ -68,6 +102,8 @@ export default function App() {
           <Route path="/plaza"     element={<StandardLayout><Plaza /></StandardLayout>} />
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
           <Route path="/algo"      element={<StandardLayout><AlgoDemo /></StandardLayout>} />
+          <Route path="/admin"     element={<StandardLayout><Admin /></StandardLayout>} />
+          <Route path="/foods"     element={<StandardLayout><Foods /></StandardLayout>} />
 
           {/* ── 404 ──────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
