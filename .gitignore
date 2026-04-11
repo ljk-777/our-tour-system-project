@@ -4,4 +4,6 @@ __pycache__/
 *.log
 *.zip
 .DS_Store
+agent.md
+AGENTS.md
 
