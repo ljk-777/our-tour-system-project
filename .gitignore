@@ -2,5 +2,8 @@ node_modules/
 .env
 __pycache__/
 *.log
+*.zip
 .DS_Store
+agent.md
+AGENTS.md
 
