@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import BrandIcon from './BrandIcon.jsx';
 
 /**
  * ExploreActionBar — Explore 页面顶部玻璃导航栏
@@ -26,14 +27,16 @@ export default function ExploreActionBar({ user, isGuest, onSearch, onLogout }) 
       >
         {/* Logo */}
         <Link to="/explore" className="flex items-center gap-2 shrink-0 group">
-          <span className="text-xl group-hover:scale-110 transition-transform duration-200"
-            style={{ filter: 'drop-shadow(0 0 6px rgba(14,165,233,0.45))' }}>
-            🧭
-          </span>
-          <span className="font-bold text-base hidden sm:block tracking-wide"
-            style={{ background: 'linear-gradient(135deg,#38bdf8,#2dd4bf)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Our Tour
-          </span>
+          <BrandIcon size={26} variant="light"
+            className="group-hover:scale-110 transition-transform duration-200"
+            style={{ filter: 'drop-shadow(0 0 8px rgba(14,165,233,0.55))' }} />
+          <div className="hidden sm:flex flex-col leading-none">
+            <span className="font-bold text-sm tracking-tight"
+              style={{ background: 'linear-gradient(135deg,#38bdf8,#2dd4bf)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              迹刻
+            </span>
+            <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: 'rgba(56,189,248,0.45)' }}>waylog</span>
+          </div>
         </Link>
 
         {/* 搜索触发按钮 */}

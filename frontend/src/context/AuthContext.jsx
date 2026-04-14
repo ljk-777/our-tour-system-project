@@ -80,40 +80,26 @@ export function AuthProvider({ children }) {
 
   /** 登录：调用 API，保存到 localStorage */
   const login = useCallback(async (username) => {
-    try {
-      const res = await apiLogin({ username });
-      const payload = trimUser(res.data.data);
-      localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
-      localStorage.removeItem(GUEST_KEY);
-      setUser(payload);
-      setIsGuest(false);
-      return { ok: true, ...payload };
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 401) {
-        return { ok: false, message: '用户不存在' };
-      }
-      throw err;
-    }
+    const res = await apiLogin({ username });
+    const payload = trimUser(res.data.data);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
+    localStorage.removeItem(GUEST_KEY);
+    setUser(payload);
+    setIsGuest(false);
+    return payload;
   }, []);
 
-  /** 注册：调用 API，自动登录 */
-  const register = useCallback(async (username, nickname) => {
-    try {
-      const res = await apiRegister({ username, nickname: nickname || username });
-      const payload = trimUser(res.data.data);
-      localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
-      localStorage.removeItem(GUEST_KEY);
-      setUser(payload);
-      setIsGuest(false);
-      return { ok: true, ...payload };
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 409) {
-        return { ok: false, message: '用户名已存在' };
-      }
-      throw err;
-    }
+  /** 注册：调用 API，自动登录（avatar 可为 emoji 字符串或 base64 图片）*/
+  const register = useCallback(async (username, avatar) => {
+    const res = await apiRegister({ username, nickname: username, avatar: avatar || '🧭' });
+    // 若 avatar 为 base64 图片，后端内存存储字符串可能很大；
+    // 同时在 localStorage 里保存，保证前端始终能读到
+    const payload = trimUser({ ...res.data.data, avatar: avatar || res.data.data?.avatar || '🧭' });
+    localStorage.setItem(AUTH_KEY, JSON.stringify(payload));
+    localStorage.removeItem(GUEST_KEY);
+    setUser(payload);
+    setIsGuest(false);
+    return payload;
   }, []);
 
   /** 免登录进入（访客模式） */

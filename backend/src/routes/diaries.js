@@ -4,16 +4,6 @@ const diaryRepo = require('../repositories/diaryRepository');
 const { searchInItems } = require('../algorithms/kmp');
 const { FullTextIndex } = require('../algorithms/trie');
 
-// 输入验证
-const validateDiary = (body) => {
-  if (!body.title || typeof body.title !== 'string') return '标题不能为空';
-  if (body.title.length > 100) return '标题长度不能超过100个字符';
-  if (!body.content || typeof body.content !== 'string') return '内容不能为空';
-  if (body.content.length > 5000) return '内容长度不能超过5000个字符';
-  if (body.rating && (body.rating < 1 || body.rating > 5)) return '评分需在1-5之间';
-  return null;
-};
-
 // 初始化全文索引（倒排索引）
 const ftIndex = new FullTextIndex();
 diaryRepo.getAll().forEach(d => ftIndex.add(d));
@@ -61,10 +51,9 @@ router.get('/:id', (req, res) => {
 
 // POST /api/diaries — 发布日记
 router.post('/', (req, res) => {
-  const error = validateDiary(req.body);
-  if (error) return res.status(400).json({ success: false, message: error });
-  
   const { userId, userName, userAvatar, title, content, spotId, spotName, tags, rating, visitDate } = req.body;
+  if (!title || !content) return res.status(400).json({ success: false, message: '标题和内容不能为空' });
+
   const diary = diaryRepo.create({ userId, userName, userAvatar, title, content, spotId, spotName, tags, rating, visitDate });
   ftIndex.add(diary);
   res.json({ success: true, data: diary, message: '日记发布成功' });
@@ -80,26 +69,10 @@ router.post('/:id/like', (req, res) => {
 // POST /api/diaries/:id/comment — 评论
 router.post('/:id/comment', (req, res) => {
   const { userId, userName, content } = req.body;
-  if (!content || typeof content !== 'string') return res.status(400).json({ success: false, message: '评论不能为空' });
-  if (content.length > 500) return res.status(400).json({ success: false, message: '评论长度不能超过500个字符' });
+  if (!content) return res.status(400).json({ success: false, message: '评论不能为空' });
   const diary = diaryRepo.addComment(req.params.id, { userId, userName, content });
   if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
   res.json({ success: true, data: diary });
-});
-
-// DELETE /api/diaries/:id — 删除日记
-router.delete('/:id', (req, res) => {
-  const deleted = diaryRepo.delete(req.params.id);
-  if (!deleted) return res.status(404).json({ success: false, message: '日记不存在' });
-  res.json({ success: true, message: '日记已删除' });
-});
-
-// PUT /api/diaries/:id — 更新日记
-router.put('/:id', (req, res) => {
-  const { title, content, tags, rating } = req.body;
-  const diary = diaryRepo.update(req.params.id, { title, content, tags, rating });
-  if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
-  res.json({ success: true, data: diary, message: '日记更新成功' });
 });
 
 module.exports = router;

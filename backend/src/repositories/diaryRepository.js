@@ -60,10 +60,7 @@ const diaryRepository = {
   addComment(id, comment) {
     const diary = _diaries.find(d => d.id === Number(id));
     if (!diary) return null;
-    // 确保 comments 是数组
-    if (!Array.isArray(diary.comments)) {
-      diary.comments = [];
-    }
+    if (!diary.comments) diary.comments = [];
     diary.comments.push({ id: diary.comments.length + 1, ...comment, createdAt: new Date().toISOString() });
     return diary;
   },
