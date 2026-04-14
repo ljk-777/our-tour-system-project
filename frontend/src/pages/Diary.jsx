@@ -1,72 +1,50 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, searchDiaries, createDiary, likeDiary, commentDiary, deleteDiary } from '../api/index.js';
+import { getDiaries, searchDiaries, createDiary, likeDiary } from '../api/index.js';
 import { AuthGuard, useRequireAuth } from '../components/AuthGuard.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
 import { PERMISSIONS } from '../context/AuthContext.jsx';
 
 const WEATHER_ICON = { '晴':'☀️', '多云':'⛅', '阴':'🌥️', '雨':'🌧️', '雪':'❄️', '多云转晴':'🌤️' };
 const MOOD_ICON = { '愉悦':'😊', '激动':'🤩', '满足':'😌', '宁静':'😶', '震撼':'😲', '感动':'🥹', '自由':'🤸', '虔诚':'🙏' };
 
-function DiaryCard({ diary, onLike, onComment, onDelete, requireAuth, hasLiked }) {
+function DiaryCard({ diary, onLike, requireAuth }) {
   const [expanded, setExpanded] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
-  const { user, isLoggedIn } = useAuth();
-  const contentLen = diary.content?.length || 0;
-  const isLong = contentLen > 200;
-  const comments = Array.isArray(diary.comments) ? diary.comments : [];
-  const isOwner = isLoggedIn && user?.id === diary.userId;
-
-  const handleSubmitComment = async (e) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    setSubmittingComment(true);
-    try {
-      await onComment(diary.id, commentText);
-      setCommentText('');
-      setShowComments(true);
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('确定要删除这篇日记吗？')) {
-      onDelete(diary.id);
-    }
-  };
+  const [hovered, setHovered]   = useState(false);
+  const isLong = diary.content?.length > 120;
 
   return (
-    <div className="card p-5 transition-all">
+    <div className="card p-5"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        transform: hovered ? 'translateY(-5px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 12px 32px rgba(0,0,0,0.12)' : 'none',
+        transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+      }}
+    >
       <div className="flex items-start gap-3">
         {/* 头像 */}
         <div className="shrink-0">
-          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl"
+            style={{
+              transform: hovered ? 'scale(1.18)' : 'scale(1)',
+              transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
             {diary.userAvatar}
           </div>
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* 标题 + 评分 + 删除按钮 */}
+          {/* 标题 + 评分 */}
           <div className="flex items-start justify-between gap-2 mb-1">
             <h3 className="font-semibold text-gray-900 text-base leading-snug">{diary.title}</h3>
-            <div className="flex items-center gap-2 shrink-0">
-              {diary.rating && (
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span key={i} className={`text-sm ${i < diary.rating ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
-                  ))}
-                </div>
-              )}
-              {isOwner && (
-                <button onClick={handleDelete}
-                  className="text-gray-300 hover:text-red-500 transition-colors p-1" title="删除日记">
-                  🗑️
-                </button>
-              )}
-            </div>
+            {diary.rating && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} className={`text-sm ${i < diary.rating ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 元信息 */}
@@ -116,66 +94,18 @@ function DiaryCard({ diary, onLike, onComment, onDelete, requireAuth, hasLiked }
           {/* 操作栏 */}
           <div className="flex items-center gap-4 pt-2 border-t border-gray-50">
             <button onClick={() => requireAuth(PERMISSIONS.LIKE, () => onLike(diary.id))}
-              className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}>
-              <span>{hasLiked ? '❤️' : '🤍'}</span> <span className="font-medium">{diary.likes}</span>
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors">
+              <span>❤️</span> <span className="font-medium">{diary.likes}</span>
             </button>
-            <button onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-500 transition-colors">
+            <span className="flex items-center gap-1.5 text-sm text-gray-400">
               <span>💬</span>
-              <span>{comments.length} 评论</span>
-            </button>
+              <span>{Array.isArray(diary.comments) ? diary.comments.length : (diary.comments || 0)} 评论</span>
+            </span>
             <span className="flex items-center gap-1.5 text-sm text-gray-400">
               <span>👁️</span> <span>{diary.views}</span>
             </span>
             <span className="ml-auto text-xs text-gray-300">{diary.createdAt?.slice(0, 10)}</span>
           </div>
-
-          {/* 评论区 */}
-          {showComments && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              {/* 评论列表 */}
-              {comments.length > 0 ? (
-                <div className="space-y-2 mb-3">
-                  {comments.map((c, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm">
-                      <span className="text-gray-500 font-medium shrink-0">{c.userName || '用户'}:</span>
-                      <span className="text-gray-600">{c.content}</span>
-                      <span className="ml-auto text-xs text-gray-300 shrink-0">{c.createdAt?.slice(0, 10)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 mb-3">暂无评论，来抢沙发吧～</p>
-              )}
-
-              {/* 发表评论 */}
-              <AuthGuard permission={PERMISSIONS.COMMENT}
-                fallback={
-                  <p className="text-xs text-gray-400">
-                    <Link to="/auth" className="text-blue-500 hover:underline">登录</Link> 后即可评论
-                  </p>
-                }>
-                <form onSubmit={handleSubmitComment} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    placeholder="写下你的评论..."
-                    autoComplete="off"
-                    style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'rgba(255,255,255,0.9)',
-                    }}
-                    className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400" />
-                  <button type="submit" disabled={submittingComment || !commentText.trim()}
-                    className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors">
-                    {submittingComment ? '发送中...' : '发送'}
-                  </button>
-                </form>
-              </AuthGuard>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -184,9 +114,7 @@ function DiaryCard({ diary, onLike, onComment, onDelete, requireAuth, hasLiked }
 
 export default function Diary() {
   const requireAuth = useRequireAuth();
-  const { user, isLoggedIn } = useAuth();
   const [diaries, setDiaries] = useState([]);
-  const [likedDiaries, setLikedDiaries] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQ, setSearchQ] = useState('');
   const [searchMode, setSearchMode] = useState('kmp');
@@ -220,30 +148,8 @@ export default function Diary() {
   };
 
   const handleLike = async (id) => {
-    if (likedDiaries.has(id)) {
-      // 取消点赞
-      setLikedDiaries(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setDiaries(prev => prev.map(d => d.id === id ? { ...d, likes: Math.max(0, d.likes - 1) } : d));
-    } else {
-      // 点赞
-      const res = await likeDiary(id);
-      setLikedDiaries(prev => new Set([...prev, id]));
-      setDiaries(prev => prev.map(d => d.id === id ? { ...d, likes: res.data.likes } : d));
-    }
-  };
-
-  const handleComment = async (id, content) => {
-    const res = await commentDiary(id, { userId: user?.id, userName: user?.nickname || '用户', content });
-    setDiaries(prev => prev.map(d => d.id === id ? res.data.data : d));
-  };
-
-  const handleDelete = async (id) => {
-    await deleteDiary(id);
-    setDiaries(prev => prev.filter(d => d.id !== id));
+    await likeDiary(id);
+    setDiaries(prev => prev.map(d => d.id === id ? { ...d, likes: d.likes + 1 } : d));
   };
 
   const handleSubmit = async (e) => {
@@ -253,8 +159,8 @@ export default function Diary() {
     try {
       const tagList = form.tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
       const res = await createDiary({
-        ...form, tags: tagList,
-        userId: user?.id, userName: user?.nickname || '用户', userAvatar: user?.avatar || '🧭',
+        ...form, tags: tagList, userId: 1,
+        userName: '演示用户', userAvatar: '🧭',
         visitDate: new Date().toISOString().slice(0, 10),
       });
       setDiaries(prev => [res.data.data, ...prev]);
@@ -375,8 +281,10 @@ export default function Diary() {
         </div>
       ) : (
         <div className="space-y-4">
-          {diaries.map(d => (
-            <DiaryCard key={d.id} diary={d} onLike={handleLike} onComment={handleComment} onDelete={handleDelete} requireAuth={requireAuth} hasLiked={likedDiaries.has(d.id)} />
+          {diaries.map((d, i) => (
+            <div key={d.id} style={{ animation: `itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i, 6) * 60}ms both` }}>
+              <DiaryCard diary={d} onLike={handleLike} requireAuth={requireAuth} />
+            </div>
           ))}
         </div>
       )}
