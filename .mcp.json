@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "node",
+      "args": ["/Users/marine/Desktop/our-tour-system-project/mcp/servers/github-mcp-server/dist/index.js"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
