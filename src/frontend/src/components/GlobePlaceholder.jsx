@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import earthMapUrl from '../assets/earth/earthmap1k.jpg';
+import earthSpecUrl from '../assets/earth/earthspec1k.jpg';
+import earthCloudUrl from '../assets/earth/earthcloudmap.jpg';
+import earthCloudAlphaUrl from '../assets/earth/earthcloudmaptrans.jpg';
 
 /**
  * GlobePlaceholder — 地球占位 / 模拟渲染组件
@@ -152,6 +156,32 @@ function mixRGB(a, b, t) {
   };
 }
 
+function loadImageData(url, w, h) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.loading = 'eager';
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const cctx = c.getContext('2d', { willReadFrequently: true });
+      cctx.drawImage(img, 0, 0, w, h);
+      const imageData = cctx.getImageData(0, 0, w, h);
+      resolve({ w, h, data: imageData.data });
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function sampleTex(tex, u, v) {
+  const x = Math.min(tex.w - 1, Math.max(0, Math.floor(u * tex.w)));
+  const y = Math.min(tex.h - 1, Math.max(0, Math.floor(v * tex.h)));
+  const i = (y * tex.w + x) * 4;
+  return { r: tex.data[i + 0], g: tex.data[i + 1], b: tex.data[i + 2], a: tex.data[i + 3] };
+}
+
 function buildEarthTexture(seed = 1337, texW = 512, texH = 256) {
   const colors = new Uint8ClampedArray(texW * texH * 4);
   const landMask = new Uint8Array(texW * texH);
@@ -298,6 +328,7 @@ export default function GlobePlaceholder({
   const rafRef     = useRef(null);
   const stateRef   = useRef({ angle: 0, dragging: false, lastX: 0, dragVelocity: 0 });
   const hitsRef    = useRef([]); // 每帧更新：[{ sx, sy, hitR, id, label, vis }]
+  const texturesRef = useRef({ ready: false, loading: false, error: false, map: null, spec: null, cloud: null, cloudAlpha: null });
   const [tooltip,  setTooltip]  = useState(null);  // { x, y, label }
   const [isDragging, setIsDragging] = useState(false);
 
@@ -314,6 +345,29 @@ export default function GlobePlaceholder({
     })();
 
     const mapRef = { w: 0, h: 0, canvas: null, ctx: null, img: null, data: null };
+    let disposed = false;
+
+    if (!texturesRef.current.loading && !texturesRef.current.ready && !texturesRef.current.error) {
+      texturesRef.current.loading = true;
+      Promise.all([
+        loadImageData(earthMapUrl, 1024, 512),
+        loadImageData(earthSpecUrl, 1024, 512),
+        loadImageData(earthCloudUrl, 1024, 512),
+        loadImageData(earthCloudAlphaUrl, 1024, 512),
+      ]).then(([map, spec, cloud, cloudAlpha]) => {
+        if (disposed) return;
+        texturesRef.current.map = map;
+        texturesRef.current.spec = spec;
+        texturesRef.current.cloud = cloud;
+        texturesRef.current.cloudAlpha = cloudAlpha;
+        texturesRef.current.ready = true;
+        texturesRef.current.loading = false;
+      }).catch(() => {
+        if (disposed) return;
+        texturesRef.current.loading = false;
+        texturesRef.current.error = true;
+      });
+    }
 
     // ── 响应式尺寸
     const resize = () => {
@@ -380,7 +434,12 @@ export default function GlobePlaceholder({
       const mh = mapRef.h;
 
       const rot = angle;
-      const cloudRot = angle * 1.12 + t * 0.00006;
+      const cloudRot = angle * 1.06 + t * 0.00006;
+      const hasRealTex = texturesRef.current.ready && texturesRef.current.map && texturesRef.current.spec && texturesRef.current.cloud && texturesRef.current.cloudAlpha;
+      const realMap = texturesRef.current.map;
+      const realSpec = texturesRef.current.spec;
+      const realCloud = texturesRef.current.cloud;
+      const realCloudAlpha = texturesRef.current.cloudAlpha;
 
       for (let py = 0; py < mh; py++) {
         const yn = -((py + 0.5) / mh * 2 - 1);
@@ -397,18 +456,29 @@ export default function GlobePlaceholder({
           const lon = Math.atan2(xn, zn) + rot;
           const u = wrap01(lon / (Math.PI * 2) + 0.5);
           const v = clamp01(0.5 - lat / Math.PI);
-          const tx = Math.min(earth.texW - 1, Math.floor(u * earth.texW));
-          const ty = Math.min(earth.texH - 1, Math.floor(v * earth.texH));
-          const ti = (ty * earth.texW + tx) * 4;
-          const mi = ty * earth.texW + tx;
+          let rr, gg, bb;
+          let specMask = 0;
 
-          let rr = earth.colors[ti + 0];
-          let gg = earth.colors[ti + 1];
-          let bb = earth.colors[ti + 2];
+          if (hasRealTex) {
+            const col = sampleTex(realMap, u, v);
+            rr = col.r;
+            gg = col.g;
+            bb = col.b;
+            specMask = sampleTex(realSpec, u, v).r / 255;
+          } else {
+            const tx = Math.min(earth.texW - 1, Math.floor(u * earth.texW));
+            const ty = Math.min(earth.texH - 1, Math.floor(v * earth.texH));
+            const ti = (ty * earth.texW + tx) * 4;
+            const mi = ty * earth.texW + tx;
+            rr = earth.colors[ti + 0];
+            gg = earth.colors[ti + 1];
+            bb = earth.colors[ti + 2];
+            specMask = earth.landMask[mi] ? 0 : 1;
+          }
 
           const ndotl = Math.max(0, xn * light.x + yn * light.y + zn * light.z);
-          const ambient = 0.34;
-          const diff = 0.86 * ndotl;
+          const ambient = hasRealTex ? 0.30 : 0.34;
+          const diff = (hasRealTex ? 0.95 : 0.86) * ndotl;
           const shade = ambient + diff;
           rr *= shade;
           gg *= shade;
@@ -420,8 +490,8 @@ export default function GlobePlaceholder({
           gg *= vignette;
           bb *= vignette;
 
-          if (!earth.landMask[mi]) {
-            const spec = Math.pow(ndotl, 22) * 0.28;
+          if (specMask > 0.03) {
+            const spec = Math.pow(ndotl, hasRealTex ? 34 : 22) * (hasRealTex ? 0.55 : 0.28) * specMask;
             rr = rr + (255 - rr) * spec;
             gg = gg + (255 - gg) * spec;
             bb = bb + (255 - bb) * spec;
@@ -429,14 +499,27 @@ export default function GlobePlaceholder({
 
           const lonC = Math.atan2(xn, zn) + cloudRot;
           const uc = wrap01(lonC / (Math.PI * 2) + 0.5);
-          const tcx = Math.min(earth.texW - 1, Math.floor(uc * earth.texW));
-          const cmi = ty * earth.texW + tcx;
-          const ca = earth.clouds[cmi] / 255;
-          if (ca > 0) {
-            const c = ca * 0.32 * (0.35 + 0.65 * ndotl);
-            rr = rr + (255 - rr) * c;
-            gg = gg + (255 - gg) * c;
-            bb = bb + (255 - bb) * c;
+          if (hasRealTex) {
+            const ca = sampleTex(realCloudAlpha, uc, v).r / 255;
+            if (ca > 0.02) {
+              const cc = sampleTex(realCloud, uc, v);
+              const s = (0.40 + 0.60 * ndotl);
+              const c = ca * 0.55;
+              rr = lerp(rr, cc.r * s, c);
+              gg = lerp(gg, cc.g * s, c);
+              bb = lerp(bb, cc.b * s, c);
+            }
+          } else {
+            const ty = Math.min(earth.texH - 1, Math.floor(v * earth.texH));
+            const tcx = Math.min(earth.texW - 1, Math.floor(uc * earth.texW));
+            const cmi = ty * earth.texW + tcx;
+            const ca = earth.clouds[cmi] / 255;
+            if (ca > 0) {
+              const c = ca * 0.32 * (0.35 + 0.65 * ndotl);
+              rr = rr + (255 - rr) * c;
+              gg = gg + (255 - gg) * c;
+              bb = bb + (255 - bb) * c;
+            }
           }
 
           data[di + 0] = rr < 0 ? 0 : rr > 255 ? 255 : rr;
@@ -571,6 +654,7 @@ export default function GlobePlaceholder({
     rafRef.current = requestAnimationFrame(animate);
 
     return () => {
+      disposed = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       ro.disconnect();
     };
