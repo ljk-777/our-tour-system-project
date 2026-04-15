@@ -77,6 +77,188 @@ const SPOT_COLORS = [
   '#f97316', '#e879f9',
 ];
 
+function clamp01(v) {
+  if (v < 0) return 0;
+  if (v > 1) return 1;
+  return v;
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function smoothstep(edge0, edge1, x) {
+  const t = clamp01((x - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
+}
+
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6d2b79f5;
+    let x = t;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hash2i(x, y, seed) {
+  let h = seed ^ (x * 374761393) ^ (y * 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function valueNoise2D(x, y, seed) {
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const xf = x - x0;
+  const yf = y - y0;
+  const u = xf * xf * (3 - 2 * xf);
+  const v = yf * yf * (3 - 2 * yf);
+
+  const a = hash2i(x0, y0, seed);
+  const b = hash2i(x0 + 1, y0, seed);
+  const c = hash2i(x0, y0 + 1, seed);
+  const d = hash2i(x0 + 1, y0 + 1, seed);
+
+  return lerp(lerp(a, b, u), lerp(c, d, u), v);
+}
+
+function fbm2D(x, y, seed, octaves = 5) {
+  let amp = 0.55;
+  let freq = 1;
+  let sum = 0;
+  let norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    sum += amp * valueNoise2D(x * freq, y * freq, seed + i * 1013);
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2;
+  }
+  return sum / (norm || 1);
+}
+
+function wrap01(x) {
+  const v = x % 1;
+  return v < 0 ? v + 1 : v;
+}
+
+function mixRGB(a, b, t) {
+  return {
+    r: Math.round(lerp(a.r, b.r, t)),
+    g: Math.round(lerp(a.g, b.g, t)),
+    b: Math.round(lerp(a.b, b.b, t)),
+  };
+}
+
+function buildEarthTexture(seed = 1337, texW = 512, texH = 256) {
+  const colors = new Uint8ClampedArray(texW * texH * 4);
+  const landMask = new Uint8Array(texW * texH);
+  const clouds = new Uint8Array(texW * texH);
+  const rand = mulberry32(seed);
+
+  const blobs = [
+    { x: 0.23, y: 0.43, r: 0.18, a: 1.15 },
+    { x: 0.30, y: 0.63, r: 0.12, a: 0.75 },
+    { x: 0.43, y: 0.50, r: 0.10, a: 0.65 },
+    { x: 0.52, y: 0.42, r: 0.22, a: 1.25 },
+    { x: 0.62, y: 0.55, r: 0.20, a: 0.95 },
+    { x: 0.70, y: 0.44, r: 0.16, a: 0.85 },
+    { x: 0.78, y: 0.63, r: 0.11, a: 0.70 },
+    { x: 0.88, y: 0.72, r: 0.10, a: 0.60 },
+  ];
+
+  const seaLevel = 0.55;
+  const oceanDeep = hexToRgb('#061b3a');
+  const oceanMid = hexToRgb('#0b3a69');
+  const oceanShallow = hexToRgb('#117a8b');
+  const landGreen = hexToRgb('#2f9e66');
+  const landForest = hexToRgb('#1b6b4c');
+  const landDesert = hexToRgb('#c7b37a');
+  const landRock = hexToRgb('#8b7d6b');
+  const landMountain = hexToRgb('#6b6f75');
+  const ice = hexToRgb('#eef3f7');
+  const sand = hexToRgb('#d7c48a');
+
+  for (let y = 0; y < texH; y++) {
+    const v = y / (texH - 1);
+    const lat = (0.5 - v) * Math.PI;
+    const latAbs = Math.abs(lat) / (Math.PI / 2);
+
+    for (let x = 0; x < texW; x++) {
+      const u0 = x / (texW - 1);
+      const u = wrap01(u0);
+
+      let blob = 0;
+      for (const b of blobs) {
+        const dx0 = Math.abs(u - b.x);
+        const dx = Math.min(dx0, 1 - dx0);
+        const dy = (v - b.y) * 1.15;
+        const d2 = (dx * dx + dy * dy) / (b.r * b.r);
+        blob += b.a * Math.exp(-d2 * 2.2);
+      }
+
+      const base = fbm2D(u * 3.5, v * 3.5, seed, 5);
+      const ridge = 1 - Math.abs(2 * fbm2D(u * 7.2 + 19.1, v * 6.7 + 3.7, seed + 77, 4) - 1);
+      const elevation = 0.45 * base + 0.55 * blob + 0.25 * ridge;
+
+      const moisture = fbm2D(u * 5.5 + 11.7, v * 5.2 + 5.1, seed + 701, 4);
+      const temp = clamp01(1 - latAbs);
+
+      const isLand = elevation > seaLevel;
+      landMask[y * texW + x] = isLand ? 1 : 0;
+
+      let rgb;
+      if (!isLand) {
+        const depth = clamp01((seaLevel - elevation) / 0.35);
+        rgb = mixRGB(oceanShallow, oceanDeep, depth);
+        const wave = fbm2D(u * 42 + 2.3, v * 36 + 7.9, seed + 999, 3);
+        const foam = smoothstep(0.62, 0.82, wave) * 0.10;
+        rgb = mixRGB(rgb, { r: 255, g: 255, b: 255 }, foam);
+      } else {
+        const e = clamp01((elevation - seaLevel) / 0.55);
+        const arid = smoothstep(0.40, 0.75, 1 - moisture) * smoothstep(0.25, 0.90, temp);
+        const veg = smoothstep(0.20, 0.95, moisture) * smoothstep(0.15, 1.00, temp);
+        const lowland = mixRGB(landDesert, landGreen, clamp01(veg * 0.85 + (1 - arid) * 0.2));
+        const midland = mixRGB(lowland, landForest, smoothstep(0.05, 0.40, moisture) * 0.55);
+        const highland = mixRGB(landRock, landMountain, smoothstep(0.35, 0.95, e));
+        rgb = mixRGB(midland, highland, smoothstep(0.25, 0.75, e));
+
+        const coast = smoothstep(0.00, 0.08, e);
+        rgb = mixRGB(sand, rgb, coast);
+
+        const snowLine = lerp(0.78, 0.55, temp);
+        const snowT = smoothstep(snowLine, 0.98, e) * smoothstep(0.55, 1.00, latAbs);
+        rgb = mixRGB(rgb, ice, snowT);
+
+        if (latAbs > 0.92) {
+          rgb = mixRGB(rgb, ice, smoothstep(0.92, 1.00, latAbs));
+        }
+      }
+
+      const cloudN = fbm2D(u * 6.8 + 100.3, v * 6.2 + 200.7, seed + 2027, 5);
+      const cloud = smoothstep(0.56, 0.78, cloudN) * smoothstep(0.08, 0.92, 1 - latAbs);
+      const cloudAlpha = Math.round(clamp01(cloud) * 255);
+      clouds[y * texW + x] = cloudAlpha;
+
+      const i = (y * texW + x) * 4;
+      colors[i + 0] = rgb.r;
+      colors[i + 1] = rgb.g;
+      colors[i + 2] = rgb.b;
+      colors[i + 3] = 255;
+    }
+  }
+
+  for (let i = 0; i < texW * texH; i++) {
+    if (clouds[i] > 0 && rand() > 0.75) {
+      clouds[i] = Math.min(255, clouds[i] + 55);
+    }
+  }
+
+  return { texW, texH, colors, landMask, clouds };
+}
+
 // 字符串哈希 → 确定性数值（未知城市的位置回退）
 function hashCode(str) {
   let h = 0;
@@ -124,6 +306,14 @@ export default function GlobePlaceholder({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
+    const earth = buildEarthTexture(1337, 512, 256);
+    const light = (() => {
+      const lx = -0.38, ly = 0.18, lz = 0.90;
+      const ll = Math.hypot(lx, ly, lz) || 1;
+      return { x: lx / ll, y: ly / ll, z: lz / ll };
+    })();
+
+    const mapRef = { w: 0, h: 0, canvas: null, ctx: null, img: null, data: null };
 
     // ── 响应式尺寸
     const resize = () => {
@@ -173,35 +363,118 @@ export default function GlobePlaceholder({
       ctx.fillStyle = glow;
       ctx.beginPath(); ctx.arc(cx, cy, R * 1.5, 0, Math.PI * 2); ctx.fill();
 
-      // 2. 球体基底渐变
-      const sph = ctx.createRadialGradient(cx - R * 0.32, cy - R * 0.32, R * 0.05, cx, cy, R);
-      sph.addColorStop(0,    '#1e3f6e');
-      sph.addColorStop(0.35, '#0d2545');
-      sph.addColorStop(0.7,  '#071728');
-      sph.addColorStop(1,    '#020810');
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fillStyle = sph; ctx.fill();
+      const mapW = Math.max(260, Math.min(420, Math.floor(R * 1.55)));
+      if (!mapRef.canvas || mapRef.w !== mapW) {
+        mapRef.w = mapW;
+        mapRef.h = mapW;
+        mapRef.canvas = document.createElement('canvas');
+        mapRef.canvas.width = mapW;
+        mapRef.canvas.height = mapW;
+        mapRef.ctx = mapRef.canvas.getContext('2d', { willReadFrequently: true });
+        mapRef.img = mapRef.ctx.createImageData(mapW, mapW);
+        mapRef.data = mapRef.img.data;
+      }
 
-      // 3. 经纬线（裁剪到球体内）
+      const data = mapRef.data;
+      const mw = mapRef.w;
+      const mh = mapRef.h;
+
+      const rot = angle;
+      const cloudRot = angle * 1.12 + t * 0.00006;
+
+      for (let py = 0; py < mh; py++) {
+        const yn = -((py + 0.5) / mh * 2 - 1);
+        for (let px = 0; px < mw; px++) {
+          const xn = (px + 0.5) / mw * 2 - 1;
+          const r2 = xn * xn + yn * yn;
+          const di = (py * mw + px) * 4;
+          if (r2 > 1) {
+            data[di + 3] = 0;
+            continue;
+          }
+          const zn = Math.sqrt(1 - r2);
+          const lat = Math.asin(yn);
+          const lon = Math.atan2(xn, zn) + rot;
+          const u = wrap01(lon / (Math.PI * 2) + 0.5);
+          const v = clamp01(0.5 - lat / Math.PI);
+          const tx = Math.min(earth.texW - 1, Math.floor(u * earth.texW));
+          const ty = Math.min(earth.texH - 1, Math.floor(v * earth.texH));
+          const ti = (ty * earth.texW + tx) * 4;
+          const mi = ty * earth.texW + tx;
+
+          let rr = earth.colors[ti + 0];
+          let gg = earth.colors[ti + 1];
+          let bb = earth.colors[ti + 2];
+
+          const ndotl = Math.max(0, xn * light.x + yn * light.y + zn * light.z);
+          const ambient = 0.34;
+          const diff = 0.86 * ndotl;
+          const shade = ambient + diff;
+          rr *= shade;
+          gg *= shade;
+          bb *= shade;
+
+          const edge = smoothstep(0.55, 1.00, Math.sqrt(r2));
+          const vignette = 1 - edge * 0.22;
+          rr *= vignette;
+          gg *= vignette;
+          bb *= vignette;
+
+          if (!earth.landMask[mi]) {
+            const spec = Math.pow(ndotl, 22) * 0.28;
+            rr = rr + (255 - rr) * spec;
+            gg = gg + (255 - gg) * spec;
+            bb = bb + (255 - bb) * spec;
+          }
+
+          const lonC = Math.atan2(xn, zn) + cloudRot;
+          const uc = wrap01(lonC / (Math.PI * 2) + 0.5);
+          const tcx = Math.min(earth.texW - 1, Math.floor(uc * earth.texW));
+          const cmi = ty * earth.texW + tcx;
+          const ca = earth.clouds[cmi] / 255;
+          if (ca > 0) {
+            const c = ca * 0.32 * (0.35 + 0.65 * ndotl);
+            rr = rr + (255 - rr) * c;
+            gg = gg + (255 - gg) * c;
+            bb = bb + (255 - bb) * c;
+          }
+
+          data[di + 0] = rr < 0 ? 0 : rr > 255 ? 255 : rr;
+          data[di + 1] = gg < 0 ? 0 : gg > 255 ? 255 : gg;
+          data[di + 2] = bb < 0 ? 0 : bb > 255 ? 255 : bb;
+          data[di + 3] = 255;
+        }
+      }
+
+      mapRef.ctx.putImageData(mapRef.img, 0, 0);
+      ctx.drawImage(mapRef.canvas, cx - R, cy - R, R * 2, R * 2);
+
+      const depth = ctx.createRadialGradient(cx + R * 0.30, cy + R * 0.35, R * 0.18, cx, cy, R * 1.05);
+      depth.addColorStop(0, 'rgba(0,0,0,0)');
+      depth.addColorStop(0.55, 'rgba(0,0,0,0.05)');
+      depth.addColorStop(1, 'rgba(0,0,0,0.42)');
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = depth; ctx.fill();
+
       ctx.save();
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
 
-      for (let i = 0; i < 12; i++) {
-        const phi  = (i / 12) * Math.PI + angle;
+      for (let i = 0; i < 10; i++) {
+        const phi = (i / 10) * Math.PI + angle * 0.9;
         const cosP = Math.cos(phi);
-        const rx   = R * Math.abs(cosP);
-        if (rx < 0.5) continue;
-        ctx.strokeStyle = `rgba(56,189,248,${(0.12 + 0.10 * Math.abs(cosP)).toFixed(2)})`;
-        ctx.lineWidth = 0.8 / dpr;
+        const rx = R * Math.abs(cosP);
+        if (rx < 0.7) continue;
+        ctx.strokeStyle = `rgba(56,189,248,${(0.06 + 0.06 * Math.abs(cosP)).toFixed(2)})`;
+        ctx.lineWidth = 0.7 / dpr;
         ctx.beginPath(); ctx.ellipse(cx, cy, rx, R, 0, 0, Math.PI * 2); ctx.stroke();
       }
-      for (let i = 1; i < 7; i++) {
-        const lat = (i / 7) * Math.PI;
-        const y   = cy - R * Math.cos(lat);
-        const rr  = R * Math.sin(lat);
-        ctx.strokeStyle = 'rgba(56,189,248,0.10)';
-        ctx.lineWidth = 0.6 / dpr;
-        ctx.beginPath(); ctx.ellipse(cx, y, rr, rr * 0.14, 0, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 1; i < 6; i++) {
+        const lat = (i / 6) * Math.PI;
+        const y = cy - R * Math.cos(lat);
+        const rr2 = R * Math.sin(lat);
+        ctx.strokeStyle = 'rgba(56,189,248,0.06)';
+        ctx.lineWidth = 0.55 / dpr;
+        ctx.beginPath(); ctx.ellipse(cx, y, rr2, rr2 * 0.13, 0, 0, Math.PI * 2); ctx.stroke();
       }
       ctx.restore();
 
@@ -226,7 +499,7 @@ export default function GlobePlaceholder({
       // 6. 景点热点
       const newHits = [];
       hotspots.forEach(({ lat, lon, color, id, label, highlighted }) => {
-        const adjLon = lon + angle * 1.8;
+        const adjLon = lon + angle;
         const x3 = R * Math.sin(lat) * Math.cos(adjLon);
         const y3 = R * Math.cos(lat);
         const z3 = R * Math.sin(lat) * Math.sin(adjLon);
