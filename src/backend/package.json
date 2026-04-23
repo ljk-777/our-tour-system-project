@@ -4,12 +4,16 @@
   "description": "旅游系统课程设计 - 后端服务",
   "main": "src/index.js",
   "scripts": {
+    "init-db": "node scripts/initDb.js",
+    "seed-db": "node scripts/seedDb.js",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

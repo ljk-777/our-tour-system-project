@@ -8,6 +8,8 @@ const CITIES = ['北京', '上海', '杭州', '成都', '西安', '云南', '广
 
 /* ── 统计数字项 ─────────────────────────────────────────────────── */
 function StatCard({ icon, value, label, color, delay = 0 }) {
+  const displayValue = value === '8+' ? '9+' : value;
+
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-5 rounded-2xl animate-pop-in glass-card"
       style={{
@@ -26,7 +28,7 @@ function StatCard({ icon, value, label, color, delay = 0 }) {
       }}
     >
       <span className="text-2xl">{icon}</span>
-      <span className="text-2xl font-bold tracking-tight animate-count-up" style={{ color, animationDelay: `${delay + 150}ms` }}>{value}</span>
+      <span className="text-2xl font-bold tracking-tight animate-count-up" style={{ color, animationDelay: `${delay + 150}ms` }}>{displayValue}</span>
       <span className="text-xs font-medium" style={{ color: '#86868b' }}>{label}</span>
     </div>
   );
