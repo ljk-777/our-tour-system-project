@@ -38,8 +38,7 @@ export default function Navbar() {
   const subColor   = transparent ? 'rgba(255,255,255,0.45)' : '#aeaeb2';
 
   return (
-    <nav style={{
-      position: 'sticky', top: 0, zIndex: 50,
+    <nav className="sticky top-0 z-50" style={{
       background: transparent ? 'transparent' : 'rgba(255,255,255,0.80)',
       backdropFilter: transparent ? 'none' : 'blur(40px) saturate(1.8)',
       WebkitBackdropFilter: transparent ? 'none' : 'blur(40px) saturate(1.8)',
@@ -161,22 +160,12 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* 访客横幅 */}
-      {isGuest && (
+      {/* 访客横幅 — 透明态隐藏，避免遮挡背景图 */}
+      {isGuest && !transparent && (
         <div className="px-4 py-1.5 flex items-center justify-between text-xs"
-          style={{
-            background: transparent ? 'rgba(0,0,0,0.25)' : '#fff6e5',
-            backdropFilter: transparent ? 'blur(8px)' : 'none',
-            borderTop: transparent ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,149,0,0.15)',
-            transition: 'all 0.4s ease',
-          }}>
-          <span style={{ color: transparent ? 'rgba(255,255,255,0.7)' : '#b36200', transition: 'color 0.4s ease' }}>
-            访客模式 — 点赞、发帖等互动功能需登录后使用
-          </span>
-          <Link to="/auth" className="font-semibold hover:underline shrink-0"
-            style={{ color: transparent ? 'rgba(255,255,255,0.9)' : '#ff9500', transition: 'color 0.4s ease' }}>
-            立即登录 →
-          </Link>
+          style={{ background: '#fff6e5', borderTop: '1px solid rgba(255,149,0,0.15)' }}>
+          <span style={{ color: '#b36200' }}>访客模式 — 点赞、发帖等互动功能需登录后使用</span>
+          <Link to="/auth" className="font-semibold hover:underline shrink-0" style={{ color: '#ff9500' }}>立即登录 →</Link>
         </div>
       )}
 
