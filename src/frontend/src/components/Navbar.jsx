@@ -151,7 +151,12 @@ export default function Navbar() {
             {/* 移动端菜单按钮 */}
             <button
               className="lg:hidden p-2 rounded-lg text-base ml-1 transition-all duration-150"
-              style={{ color: '#6e6e73' }}
+              style={{
+                color: textColor,
+                background: transparent ? 'rgba(255,255,255,0.12)' : 'transparent',
+                border: transparent ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                transition: 'all 0.4s ease',
+              }}
               onClick={() => setMenuOpen(!menuOpen)}
             >
               {menuOpen ? '✕' : '☰'}
