@@ -123,9 +123,12 @@ export default function Home() {
     <div style={{ background: '#f5f5f7' }}>
 
       {/* ════════════════════ HERO — Apple 风格全屏 ════════════════════ */}
-      <section style={{ position: 'relative', height: '100vh', minHeight: 640, overflow: 'hidden' }}>
+      <section style={{ position: 'relative', height: '100vh', minHeight: 600, overflow: 'hidden' }}>
 
-        {/* 交叉淡入背景层——所有图层叠放，active 层 opacity:1 其余 0，CSS transition 保证无黑屏/灰屏 */}
+        {/* 预加载第一张图（移动端网络慢时防灰屏）*/}
+        <link rel="preload" as="image" href={HERO_SLIDES[0].bg} />
+
+        {/* 交叉淡入背景层——所有图层叠放，active 层 opacity:1 其余 0 */}
         {HERO_SLIDES.map((s, i) => (
           <div key={i} style={{
             position: 'absolute', inset: 0,
@@ -149,7 +152,8 @@ export default function Home() {
           position: 'absolute', inset: 0, zIndex: 3,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', padding: '0 24px',
+          textAlign: 'center', padding: '0 20px',
+          overflowX: 'hidden',
         }}>
 
           {/* 小标签 */}
@@ -202,7 +206,7 @@ export default function Home() {
 
           {/* 搜索框 */}
           <form onSubmit={handleSearch} style={{
-            display: 'flex', gap: 10, width: '100%', maxWidth: 520, marginBottom: 32,
+            display: 'flex', gap: 8, width: '100%', maxWidth: 520, marginBottom: 28,
             animation: 'itemSlideIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.35s both',
           }}>
             <div style={{
@@ -229,8 +233,8 @@ export default function Home() {
             <RippleButton type="submit" disabled={searching} style={{
               background: 'linear-gradient(135deg, #f59e0b, #f97316)',
               color: '#fff', fontWeight: 700, fontFamily: 'Inter, sans-serif',
-              fontSize: '0.9rem', padding: '0 28px', borderRadius: 99,
-              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+              fontSize: '0.85rem', padding: '0 18px', borderRadius: 99,
+              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
               boxShadow: '0 4px 20px rgba(249,115,22,0.5)',
               transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
             }}
@@ -313,7 +317,7 @@ export default function Home() {
 
       {/* ════════════════════ 统计栏 ════════════════════ */}
       <div ref={statsRef} style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', display: 'flex', justifyContent: 'space-around' }}>
+        <div className="stats-bar" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', display: 'flex', justifyContent: 'space-around' }}>
           {[
             { value: `${stats.totalSpots || 265}+`, label: 'Destinations', sub: '景区与高校', icon: '🏛️', color: '#1a73e8' },
             { value: `${stats.totalNodes || 155}+`, label: 'Map Nodes',    sub: '道路图节点', icon: '📍', color: '#34a853' },
