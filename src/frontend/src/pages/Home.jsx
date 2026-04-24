@@ -123,7 +123,7 @@ export default function Home() {
     <div style={{ background: '#f5f5f7' }}>
 
       {/* ════════════════════ HERO — Apple 风格全屏 ════════════════════ */}
-      <section style={{ position: 'relative', height: '100vh', minHeight: 600, overflow: 'hidden' }}>
+      <section style={{ position: 'relative', height: '100vh', minHeight: 600, overflow: 'hidden', marginTop: '-52px' }}>
 
         {/* 预加载第一张图（移动端网络慢时防灰屏）*/}
         <link rel="preload" as="image" href={HERO_SLIDES[0].bg} />
