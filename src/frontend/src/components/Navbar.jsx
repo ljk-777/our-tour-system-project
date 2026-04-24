@@ -52,9 +52,9 @@ export default function Navbar() {
           {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <BrandIcon size={28} variant="dark" />
-            <div className="hidden sm:flex flex-col leading-none">
-              <span className="font-bold text-base tracking-tight" style={{ color: logoColor, transition: 'color 0.4s ease' }}>迹刻</span>
-              <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: subColor, transition: 'color 0.4s ease' }}>waylog</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-sm tracking-tight" style={{ color: logoColor, transition: 'color 0.4s ease' }}>迹刻</span>
+              <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: subColor, transition: 'color 0.4s ease' }}>waylog</span>
             </div>
           </Link>
 
