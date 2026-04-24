@@ -48,8 +48,8 @@
       #f5f5f7;
     background-attachment: fixed;
     color: var(--t1);
-    font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB',
-                 'Microsoft YaHei', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, 'SF Pro Display', 'PingFang SC',
+                 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -685,6 +685,39 @@
   .line-clamp-1 { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; }
   .line-clamp-2 { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
   .line-clamp-3 { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
+
+  /* 字体 */
+  .font-display { font-family: 'Playfair Display', Georgia, serif; }
+  .font-inter   { font-family: 'Inter', system-ui, sans-serif; }
+  .font-mono-sm { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.78rem; }
+
+  /* 滚动触发动画 — 初始隐藏态 */
+  .reveal {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
+                transform 0.7s cubic-bezier(0.16,1,0.3,1);
+    will-change: opacity, transform;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
+                transform 0.7s cubic-bezier(0.16,1,0.3,1);
+  }
+  .reveal-left.visible { opacity: 1; transform: translateX(0); }
+
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.94);
+    transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1),
+                transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .reveal-scale.visible { opacity: 1; transform: scale(1); }
 
   /* 加载骨架 */
   .skeleton {
