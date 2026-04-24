@@ -213,229 +213,246 @@ export default function Auth() {
     }
   }, [tab, username, avatar, login, register]);
 
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{
-        background: `
-          radial-gradient(ellipse at 25% 35%, rgba(120, 119, 198, 0.12) 0%, transparent 55%),
-          radial-gradient(ellipse at 78% 72%, rgba(80, 160, 255, 0.10) 0%, transparent 52%),
-          radial-gradient(ellipse at 60% 10%, rgba(255, 200, 100, 0.07) 0%, transparent 48%),
-          #f0f4ff
-        `,
-        backgroundAttachment: 'fixed',
-        animation: 'authEnter 0.55s cubic-bezier(0.16,1,0.3,1) both'
-      }}
-    >
-      <div className="w-full max-w-sm flex flex-col gap-5">
+  /* 背景图轮播（与首页相同，交叉淡入）*/
+  const BG_IMAGES = [
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=85',
+    'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1920&q=85',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=85',
+    'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1920&q=85',
+  ];
+  const [bgIdx, setBgIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setBgIdx(i => (i + 1) % BG_IMAGES.length), 5000);
+    return () => clearInterval(t);
+  }, []);
 
-        {/* 品牌 */}
-        <div className="flex flex-col items-center gap-2 mb-2">
-          <BrandIcon size={52} variant="dark" />
-          <div className="text-center">
-            <div className="text-2xl font-bold tracking-tight" style={{ color: '#1d1d1f' }}>
-              迹刻
-            </div>
-            <div className="text-xs font-medium tracking-[0.25em] uppercase mt-0.5" style={{ color: '#aeaeb2' }}>
-              waylog
-            </div>
-          </div>
-          <p className="text-sm text-center" style={{ color: '#86868b' }}>
-            {tab === 'login' ? '欢迎回来，继续你的旅程' : '创建账号，开始记录旅行'}
-          </p>
+  return (
+    <div className="min-h-screen flex overflow-hidden" style={{ position: 'relative' }}>
+
+      {/* ── 交叉淡入背景层（与首页一致）── */}
+      {BG_IMAGES.map((src, i) => (
+        <div key={i} style={{
+          position: 'fixed', inset: 0, zIndex: 0,
+          backgroundImage: `url(${src})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          opacity: i === bgIdx ? 1 : 0,
+          transition: 'opacity 1.4s cubic-bezier(0.4,0,0.2,1)',
+          willChange: 'opacity',
+        }} />
+      ))}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1, background: 'linear-gradient(160deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.6) 100%)' }} />
+
+      {/* ── 左侧品牌区 ── */}
+      <div className="hidden lg:flex" style={{
+        position: 'relative', zIndex: 2, flex: 1,
+        flexDirection: 'column', justifyContent: 'center',
+        padding: '60px 72px',
+        animation: 'authEnter 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both',
+      }}>
+        {/* 小标签 */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.22)', borderRadius: 99,
+          padding: '6px 16px', marginBottom: 36,
+          fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+          letterSpacing: '0.1em', textTransform: 'uppercase', width: 'fit-content',
+          fontFamily: 'Inter, sans-serif',
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 6px #4ade80' }} />
+          迹刻 waylog &nbsp;·&nbsp; Travel Explorer
         </div>
 
-        {/* 主卡片 */}
-        <div
-          className="glass-card p-6"
-          style={{ borderRadius: '1.5rem' }}
-        >
-          {/* Tab */}
-          <div className="flex rounded-xl overflow-hidden mb-5 glass"
-            style={{ border: '1px solid rgba(255,255,255,0.65)' }}>
-            {[['login', '登 录'], ['register', '注 册']].map(([val, label]) => (
-              <button key={val}
-                onClick={() => handleTabChange(val)}
-                className="flex-1 py-2 text-sm font-medium transition-all duration-200"
-                style={{
-                  background: tab === val ? 'rgba(255,255,255,0.90)' : 'transparent',
-                  color:      tab === val ? '#0071e3' : '#86868b',
-                  boxShadow:  tab === val ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset' : 'none',
-                  borderRadius: '0.625rem',
-                  margin: tab === val ? '3px' : '0',
-                }}>
-                {label}
-              </button>
+        {/* Apple 风格大标题 */}
+        <h1 style={{
+          fontFamily: 'Inter, -apple-system, sans-serif',
+          fontSize: 'clamp(3rem, 5vw, 5.5rem)',
+          fontWeight: 800, color: '#fff',
+          lineHeight: 1.0, letterSpacing: '-0.05em',
+          marginBottom: 20,
+          textShadow: '0 4px 32px rgba(0,0,0,0.2)',
+        }}>
+          Record<br />
+          <span style={{
+            background: 'linear-gradient(90deg, #fbbf24, #f97316)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>Every Trip.</span>
+        </h1>
+
+        <p style={{
+          fontFamily: 'Inter, sans-serif',
+          fontSize: '1.1rem', fontWeight: 300,
+          color: 'rgba(255,255,255,0.7)',
+          lineHeight: 1.7, maxWidth: 380, marginBottom: 48,
+          letterSpacing: '-0.01em',
+        }}>
+          200+ 景区与高校 · 智能路线规划<br />旅行日记社区，与世界同行
+        </p>
+
+        {/* 统计数字 */}
+        <div style={{ display: 'flex', gap: 32 }}>
+          {[['200+', 'Destinations'], ['AI', 'Route Plan'], ['8+', 'Diaries']].map(([val, label]) => (
+            <div key={label}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.8rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>{val}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 右侧登录卡片 ── */}
+      <div style={{
+        position: 'relative', zIndex: 2,
+        width: '100%', maxWidth: 420,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '32px 28px',
+        background: 'rgba(10,10,20,0.45)',
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
+        borderLeft: '1px solid rgba(255,255,255,0.1)',
+        animation: 'authEnter 0.65s cubic-bezier(0.16,1,0.3,1) 0.2s both',
+      }}>
+        <div style={{ width: '100%', maxWidth: 360 }}>
+
+          {/* 品牌 */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{
+              fontFamily: 'Inter, sans-serif', fontSize: '1.8rem', fontWeight: 800,
+              color: '#fff', letterSpacing: '-0.04em', lineHeight: 1,
+            }}>
+              迹刻
+              <span style={{ fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginLeft: 10, verticalAlign: 'middle' }}>waylog</span>
+            </div>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', fontWeight: 300, color: 'rgba(255,255,255,0.5)', marginTop: 6, letterSpacing: '0.01em' }}>
+              {tab === 'login' ? 'Welcome back. Continue your journey.' : 'Create an account. Start exploring.'}
+            </p>
+          </div>
+
+          {/* Tab 切换 */}
+          <div style={{
+            display: 'flex', background: 'rgba(255,255,255,0.07)', borderRadius: 10,
+            padding: 3, marginBottom: 24, border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            {[['login', 'Sign In'], ['register', 'Sign Up']].map(([val, label]) => (
+              <button key={val} onClick={() => handleTabChange(val)} style={{
+                flex: 1, padding: '9px 0', borderRadius: 8,
+                fontFamily: 'Inter, sans-serif', fontSize: '0.82rem', fontWeight: 600,
+                letterSpacing: '0.02em', cursor: 'pointer', border: 'none',
+                transition: 'all 0.25s ease',
+                background: tab === val ? 'rgba(255,255,255,0.88)' : 'transparent',
+                color: tab === val ? '#111' : 'rgba(255,255,255,0.4)',
+                boxShadow: tab === val ? '0 2px 12px rgba(0,0,0,0.2)' : 'none',
+              }}>{label}</button>
             ))}
           </div>
 
           {/* 注册：头像选择器 */}
           {tab === 'register' && (
-            <div className="mb-5">
-              <div className="text-xs font-medium mb-3" style={{ color: '#6e6e73' }}>
-                选择头像
-              </div>
+            <div style={{ marginBottom: 20, padding: '14px 16px', background: 'rgba(255,255,255,0.06)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Avatar</div>
               <AvatarPicker value={avatar} onChange={setAvatar} />
             </div>
           )}
 
           {/* 表单 */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { id: 'username', label: 'Traveler ID', type: 'text',     val: username, setter: e => { setUsername(e.target.value); clearMsg(); }, ph: '输入用户名', ac: 'username' },
+              { id: 'password', label: 'Password',    type: 'password', val: password, setter: e => setPassword(e.target.value),                 ph: '任意输入（演示模式）', ac: 'current-password' },
+            ].map(({ id, label, type, val, setter, ph, ac }) => (
+              <div key={id}>
+                <label style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 7 }}>{label}</label>
+                <input
+                  type={type} value={val} onChange={setter} placeholder={ph} autoComplete={ac}
+                  onFocus={() => setFocusField(id)} onBlur={() => setFocusField('none')}
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: 10, outline: 'none',
+                    fontFamily: 'Inter, sans-serif', fontSize: '0.9rem',
+                    background: focusField === id ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.1)',
+                    border: `1px solid ${focusField === id ? 'rgba(251,191,36,0.7)' : 'rgba(255,255,255,0.15)'}`,
+                    color: focusField === id ? '#111' : '#fff',
+                    boxShadow: focusField === id ? '0 0 0 3px rgba(251,191,36,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                />
+              </div>
+            ))}
 
-            {/* 用户名 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" style={{ color: '#6e6e73' }}>
-                旅行者 ID
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => { setUsername(e.target.value); clearMsg(); }}
-                onFocus={() => setFocusField('username')}
-                onBlur={() => setFocusField('none')}
-                placeholder="输入用户名"
-                autoComplete="username"
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{
-                  background: focusField === 'username' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.58)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: `1px solid ${focusField === 'username' ? 'rgba(0,113,227,0.50)' : 'rgba(255,255,255,0.78)'}`,
-                  color: '#1d1d1f',
-                  boxShadow: focusField === 'username'
-                    ? '0 0 0 3px rgba(0,113,227,0.10), 0 2px 8px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.95) inset'
-                    : '0 2px 8px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.95) inset',
-                  transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
-                }}
-              />
-            </div>
-
-            {/* 密码 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="flex items-center justify-between text-xs font-medium"
-                style={{ color: '#6e6e73' }}>
-                <span>密码</span>
-                <span style={{ color: '#aeaeb2', fontWeight: 400 }}>演示模式可随意填写</span>
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onFocus={() => setFocusField('password')}
-                onBlur={() => setFocusField('none')}
-                placeholder="任意输入"
-                autoComplete="current-password"
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{
-                  background: focusField === 'password' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.58)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: `1px solid ${focusField === 'password' ? 'rgba(0,113,227,0.50)' : 'rgba(255,255,255,0.78)'}`,
-                  color: '#1d1d1f',
-                  boxShadow: focusField === 'password'
-                    ? '0 0 0 3px rgba(0,113,227,0.10), 0 2px 8px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.95) inset'
-                    : '0 2px 8px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.95) inset',
-                  transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
-                }}
-              />
-            </div>
-
-            {/* 错误 / 成功 */}
             {error && (
-              <div className="text-xs px-3 py-2 rounded-lg"
-                style={{ background: '#fff1f0', color: '#ff3b30',
-                         border: '1px solid rgba(255,59,48,0.18)', animation: 'authShake 0.35s ease' }}>
-                {error}
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.78rem', padding: '9px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', animation: 'authShake 0.35s ease' }}>
+                ⚠️ {error}
               </div>
             )}
             {success && (
-              <div className="text-xs px-3 py-2 rounded-lg"
-                style={{ background: '#edfaf2', color: '#34c759',
-                         border: '1px solid rgba(52,199,89,0.22)' }}>
-                ✓ 连接成功，正在进入…
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.78rem', padding: '9px 14px', borderRadius: 8, background: 'rgba(74,222,128,0.15)', color: '#86efac', border: '1px solid rgba(74,222,128,0.3)' }}>
+                ✓ Connected. Entering...
               </div>
             )}
 
-            {/* 提交按钮 */}
-            <button
-              type="submit"
-              disabled={loading || success}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97]"
-              style={{
-                background: success
-                  ? '#34c759'
-                  : loading
-                    ? 'rgba(0,113,227,0.45)'
-                    : '#0071e3',
-                color: '#fff',
-                boxShadow: loading || success ? 'none' : '0 2px 12px rgba(0,113,227,0.28)',
-                opacity: loading ? 0.7 : 1,
-                cursor: loading || success ? 'not-allowed' : 'pointer',
-              }}
+            <button type="submit" disabled={loading || success} style={{
+              width: '100%', padding: '13px',
+              borderRadius: 10, border: 'none', cursor: loading || success ? 'not-allowed' : 'pointer',
+              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.02em',
+              background: success ? 'rgba(74,222,128,0.7)' : 'linear-gradient(135deg, #fbbf24, #f97316)',
+              color: '#fff', opacity: loading ? 0.75 : 1,
+              boxShadow: loading || success ? 'none' : '0 4px 20px rgba(249,115,22,0.45)',
+              transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+              onMouseEnter={e => { if (!loading && !success) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(249,115,22,0.6)'; }}}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(249,115,22,0.45)'; }}
             >
-              {loading  ? '连接中…'
-               : success ? '✓ 已连接'
-               : tab === 'login' ? '启程探索' : '创建账号'}
+              {loading ? 'Connecting…' : success ? '✓ Connected' : tab === 'login' ? 'Start Exploring →' : 'Create Account →'}
             </button>
           </form>
-        </div>
 
-        {/* 演示账号快捷选择 */}
-        <div>
-          <div className="text-xs text-center mb-2" style={{ color: '#aeaeb2' }}>
-            — 快速体验 —
+          {/* 分隔线 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 14px' }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.68rem', fontWeight: 500, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Quick Access</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+
+          {/* 演示账号 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, marginBottom: 10 }}>
             {DEMO_USERS.map(u => (
-              <button
-                key={u.username}
+              <button key={u.username}
                 onClick={() => { setUsername(u.username); setTab('login'); clearMsg(); }}
-                className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all duration-200 glass-btn"
-                style={{ borderRadius: '0.875rem' }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background  = 'rgba(232,241,252,0.85)';
-                  e.currentTarget.style.borderColor = 'rgba(0,113,227,0.30)';
-                  e.currentTarget.style.transform   = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow   = '0 6px 20px rgba(0,113,227,0.10), 0 1px 0 rgba(255,255,255,1) inset';
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  padding: '10px 6px', borderRadius: 10, cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
                 }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background  = 'rgba(255,255,255,0.62)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.82)';
-                  e.currentTarget.style.transform   = 'none';
-                  e.currentTarget.style.boxShadow   = '0 2px 8px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.96) inset';
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; e.currentTarget.style.transform = 'translateY(-3px) scale(1.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               >
-                <span className="text-lg">{u.emoji}</span>
-                <span className="text-xs font-medium" style={{ color: '#1d1d1f' }}>{u.label}</span>
-                <span className="text-[10px]" style={{ color: '#86868b' }}>{u.city}</span>
+                <span style={{ fontSize: '1.25rem' }}>{u.emoji}</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>{u.label}</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.62rem', color: 'rgba(255,255,255,0.35)' }}>{u.city}</span>
               </button>
             ))}
           </div>
-        </div>
 
-        {/* 访客入口 */}
-        <button
-          onClick={() => { enterAsGuest(); navigate('/'); }}
-          className="w-full py-2.5 rounded-xl text-sm transition-all duration-200 glass-btn"
-          style={{ color: '#6e6e73', borderRadius: '0.875rem' }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background  = 'rgba(255,255,255,0.84)';
-            e.currentTarget.style.color       = '#1d1d1f';
-            e.currentTarget.style.transform   = 'translateY(-1px)';
+          {/* 访客入口 */}
+          <button onClick={() => { enterAsGuest(); navigate('/'); }} style={{
+            width: '100%', padding: '11px',
+            borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+            fontFamily: 'Inter, sans-serif', fontSize: '0.82rem', fontWeight: 500,
+            background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)',
+            cursor: 'pointer', letterSpacing: '0.02em',
+            transition: 'all 0.2s ease',
           }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background  = 'rgba(255,255,255,0.62)';
-            e.currentTarget.style.color       = '#6e6e73';
-            e.currentTarget.style.transform   = 'none';
-          }}
-        >
-          以访客身份探索 →
-        </button>
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          >
+            Continue as Guest →
+          </button>
+        </div>
       </div>
 
       <style>{`
         @keyframes authEnter {
-          from { opacity: 0; transform: translateY(16px) scale(0.98); }
+          from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: none; }
         }
         @keyframes authShake {
