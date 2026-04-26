@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "tour-data": {
+      "command": "node",
+      "args": ["mcp/servers/tour-data-server/index.js"],
+      "description": "暴露景点数据与算法能力（TopK/Dijkstra/KMP/Trie）",
+      "tools": [
+        "get_spots",
+        "get_topk_spots",
+        "find_shortest_path",
+        "find_multi_path",
+        "search_spots",
+        "prefix_search",
+        "fuzzy_search"
+      ]
+    }
+  }
+}
