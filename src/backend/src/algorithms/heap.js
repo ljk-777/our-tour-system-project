@@ -65,6 +65,7 @@ class MinHeap {
  * 课程设计知识点：小顶堆实现 TopK（复杂度 O(n log k)）
  */
 function topK(items, k, keyFn = (x) => x.rating) {
+  if (k <= 0 || !items || items.length === 0) return [];
   // 使用小顶堆维护 K 个最大值
   const heap = new MinHeap((a, b) => keyFn(a) - keyFn(b));
   for (const item of items) {
