@@ -86,7 +86,6 @@ export default function Home() {
   const spotsRef = useScrollReveal('reveal');
   const featRef  = useScrollReveal('reveal');
   const diaryRef = useScrollReveal('reveal');
-  const algoRef  = useScrollReveal('reveal');
 
   useEffect(() => {
     Promise.all([
@@ -466,55 +465,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* ════════════════════ 算法展示 ════════════════════ */}
-      <section ref={algoRef} style={{ padding: '64px 0', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a73e8', marginBottom: 10 }}>Under the Hood · 算法实现</div>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Real Data Structures,<br />Real Performance</h2>
-          <p style={{ fontSize: '0.875rem', color: '#86868b', marginBottom: 36 }}>每个核心功能均使用自主实现的数据结构与算法</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-            {[
-              { name: 'MinHeap TopK',    desc: 'O(N log K) 景点评分推荐',  color: '#1a73e8', bg: '#e8f1fc' },
-              { name: 'Dijkstra',         desc: 'O((V+E)logV) 最短路径',    color: '#34a853', bg: '#edfaf2' },
-              { name: '最近邻 + 2-opt',   desc: 'TSP 多点路径优化',          color: '#9c27b0', bg: '#f5ecfd' },
-              { name: 'Trie + 编辑距离',  desc: 'O(m) 前缀 & 模糊搜索',     color: '#ff6d00', bg: '#fff1ec' },
-              { name: 'KMP',              desc: 'O(m+n) 字符串精确匹配',     color: '#ff9500', bg: '#fff6e5' },
-              { name: '倒排索引',          desc: 'O(1) 词项查询全文检索',     color: '#ff3b30', bg: '#fff1f0' },
-            ].map((algo, i) => (
-              <div key={algo.name} className="glass-card p-4 text-left" style={{
-                borderRadius: '0.875rem',
-                transitionDelay: `${i * 0.07}s`,
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = algo.bg; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.transform = algoVisible ? 'none' : 'translateY(16px)'; }}
-              >
-                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1d1d1f', marginBottom: 4 }}>{algo.name}</div>
-                <div style={{ fontSize: '0.75rem', color: algo.color }}>{algo.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-            <RippleButton rippleColor="rgba(0,0,0,0.08)" style={{
-              fontSize: '0.875rem', fontWeight: 600, padding: '10px 24px', borderRadius: 24,
-              background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.10)', color: '#1d1d1f', cursor: 'pointer',
-              transition: 'background 0.15s ease, transform 0.15s ease',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#e8e8ed'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#f5f5f7'; e.currentTarget.style.transform = 'scale(1)'; }}
-              onClick={() => window.location.href = '/algo'}
-            >⚙️ 交互式算法演示</RippleButton>
-            <RippleButton style={{
-              fontSize: '0.875rem', fontWeight: 600, padding: '10px 24px', borderRadius: 24,
-              background: '#1a73e8', color: '#fff', cursor: 'pointer',
-              transition: 'background 0.15s ease, transform 0.15s ease',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#1557b0'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1a73e8'; e.currentTarget.style.transform = 'scale(1)'; }}
-              onClick={() => window.location.href = '/route'}
-            >🧭 立即体验路线规划</RippleButton>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
