@@ -114,7 +114,7 @@ export default function GlobeOverlay() {
                     ${isActive ? 'bg-orange-500/20 text-orange-400' : 'text-white/45 hover:bg-white/10 hover:text-white/90'}`}
                 >
                   {isActive && (
-                    <motion.div layoutId="globeTab"
+                    <motion.div layoutId="globeTabOrange"
                       className="absolute inset-0 bg-orange-500/20 border border-orange-500/30 rounded-xl"
                       transition={{ type: 'spring', stiffness: 320, damping: 32 }} />
                   )}

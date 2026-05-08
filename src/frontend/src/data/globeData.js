@@ -59,7 +59,7 @@ export const GLOBE_ROUTES = [
   {
     id: 'r1',
     name: '京沪快线',
-    color: '#38bdf8',
+    color: '#fb923c',
     points: [
       { lat: 39.9042, lng: 116.4074 },
       { lat: 31.2304, lng: 121.4737 },
@@ -68,7 +68,7 @@ export const GLOBE_ROUTES = [
   {
     id: 'r2',
     name: '西南环线',
-    color: '#a78bfa',
+    color: '#fbbf24',
     points: [
       { lat: 30.5728, lng: 104.0668 },
       { lat: 26.8721, lng: 100.2299 },
@@ -78,7 +78,7 @@ export const GLOBE_ROUTES = [
   {
     id: 'r3',
     name: '丝绸之路',
-    color: '#fbbf24',
+    color: '#f97316',
     points: [
       { lat: 34.3416, lng: 108.9398 },
       { lat: 39.9042, lng: 116.4074 },
