@@ -345,10 +345,22 @@ export default function Home() {
               <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Find Your Next<br /><span style={{ color: '#1a73e8' }}>Destination</span></h2>
               <p style={{ fontSize: '0.85rem', color: '#5f6368' }}>点击图钉或列表查看景点详情 · 支持类型筛选</p>
             </div>
-            <Link to="/route" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a73e8', textDecoration: 'none' }}
-              onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-              onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-            >规划路线 →</Link>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <Link to="/globe" style={{
+                fontSize: '0.78rem', fontWeight: 600, padding: '6px 14px', borderRadius: 99,
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                color: '#93c5fd', textDecoration: 'none',
+                border: '1px solid rgba(147,197,253,0.2)',
+                transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 5,
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(147,197,253,0.5)'; e.currentTarget.style.background = 'linear-gradient(135deg, #1e2a5e,#1a4080)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(147,197,253,0.2)'; e.currentTarget.style.background = 'linear-gradient(135deg,#0f172a,#1e3a5f)'; }}
+              >🌍 3D 星球</Link>
+              <Link to="/route" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a73e8', textDecoration: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+              >规划路线 →</Link>
+            </div>
           </div>
           <MapPreview />
         </div>

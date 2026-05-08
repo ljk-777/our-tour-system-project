@@ -9,6 +9,7 @@ import { FooterFull, MobileBottomNav } from './components/Footer.jsx';
 // 全屏页（无标准 Navbar/Footer）
 import Auth    from './pages/Auth.jsx';
 import Explore from './pages/Explore.jsx';
+import Globe   from './pages/Globe.jsx';
 
 // 标准页
 import Home         from './pages/Home.jsx';
@@ -58,6 +59,9 @@ export default function App() {
           <Route path="/explore" element={
             <ProtectedRoute><Explore /></ProtectedRoute>
           } />
+
+          {/* ── 3D 地球（全屏，无 Navbar）──────────────── */}
+          <Route path="/globe" element={<Globe />} />
 
           {/* ── 标准页（带 Navbar，全部公开可访问）─────── */}
           <Route path="/"          element={<StandardLayout><Home /></StandardLayout>} />
