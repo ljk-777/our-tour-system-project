@@ -6,6 +6,7 @@ const spotsRouter = require('./routes/spots');
 const routesRouter = require('./routes/routes');
 const diariesRouter = require('./routes/diaries');
 const usersRouter = require('./routes/users');
+const amapRouter = require('./routes/amap');
 
 const app = express();
 const PORT = 3001;
@@ -17,6 +18,7 @@ app.use('/api/spots', spotsRouter);
 app.use('/api/routes', routesRouter);
 app.use('/api/diaries', diariesRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/amap', amapRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '旅游系统后端运行中', version: '1.0.0' });
@@ -24,9 +26,9 @@ app.get('/api/health', (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({
+  res.status(Number.isInteger(err?.statusCode) ? err.statusCode : 500).json({
     success: false,
-    message: '服务器内部错误',
+    message: err.message || '服务器内部错误',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
