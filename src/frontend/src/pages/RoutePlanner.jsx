@@ -16,8 +16,9 @@ export default function RoutePlanner() {
   const [toName, setToName] = useState('');
 
   // 多点模式
-  const [waypoints, setWaypoints] = useState(['', '']);
-  const [waypointNames, setWaypointNames] = useState(['', '']);
+  const [waypoints,        setWaypoints]        = useState(['', '']);
+  const [waypointNames,    setWaypointNames]    = useState(['', '']);
+  const [waypointSuggests, setWaypointSuggests] = useState([[], []]);
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -166,19 +167,49 @@ export default function RoutePlanner() {
       {/* 多点模式 */}
       {mode === 'multi' && (
         <div className="card p-6 mb-6">
-          <p className="text-sm text-gray-500 mb-4">输入节点 ID（可在景点详情页查看），算法自动规划最优顺序</p>
+          <p className="text-sm text-gray-500 mb-4">搜索景点名称，算法自动规划最优顺序（最近邻 + 2-opt）</p>
           {waypoints.map((w, i) => (
-            <div key={i} className="flex gap-2 mb-2">
-              <input value={w} onChange={e => { const a=[...waypoints]; a[i]=e.target.value; setWaypoints(a); }}
-                placeholder={`节点 ${i+1} ID`}
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <div key={i} className="relative flex gap-2 mb-2">
+              <input
+                value={waypointNames[i] || ''}
+                onChange={e => {
+                  const names = [...waypointNames]; names[i] = e.target.value; setWaypointNames(names);
+                  const ids = [...waypoints]; ids[i] = ''; setWaypoints(ids);
+                  searchSuggests(e.target.value, s => {
+                    const sug = [...waypointSuggests]; sug[i] = s; setWaypointSuggests(sug);
+                  });
+                }}
+                placeholder={`地点 ${i+1}（搜索名称）`}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              {waypointSuggests[i]?.length > 0 && (
+                <div className="absolute top-full left-0 right-8 bg-white border border-gray-100 rounded-xl shadow-lg z-20 mt-1">
+                  {waypointSuggests[i].map(s => (
+                    <button key={s.id} onClick={() => {
+                      const ids=[...waypoints]; ids[i]=String(s.id); setWaypoints(ids);
+                      const names=[...waypointNames]; names[i]=s.name; setWaypointNames(names);
+                      const sug=[...waypointSuggests]; sug[i]=[]; setWaypointSuggests(sug);
+                    }} className="w-full text-left px-4 py-2 text-sm hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl">
+                      {s.name} <span className="text-gray-400 text-xs">{s.city}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {waypoints[i] && <span className="text-xs text-green-600 absolute -bottom-4 left-4">✓ {waypointNames[i]}</span>}
               {waypoints.length > 2 && (
-                <button onClick={() => setWaypoints(waypoints.filter((_,j)=>j!==i))}
-                  className="text-red-400 hover:text-red-600 px-3">✕</button>
+                <button onClick={() => {
+                  setWaypoints(waypoints.filter((_,j)=>j!==i));
+                  setWaypointNames(waypointNames.filter((_,j)=>j!==i));
+                  setWaypointSuggests(waypointSuggests.filter((_,j)=>j!==i));
+                }} className="text-red-400 hover:text-red-600 px-3">✕</button>
               )}
             </div>
           ))}
-          <button onClick={() => setWaypoints([...waypoints, ''])} className="text-blue-600 text-sm hover:underline mb-4">
+          <button onClick={() => {
+            setWaypoints([...waypoints,'']);
+            setWaypointNames([...waypointNames,'']);
+            setWaypointSuggests([...waypointSuggests,[]]);
+          }} className="text-blue-600 text-sm hover:underline mb-4 mt-5 block">
             + 添加途经点
           </button>
           <div className="p-3 rounded-xl text-xs mb-4" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)', color: '#92400e' }}>
