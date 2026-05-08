@@ -1,5 +1,5 @@
 import { useRef, useMemo, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
@@ -15,44 +15,90 @@ const latLngToVector3 = (lat, lng, radius) => {
   );
 };
 
+/* ── 地球主体 ────────────────────────────────────────────── */
 const Earth = ({ radius = 5 }) => {
-  const earthRef = useRef(null);
-  const [colorMap, normalMap, specularMap] = useTexture([
+  const groupRef = useRef(null);
+  const cloudRef = useRef(null);
+
+  /* 高清纹理：NASA Blue Marble */
+  const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg',
+    'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
   ]);
 
   useFrame(() => {
-    if (earthRef.current) earthRef.current.rotation.y += 0.0004;
+    if (groupRef.current)  groupRef.current.rotation.y  += 0.0003;
+    if (cloudRef.current)  cloudRef.current.rotation.y  += 0.00045; // 云层稍快
   });
 
   return (
-    <group ref={earthRef}>
+    <group ref={groupRef}>
+      {/* 地球本体 — PBR 物理材质 */}
       <mesh>
-        <sphereGeometry args={[radius, 64, 64]} />
-        <meshPhongMaterial map={colorMap} normalMap={normalMap} specularMap={specularMap}
-          specular={new THREE.Color('grey')} shininess={50} />
+        <sphereGeometry args={[radius, 80, 80]} />
+        <meshStandardMaterial
+          map={colorMap}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(0.85, 0.85)}
+          roughnessMap={specularMap}
+          roughness={0.78}
+          metalness={0.08}
+        />
       </mesh>
-      {/* 大气光晕 */}
+
+      {/* 云层 */}
+      <mesh ref={cloudRef}>
+        <sphereGeometry args={[radius * 1.008, 80, 80]} />
+        <meshStandardMaterial
+          map={cloudsMap}
+          transparent
+          opacity={0.38}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* 大气散射光晕 */}
       <mesh>
-        <sphereGeometry args={[radius * 1.05, 64, 64]} />
-        <meshPhongMaterial color="#3b82f6" transparent opacity={0.12}
-          side={THREE.BackSide} blending={THREE.AdditiveBlending} />
+        <sphereGeometry args={[radius * 1.04, 64, 64]} />
+        <meshStandardMaterial
+          color="#4fc3f7"
+          transparent
+          opacity={0.06}
+          side={THREE.BackSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
       </mesh>
+
+      {/* 地标 */}
       {GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
+      {/* 航路 */}
       {GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
     </group>
   );
 };
 
+/* ── 地标点（橙色主题）────────────────────────────────────── */
 const Marker = ({ marker, radius }) => {
   const { setSelectedMarker } = useAppStore();
   const position = useMemo(() => latLngToVector3(marker.lat, marker.lng, radius), [marker, radius]);
   const [hovered, setHovered] = useState(false);
+  const pulseRef = useRef(null);
+
+  useFrame(({ clock }) => {
+    if (pulseRef.current) {
+      const s = 1 + Math.sin(clock.elapsedTime * 2.5) * 0.35;
+      pulseRef.current.scale.setScalar(s);
+      pulseRef.current.material.opacity = hovered ? 0.55 - Math.sin(clock.elapsedTime * 2.5) * 0.2 : 0;
+    }
+  });
 
   return (
     <group position={position}>
+      {/* 主点 */}
       <mesh
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
@@ -61,43 +107,66 @@ const Marker = ({ marker, radius }) => {
         <sphereGeometry args={[0.1, 16, 16]} />
         <meshBasicMaterial color={hovered ? '#fbbf24' : '#f97316'} />
       </mesh>
+      {/* 脉冲光环 */}
+      <mesh ref={pulseRef}>
+        <sphereGeometry args={[0.22, 16, 16]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* 常驻光晕 */}
       <mesh>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshBasicMaterial color="#f97316" transparent opacity={hovered ? 0.5 : 0.2}
-          blending={THREE.AdditiveBlending} />
+        <sphereGeometry args={[0.16, 16, 16]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={hovered ? 0.5 : 0.18}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
 };
 
+/* ── 航线弧 ──────────────────────────────────────────────── */
 const RoutePath = ({ route, radius }) => {
   const curve = useMemo(() => {
     const pts = route.points.map(p => latLngToVector3(p.lat, p.lng, radius));
     if (pts.length < 2) return null;
     const out = [];
     for (let i = 0; i < pts.length - 1; i++) {
-      const mid = pts[i].clone().lerp(pts[i+1], 0.5).normalize().multiplyScalar(radius * 1.25);
-      out.push(...new THREE.QuadraticBezierCurve3(pts[i], mid, pts[i+1]).getPoints(30));
+      const mid = pts[i].clone().lerp(pts[i+1], 0.5).normalize().multiplyScalar(radius * 1.3);
+      out.push(...new THREE.QuadraticBezierCurve3(pts[i], mid, pts[i+1]).getPoints(40));
     }
     return out;
   }, [route, radius]);
 
   if (!curve) return null;
-  return <Line points={curve} color={route.color} lineWidth={1.5} transparent opacity={0.7} />;
+  return <Line points={curve} color={route.color} lineWidth={1.2} transparent opacity={0.65} />;
 };
 
+/* ── 轨道控制器 ──────────────────────────────────────────── */
 const CameraController = () => (
-  <OrbitControls enablePan={false} enableZoom minDistance={6} maxDistance={22}
-    rotateSpeed={0.4} zoomSpeed={0.7} autoRotate={false} />
+  <OrbitControls
+    enablePan={false}
+    enableZoom
+    minDistance={6.5}
+    maxDistance={24}
+    rotateSpeed={0.35}
+    zoomSpeed={0.6}
+    autoRotate={false}
+    enableDamping
+    dampingFactor={0.06}
+  />
 );
 
+/* ── 场景根节点 ──────────────────────────────────────────── */
 export const EarthScene = () => (
   <>
-    <color attach="background" args={['#040e24']} />
-    <ambientLight intensity={1.2} />
-    <directionalLight position={[10, 10, 5]} intensity={2} color="#ffffff" />
-    <pointLight position={[-10, -10, -10]} intensity={0.8} color="#3b82f6" />
-    <Stars radius={120} depth={50} count={4000} factor={3} saturation={0.1} fade speed={0.5} />
+    <color attach="background" args={['#030914']} />
+
+    {/* 单侧太阳光：模拟真实日照，一侧亮一侧暗 */}
+    <ambientLight intensity={0.18} />
+    <directionalLight position={[12, 4, 8]} intensity={2.6} color="#fff8e7" />
+
+    {/* 微弱蓝色补光，让暗面不完全死黑 */}
+    <pointLight position={[-15, -5, -10]} intensity={0.3} color="#1a3a6e" />
+
+    <Stars radius={130} depth={60} count={5000} factor={3.5} saturation={0.08} fade speed={0.4} />
     <Earth radius={5} />
     <CameraController />
   </>
