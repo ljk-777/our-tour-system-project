@@ -93,6 +93,34 @@ const schemaStatements = [
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `,
+  `
+    CREATE TABLE IF NOT EXISTS amap_poi_cache (
+      id BIGSERIAL PRIMARY KEY,
+      keyword VARCHAR(200) NOT NULL,
+      city VARCHAR(100),
+      types VARCHAR(120),
+      result_json JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS amap_route_cache (
+      id BIGSERIAL PRIMARY KEY,
+      origin VARCHAR(100) NOT NULL,
+      destination VARCHAR(100) NOT NULL,
+      mode VARCHAR(20) NOT NULL,
+      result_json JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS amap_weather_cache (
+      id BIGSERIAL PRIMARY KEY,
+      city VARCHAR(100) NOT NULL UNIQUE,
+      result_json JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
   `CREATE INDEX IF NOT EXISTS idx_spots_city ON spots(city);`,
   `CREATE INDEX IF NOT EXISTS idx_spots_type ON spots(type);`,
   `CREATE INDEX IF NOT EXISTS idx_spots_province ON spots(province);`,
@@ -113,6 +141,8 @@ const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_diary_tags_diary_id ON diary_tags(diary_id);`,
   `CREATE INDEX IF NOT EXISTS idx_diary_tags_tag ON diary_tags(tag);`,
   `CREATE INDEX IF NOT EXISTS idx_diary_comments_diary_id ON diary_comments(diary_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_amap_poi_cache_lookup ON amap_poi_cache(keyword, city, types);`,
+  `CREATE INDEX IF NOT EXISTS idx_amap_route_cache_lookup ON amap_route_cache(origin, destination, mode);`,
 ];
 
 async function initSchema() {

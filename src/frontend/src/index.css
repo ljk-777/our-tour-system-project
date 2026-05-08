@@ -760,5 +760,24 @@
   /* 地图预览在手机上隐藏侧边栏 */
   .map-sidebar { display: none; }
   .map-area { border-radius: 0; }
-  .map-preview-root { height: 280px; border-radius: 12px; }
+  .map-preview-root { height: 320px; border-radius: 12px; }
+  .map-search-bar { padding: 8px 8px 6px; }
+  .map-search-inner {
+    gap: 8px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    border-radius: 18px;
+  }
+  .map-search-filters {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 2px;
+  }
+  .map-search-filters::-webkit-scrollbar { display: none; }
+  .map-filter-chip {
+    flex: 0 0 auto;
+    font-size: 10px;
+    padding: 3px 8px;
+  }
 }

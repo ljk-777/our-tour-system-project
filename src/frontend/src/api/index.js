@@ -29,4 +29,12 @@ export const getUserById = (id) => api.get(`/users/${id}`);
 export const login = (data) => api.post('/users/login', data);
 export const register = (data) => api.post('/users', data);
 
+// 高德地图服务
+export const amapGeocode = (params) => api.get('/amap/geocode', { params });
+export const amapReverseGeocode = (params) => api.get('/amap/regeo', { params });
+export const amapPoiTips = (params) => api.get('/amap/poi/tips', { params });
+export const amapPoiSearch = (params) => api.get('/amap/poi/search', { params });
+export const amapRoute = (params) => api.get('/amap/route', { params });
+export const amapWeather = (params) => api.get('/amap/weather', { params });
+
 export default api;
