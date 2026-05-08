@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { to: '/diary',   label: '日记'   },
   { to: '/plaza',   label: '广场'   },
   { to: '/profile', label: '旅行者' },
-  { to: '/algo',    label: '算法'   },
+  { to: '/globe',   label: '🌍 星球' },
 ];
 
 export default function Navbar() {

@@ -7,9 +7,8 @@ import Navbar  from './components/Navbar.jsx';
 import { FooterFull, MobileBottomNav } from './components/Footer.jsx';
 
 // 全屏页（无标准 Navbar/Footer）
-import Auth    from './pages/Auth.jsx';
-import Explore from './pages/Explore.jsx';
-import Globe   from './pages/Globe.jsx';
+import Auth  from './pages/Auth.jsx';
+import Globe from './pages/Globe.jsx';
 
 // 标准页
 import Home         from './pages/Home.jsx';
@@ -19,7 +18,6 @@ import RoutePlanner from './pages/RoutePlanner.jsx';
 import Diary        from './pages/Diary.jsx';
 import Plaza        from './pages/Plaza.jsx';
 import Profile      from './pages/Profile.jsx';
-import AlgoDemo     from './pages/AlgoDemo.jsx';
 
 /**
  * ProtectedRoute — 需要登录或访客身份才能访问
@@ -55,13 +53,9 @@ export default function App() {
           <Route path="/auth"  element={<Auth />} />
           <Route path="/login" element={<Auth />} />   {/* 向后兼容 */}
 
-          {/* ── 探索主界面（需要身份）──────────────────── */}
-          <Route path="/explore" element={
-            <ProtectedRoute><Explore /></ProtectedRoute>
-          } />
-
           {/* ── 3D 地球（全屏，无 Navbar）──────────────── */}
-          <Route path="/globe" element={<Globe />} />
+          <Route path="/globe"   element={<Globe />} />
+          <Route path="/explore" element={<Navigate to="/globe" replace />} />
 
           {/* ── 标准页（带 Navbar，全部公开可访问）─────── */}
           <Route path="/"          element={<StandardLayout><Home /></StandardLayout>} />
@@ -71,7 +65,6 @@ export default function App() {
           <Route path="/diary"     element={<StandardLayout><Diary /></StandardLayout>} />
           <Route path="/plaza"     element={<StandardLayout><Plaza /></StandardLayout>} />
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
-          <Route path="/algo"      element={<StandardLayout><AlgoDemo /></StandardLayout>} />
 
           {/* ── 404 ──────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
