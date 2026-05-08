@@ -159,12 +159,10 @@ export const EarthScene = () => (
   <>
     <color attach="background" args={['#030914']} />
 
-    {/* 单侧太阳光：模拟真实日照，一侧亮一侧暗 */}
-    <ambientLight intensity={0.18} />
-    <directionalLight position={[12, 4, 8]} intensity={2.6} color="#fff8e7" />
-
-    {/* 微弱蓝色补光，让暗面不完全死黑 */}
-    <pointLight position={[-15, -5, -10]} intensity={0.3} color="#1a3a6e" />
+    {/* 均衡打光：保留高光质感但不产生死黑暗面 */}
+    <ambientLight intensity={0.9} />
+    <directionalLight position={[12, 4, 8]} intensity={1.8} color="#fff8e7" />
+    <directionalLight position={[-10, -3, -8]} intensity={0.6} color="#c8d8ff" />
 
     <Stars radius={130} depth={60} count={5000} factor={3.5} saturation={0.08} fade speed={0.4} />
     <Earth radius={5} />
