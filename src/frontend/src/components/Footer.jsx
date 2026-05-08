@@ -4,6 +4,7 @@ import BrandIcon from './BrandIcon.jsx';
 const NAV_LINKS = [
   { to: '/',        label: '首页'   },
   { to: '/spots',   label: '发现'   },
+  { to: '/foods',   label: '美食'   },
   { to: '/route',   label: '路线'   },
   { to: '/diary',   label: '日记'   },
   { to: '/plaza',   label: '广场'   },
@@ -17,6 +18,7 @@ const SECTIONS = [
     links: [
       { to: '/',        label: '系统首页' },
       { to: '/spots',   label: '景点发现' },
+      { to: '/foods',   label: '美食推荐' },
       { to: '/route',   label: '路线规划' },
       { to: '/diary',   label: '旅行日记' },
     ],

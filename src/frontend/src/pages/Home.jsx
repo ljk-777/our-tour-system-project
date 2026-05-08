@@ -408,14 +408,16 @@ export default function Home() {
             <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Built with Real Algorithms</h2>
             <p style={{ fontSize: '0.9rem', color: '#5f6368' }}>每个功能均内置自主实现的数据结构与算法</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <FeatureCard icon="🗺️" title="景点发现" to="/spots" color="#1a73e8" bgColor="#e8f1fc" delay={0}
               desc="200+ 景区高校，Trie 前缀搜索 + 倒排索引全文检索" badge="Trie + TopK" />
-            <FeatureCard icon="🧭" title="路线规划" to="/route" color="#34a853" bgColor="#edfaf2" delay={80}
+            <FeatureCard icon="🍜" title="美食推荐" to="/foods" color="#f97316" bgColor="#fff1ec" delay={60}
+              desc="全国特色餐厅，覆盖各地老字号与网红美食" badge="MinHeap TopK" />
+            <FeatureCard icon="🧭" title="路线规划" to="/route" color="#34a853" bgColor="#edfaf2" delay={120}
               desc="Dijkstra 单点最短路 + 最近邻 2-opt 多点路径优化" badge="Dijkstra + 2-opt" />
-            <FeatureCard icon="📖" title="旅行日记" to="/diary" color="#9c27b0" bgColor="#f5ecfd" delay={160}
+            <FeatureCard icon="📖" title="旅行日记" to="/diary" color="#9c27b0" bgColor="#f5ecfd" delay={180}
               desc="KMP 精确检索 / 倒排索引全文检索，发布与分享" badge="KMP + 倒排索引" />
-            <FeatureCard icon="🌏" title="动态广场" to="/plaza" color="#ff6d00" bgColor="#fff1ec" delay={240}
+            <FeatureCard icon="🌏" title="动态广场" to="/plaza" color="#ff6d00" bgColor="#fff7ec" delay={240}
               desc="旅行动态社交广场，热门排行，MinHeap 实时排序" badge="MinHeap 排序" />
           </div>
         </div>

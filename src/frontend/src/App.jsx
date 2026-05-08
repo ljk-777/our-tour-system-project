@@ -12,6 +12,7 @@ import Globe from './pages/Globe.jsx';
 
 // 标准页
 import Home         from './pages/Home.jsx';
+import Foods        from './pages/Foods.jsx';
 import Spots        from './pages/Spots.jsx';
 import SpotDetail   from './pages/SpotDetail.jsx';
 import RoutePlanner from './pages/RoutePlanner.jsx';
@@ -60,6 +61,7 @@ export default function App() {
           {/* ── 标准页（带 Navbar，全部公开可访问）─────── */}
           <Route path="/"          element={<StandardLayout><Home /></StandardLayout>} />
           <Route path="/spots"     element={<StandardLayout><Spots /></StandardLayout>} />
+          <Route path="/foods"     element={<StandardLayout><Foods /></StandardLayout>} />
           <Route path="/spots/:id" element={<StandardLayout><SpotDetail /></StandardLayout>} />
           <Route path="/route"     element={<StandardLayout><RoutePlanner /></StandardLayout>} />
           <Route path="/diary"     element={<StandardLayout><Diary /></StandardLayout>} />
