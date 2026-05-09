@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-05-09T14:36:56.871Z",
+  "suite": "route-attack-cases",
+  "passed": 18,
+  "failed": 0,
+  "results": [
+    {
+      "name": "空堆 pop 返回 null",
+      "status": "GREEN"
+    },
+    {
+      "name": "空堆 peek 返回 null",
+      "status": "GREEN"
+    },
+    {
+      "name": "单元素堆 pop 后为空",
+      "status": "GREEN"
+    },
+    {
+      "name": "相同权重元素不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "大规模插入不崩溃（10000元素）",
+      "status": "GREEN"
+    },
+    {
+      "name": "k=0 返回空数组",
+      "status": "GREEN"
+    },
+    {
+      "name": "k 大于数组长度不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "空数组 TopK 返回空",
+      "status": "GREEN"
+    },
+    {
+      "name": "全相同评分 TopK 不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "空图不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "起点等于终点",
+      "status": "GREEN"
+    },
+    {
+      "name": "不连通图返回 reachable=false",
+      "status": "GREEN"
+    },
+    {
+      "name": "负权边（模拟异常数据）不进入死循环",
+      "status": "GREEN"
+    },
+    {
+      "name": "自环边不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "大规模图（500节点）运行时间 < 1000ms",
+      "status": "GREEN"
+    },
+    {
+      "name": "waypoints 只有1个节点",
+      "status": "GREEN"
+    },
+    {
+      "name": "waypoints 有重复节点不崩溃",
+      "status": "GREEN"
+    },
+    {
+      "name": "所有节点孤立时返回 totalCost=Infinity",
+      "status": "GREEN"
+    }
+  ]
+}
