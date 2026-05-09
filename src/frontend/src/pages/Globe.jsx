@@ -61,7 +61,7 @@ export default function Globe() {
 
       {/* UI 叠加层 */}
       <Suspense fallback={<LoadingScreen />}>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
           <GlobeOverlay />
         </div>
       </Suspense>
