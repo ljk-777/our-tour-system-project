@@ -19,6 +19,7 @@ import RoutePlanner from './pages/RoutePlanner.jsx';
 import Diary        from './pages/Diary.jsx';
 import Plaza        from './pages/Plaza.jsx';
 import Profile      from './pages/Profile.jsx';
+import Admin        from './pages/Admin.jsx';
 
 /**
  * ProtectedRoute — 需要登录或访客身份才能访问
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/diary"     element={<StandardLayout><Diary /></StandardLayout>} />
           <Route path="/plaza"     element={<StandardLayout><Plaza /></StandardLayout>} />
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
+          <Route path="/admin"     element={<StandardLayout><Admin /></StandardLayout>} />
 
           {/* ── 404 ──────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
