@@ -16,23 +16,6 @@ const latLngToVector3 = (lat, lng, radius) => {
   );
 };
 
-/* ── 大气散射着色器 ────────────────────────────────────────── */
-const ATMO_VERT = `
-  varying vec3 vNormal;
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-const ATMO_FRAG = `
-  varying vec3 vNormal;
-  void main() {
-    float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.2);
-    intensity = clamp(intensity, 0.0, 1.0);
-    vec3 color = mix(vec3(0.25, 0.55, 1.0), vec3(0.05, 0.2, 0.85), intensity);
-    gl_FragColor = vec4(color, intensity * 0.88);
-  }
-`;
 
 /* ── 银河背景（程序化，5 万颗星分布在银河盘面）─────────────── */
 const Galaxy = () => {
@@ -137,15 +120,6 @@ const Earth = ({ radius = 5 }) => {
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
   ]);
 
-  /* 大气材质 */
-  const atmosphereMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: ATMO_VERT,
-    fragmentShader: ATMO_FRAG,
-    transparent: true,
-    side: THREE.FrontSide,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  }), []);
 
   useFrame(() => {
     if (groupRef.current) groupRef.current.rotation.y += 0.0003;
@@ -179,23 +153,7 @@ const Earth = ({ radius = 5 }) => {
         />
       </mesh>
 
-      {/* Fresnel 大气散射光晕 */}
-      <mesh renderOrder={3} material={atmosphereMaterial}>
-        <sphereGeometry args={[radius * 1.055, 64, 64]} />
-      </mesh>
 
-      {/* 大气外缘淡蓝薄层 */}
-      <mesh renderOrder={4}>
-        <sphereGeometry args={[radius * 1.08, 64, 64]} />
-        <meshStandardMaterial
-          color="#7ec8ff"
-          transparent
-          opacity={0.04}
-          side={THREE.BackSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
 
       {GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
       {GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
@@ -272,11 +230,9 @@ export const EarthScene = () => (
   <>
     <color attach="background" args={['#00010a']} />
 
-    {/* 太阳主光：单侧强光形成昼夜面 */}
-    <ambientLight intensity={0.22} />
-    <directionalLight position={[14, 5, 9]} intensity={3.2} color="#fff9f0" castShadow />
-    {/* 反射补光：让暗面稍微可见 */}
-    <pointLight position={[-18, -6, -12]} intensity={0.45} color="#1a3566" />
+    <ambientLight intensity={0.85} />
+    <directionalLight position={[14, 5, 9]} intensity={2.2} color="#fff9f0" />
+    <directionalLight position={[-12, -4, -8]} intensity={0.5} color="#c8d8ff" />
 
     {/* 程序化银河 */}
     <Galaxy />
