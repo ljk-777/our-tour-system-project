@@ -5,6 +5,76 @@ import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { GLOBE_MARKERS, GLOBE_ROUTES } from '@/data/globeData';
 
+/* ── 旅行者彩色地标 ────────────────────────────────────── */
+const TravelerDots = ({ traveler, radius = 5 }) => {
+  const dotsRef = useRef([]);
+  useFrame(({ clock }) => {
+    dotsRef.current.forEach((mesh, i) => {
+      if (!mesh) return;
+      const s = 1 + Math.sin(clock.elapsedTime * 3 + i * 1.2) * 0.45;
+      mesh.scale.setScalar(s);
+      mesh.material.opacity = 0.5 + Math.sin(clock.elapsedTime * 3 + i) * 0.3;
+    });
+  });
+  if (!traveler) return null;
+  return traveler.spots.map((spot, i) => {
+    const pos = latLngToVector3(spot.lat, spot.lng, radius * 1.02);
+    return (
+      <group key={i} position={pos}>
+        <mesh>
+          <sphereGeometry args={[0.12, 12, 12]} />
+          <meshBasicMaterial color={traveler.color} />
+        </mesh>
+        <mesh ref={el => dotsRef.current[i] = el}>
+          <sphereGeometry args={[0.22, 12, 12]} />
+          <meshBasicMaterial color={traveler.color} transparent opacity={0.4}
+            blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      </group>
+    );
+  });
+};
+
+/* ── AI 路线动画（飞行光点）─────────────────────────────── */
+const AiRouteAnimation = ({ from, to, radius = 5, playing, onDone }) => {
+  const dotRef  = useRef(null);
+  const tRef    = useRef(0);
+  const lineRef = useRef(null);
+
+  const { curve, points } = useMemo(() => {
+    if (!from || !to) return { curve: null, points: [] };
+    const a = latLngToVector3(from.lat, from.lng, radius);
+    const b = latLngToVector3(to.lat,   to.lng,   radius);
+    const mid = a.clone().lerp(b, 0.5).normalize().multiplyScalar(radius * 1.55);
+    const c = new THREE.QuadraticBezierCurve3(a, mid, b);
+    return { curve: c, points: c.getPoints(80) };
+  }, [from, to, radius]);
+
+  useFrame((_, delta) => {
+    if (!playing || !curve || !dotRef.current) return;
+    tRef.current = Math.min(tRef.current + delta * 0.22, 1);
+    const p = curve.getPoint(tRef.current);
+    dotRef.current.position.copy(p);
+    if (tRef.current >= 1 && onDone) { tRef.current = 0; onDone(); }
+  });
+
+  if (!curve || !from || !to) return null;
+  return (
+    <group>
+      <Line points={points} color="#fbbf24" lineWidth={1.8} transparent opacity={0.7} />
+      <mesh ref={dotRef}>
+        <sphereGeometry args={[0.15, 12, 12]} />
+        <meshBasicMaterial color="#fff" />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.28, 12, 12]} />
+        <meshBasicMaterial color="#fbbf24" transparent opacity={0.5}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+};
+
 /* ── 坐标转换 ─────────────────────────────────────────────── */
 const latLngToVector3 = (lat, lng, radius) => {
   const phi   = (90 - lat) * (Math.PI / 180);
@@ -226,6 +296,8 @@ const CameraController = () => (
 );
 
 /* ── 场景根节点 ──────────────────────────────────────────── */
+export { TravelerDots, AiRouteAnimation, latLngToVector3 };
+
 export const EarthScene = () => (
   <>
     <color attach="background" args={['#00010a']} />
