@@ -21,7 +21,8 @@ export const getDiaries = (params) => api.get('/diaries', { params });
 export const searchDiaries = (params) => api.get('/diaries/search', { params });
 export const getDiaryById = (id) => api.get(`/diaries/${id}`);
 export const createDiary = (data) => api.post('/diaries', data);
-export const likeDiary = (id) => api.post(`/diaries/${id}/like`);
+export const likeDiary    = (id)       => api.post(`/diaries/${id}/like`);
+export const commentDiary = (id, data) => api.post(`/diaries/${id}/comment`, data);
 
 // 用户相关
 export const getUsers = () => api.get('/users');
