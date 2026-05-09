@@ -1,0 +1,47 @@
+import { Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { EarthScene } from '../components/Earth3D.jsx';
+import GlobeOverlay from '../components/GlobeOverlay.jsx';
+
+function LoadingScreen() {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#040e24', color: 'rgba(255,255,255,0.6)',
+      fontFamily: 'Inter, sans-serif', gap: 16,
+    }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: '50%',
+        border: '2px solid rgba(249,115,22,0.2)',
+        borderTopColor: '#f97316',
+        animation: 'spin 0.9s linear infinite',
+      }} />
+      <span style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>加载地球纹理中...</span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+export default function Globe() {
+  return (
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#040e24' }}>
+
+      {/* 3D 画布 */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
+          <Suspense fallback={null}>
+            <EarthScene />
+          </Suspense>
+        </Canvas>
+      </div>
+
+      {/* 加载提示（纹理未就绪时）*/}
+      <Suspense fallback={<LoadingScreen />}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+          <GlobeOverlay />
+        </div>
+      </Suspense>
+    </div>
+  );
+}

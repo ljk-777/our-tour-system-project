@@ -321,6 +321,53 @@ const spots = [
   { id:269, name:'杭州知味观餐厅', type:'restaurant', city:'杭州', province:'浙江省', lat:30.2474, lng:120.1522, description:'百年老字号杭帮菜餐厅', rating:4.6, tags:['美食','杭帮菜'], visitTime:1, entranceFee:0, openHours:'11:00-21:30' },
   { id:270, name:'成都益丰大药房', type:'pharmacy', city:'成都', province:'四川省', lat:30.6571, lng:104.0688, description:'成都连锁大型药店', rating:4.2, tags:['药品','健康'], visitTime:0, entranceFee:0, openHours:'08:00-22:00' },
   { id:271, name:'成都天府广场ATM', type:'atm', city:'成都', province:'四川省', lat:30.6601, lng:104.0634, description:'天府广场附近银行ATM', rating:4.0, tags:['金融','ATM'], visitTime:0, entranceFee:0, openHours:'全天' },
+
+  // ── 美食餐厅（北京）─────────────────────────────────────
+  { id:272, name:'全聚德烤鸭店（前门）', type:'restaurant', city:'北京', province:'北京市', lat:39.8993, lng:116.3958, description:'百年老字号，正宗北京烤鸭，挂炉工艺传承至今', rating:4.7, tags:['北京烤鸭','老字号','必吃'], visitTime:1, entranceFee:0, openHours:'11:00-22:00' },
+  { id:273, name:'东来顺涮肉（王府井）', type:'restaurant', city:'北京', province:'北京市', lat:39.9148, lng:116.4088, description:'正宗北京涮羊肉，清真老字号，铜锅炭火', rating:4.6, tags:['涮肉','清真','老字号'], visitTime:1, entranceFee:0, openHours:'11:00-22:00' },
+  { id:274, name:'四季民福烤鸭（故宫旁）', type:'restaurant', city:'北京', province:'北京市', lat:39.9188, lng:116.3982, description:'故宫周边人气烤鸭，环境古朴，食材新鲜', rating:4.8, tags:['北京烤鸭','网红','故宫周边'], visitTime:1, entranceFee:0, openHours:'11:00-21:30' },
+  { id:275, name:'簋街胡大海鲜（簋街）', type:'restaurant', city:'北京', province:'北京市', lat:39.9287, lng:116.4228, description:'北京簋街著名麻辣小龙虾，宵夜圣地', rating:4.5, tags:['小龙虾','麻辣','宵夜'], visitTime:1, entranceFee:0, openHours:'12:00-04:00' },
+  { id:276, name:'老北京炸酱面大王', type:'restaurant', city:'北京', province:'北京市', lat:39.9098, lng:116.3888, description:'地道北京炸酱面，手擀面条，十几种菜码', rating:4.5, tags:['炸酱面','老北京','面食'], visitTime:1, entranceFee:0, openHours:'10:00-21:00' },
+
+  // ── 美食餐厅（上海）─────────────────────────────────────
+  { id:277, name:'南翔馒头店（城隍庙）', type:'restaurant', city:'上海', province:'上海市', lat:31.2265, lng:121.4927, description:'百年老字号，正宗上海小笼包发源地', rating:4.7, tags:['小笼包','老字号','上海必吃'], visitTime:1, entranceFee:0, openHours:'08:30-20:30' },
+  { id:278, name:'老正兴菜馆', type:'restaurant', city:'上海', province:'上海市', lat:31.2321, lng:121.4748, description:'1862年创立，本帮菜代表，红烧肉闻名', rating:4.6, tags:['本帮菜','老字号','红烧肉'], visitTime:1, entranceFee:0, openHours:'11:00-14:00,17:00-21:00' },
+  { id:279, name:'外婆家（新天地店）', type:'restaurant', city:'上海', province:'上海市', lat:31.2177, lng:121.4728, description:'杭帮菜连锁名店，性价比高，排队必备', rating:4.5, tags:['杭帮菜','性价比','网红'], visitTime:1, entranceFee:0, openHours:'11:00-21:30' },
+  { id:280, name:'阿娘面馆（黄浦区）', type:'restaurant', city:'上海', province:'上海市', lat:31.2289, lng:121.4818, description:'地道上海黄鱼面，汤底鲜美，老上海味道', rating:4.6, tags:['上海面食','黄鱼面','老味道'], visitTime:1, entranceFee:0, openHours:'07:00-20:00' },
+
+  // ── 美食餐厅（成都）─────────────────────────────────────
+  { id:281, name:'成都龙抄手（总府路）', type:'restaurant', city:'成都', province:'四川省', lat:30.6579, lng:104.0742, description:'成都著名抄手，红油味道，传承数十年', rating:4.7, tags:['抄手','红油','成都小吃'], visitTime:1, entranceFee:0, openHours:'09:00-21:00' },
+  { id:282, name:'赖汤圆（成都春熙路）', type:'restaurant', city:'成都', province:'四川省', lat:30.6569, lng:104.0812, description:'百年老字号，芝麻花生汤圆，软糯香甜', rating:4.6, tags:['汤圆','老字号','甜品'], visitTime:1, entranceFee:0, openHours:'08:00-22:00' },
+  { id:283, name:'大龙燚火锅（宽窄巷子）', type:'restaurant', city:'成都', province:'四川省', lat:30.6668, lng:104.0554, description:'成都知名火锅，锅底地道，食材新鲜', rating:4.8, tags:['火锅','麻辣','成都必吃'], visitTime:2, entranceFee:0, openHours:'11:00-24:00' },
+  { id:284, name:'钟水饺（成都总店）', type:'restaurant', city:'成都', province:'四川省', lat:30.6572, lng:104.0728, description:'红油钟水饺，成都传统小吃名店', rating:4.5, tags:['水饺','红油','成都小吃'], visitTime:1, entranceFee:0, openHours:'09:00-21:00' },
+  { id:285, name:'天府花椒鸡（成都本地）', type:'restaurant', city:'成都', province:'四川省', lat:30.6612, lng:104.0688, description:'正宗四川花椒鸡，麻香扑鼻，本地人爱去', rating:4.7, tags:['花椒鸡','川菜','麻辣'], visitTime:1, entranceFee:0, openHours:'11:00-22:00' },
+
+  // ── 美食餐厅（西安）─────────────────────────────────────
+  { id:286, name:'西安回民街羊肉泡馍', type:'restaurant', city:'西安', province:'陕西省', lat:34.2621, lng:108.9395, description:'回民街正宗羊肉泡馍，掰馍有讲究，汤浓肉烂', rating:4.8, tags:['泡馍','回民街','陕西必吃'], visitTime:1, entranceFee:0, openHours:'08:00-22:00' },
+  { id:287, name:'贾三灌汤包（回民街）', type:'restaurant', city:'西安', province:'陕西省', lat:34.2634, lng:108.9388, description:'西安著名灌汤包，皮薄汤多，现点现蒸', rating:4.7, tags:['灌汤包','回民街','西安小吃'], visitTime:1, entranceFee:0, openHours:'08:00-21:00' },
+  { id:288, name:'同盛祥泡馍馆（钟楼）', type:'restaurant', city:'西安', province:'陕西省', lat:34.2589, lng:108.9497, description:'西安百年老字号泡馍，牛羊肉皆有，正宗陕味', rating:4.6, tags:['泡馍','老字号','牛羊肉'], visitTime:1, entranceFee:0, openHours:'10:00-21:30' },
+  { id:289, name:'老米家泡馍（西安）', type:'restaurant', city:'西安', province:'陕西省', lat:34.2601, lng:108.9422, description:'西安本地人推荐，实惠泡馍馆，排队是常态', rating:4.5, tags:['泡馍','本地推荐','实惠'], visitTime:1, entranceFee:0, openHours:'08:30-20:30' },
+
+  // ── 美食餐厅（杭州）─────────────────────────────────────
+  { id:290, name:'楼外楼菜馆（西湖旁）', type:'restaurant', city:'杭州', province:'浙江省', lat:30.2442, lng:120.1478, description:'西湖边百年名馆，东坡肉、西湖醋鱼是招牌', rating:4.7, tags:['杭帮菜','老字号','西湖醋鱼'], visitTime:1, entranceFee:0, openHours:'11:00-21:00' },
+  { id:291, name:'新荣记（杭州）', type:'restaurant', city:'杭州', province:'浙江省', lat:30.2538, lng:120.1483, description:'台州菜精品，食材讲究，黄鱼鲞必点', rating:4.8, tags:['台州菜','精品','黄鱼'], visitTime:1, entranceFee:0, openHours:'11:30-14:00,17:30-22:00' },
+  { id:292, name:'西湖边小龙虾排档', type:'restaurant', city:'杭州', province:'浙江省', lat:30.2479, lng:120.1511, description:'西湖畔夜市摊位，小龙虾配冰啤，夏夜必备', rating:4.4, tags:['小龙虾','夜市','西湖边'], visitTime:1, entranceFee:0, openHours:'17:00-02:00' },
+
+  // ── 美食餐厅（桂林）─────────────────────────────────────
+  { id:293, name:'桂林米粉正宗老店', type:'restaurant', city:'桂林', province:'广西壮族自治区', lat:25.2742, lng:110.2886, description:'地道桂林米粉，卤水自调，本地人早餐首选', rating:4.7, tags:['桂林米粉','早餐','地道'], visitTime:1, entranceFee:0, openHours:'06:30-14:00' },
+  { id:294, name:'漓江鱼头火锅（桂林）', type:'restaurant', city:'桂林', province:'广西壮族自治区', lat:25.2758, lng:110.2902, description:'漓江野生鱼头，汤底鲜甜，桂林特色火锅', rating:4.6, tags:['鱼头火锅','漓江鱼','桂林特色'], visitTime:2, entranceFee:0, openHours:'11:00-22:00' },
+
+  // ── 美食餐厅（云南）─────────────────────────────────────
+  { id:295, name:'过桥米线总店（昆明）', type:'restaurant', city:'昆明', province:'云南省', lat:25.0458, lng:102.7094, description:'云南过桥米线发源地，汤底浓郁，配料丰富', rating:4.7, tags:['过桥米线','云南必吃','昆明'], visitTime:1, entranceFee:0, openHours:'09:00-21:00' },
+  { id:296, name:'丽江古城纳西烤鱼', type:'restaurant', city:'丽江', province:'云南省', lat:26.8712, lng:100.2281, description:'纳西族传统烤鱼，炭火现烤，搭配特色酱料', rating:4.6, tags:['烤鱼','纳西族','丽江古城'], visitTime:1, entranceFee:0, openHours:'12:00-23:00' },
+
+  // ── 美食餐厅（南京）─────────────────────────────────────
+  { id:297, name:'鸭血粉丝汤老牌店（南京）', type:'restaurant', city:'南京', province:'江苏省', lat:32.0619, lng:118.7972, description:'正宗南京鸭血粉丝汤，鸭杂新鲜，汤清味鲜', rating:4.6, tags:['鸭血粉丝汤','南京小吃','早点'], visitTime:1, entranceFee:0, openHours:'06:00-14:00' },
+  { id:298, name:'南京盐水鸭专卖店', type:'restaurant', city:'南京', province:'江苏省', lat:32.0584, lng:118.7988, description:'正宗南京桂花盐水鸭，皮白肉嫩，鲜香入味', rating:4.7, tags:['盐水鸭','南京特产','熟食'], visitTime:1, entranceFee:0, openHours:'08:00-21:00' },
+
+  // ── 美食餐厅（重庆）─────────────────────────────────────
+  { id:299, name:'洪崖洞重庆小面（重庆）', type:'restaurant', city:'重庆', province:'重庆市', lat:29.5631, lng:106.5806, description:'重庆正宗小面，麻辣鲜香，本地早餐文化', rating:4.7, tags:['重庆小面','麻辣','早餐'], visitTime:1, entranceFee:0, openHours:'07:00-15:00' },
+  { id:300, name:'九宫格老火锅（解放碑）', type:'restaurant', city:'重庆', province:'重庆市', lat:29.5572, lng:106.5752, description:'重庆传统九宫格火锅，牛油锅底，越煮越香', rating:4.8, tags:['重庆火锅','九宫格','牛油锅底'], visitTime:2, entranceFee:0, openHours:'11:00-01:00' },
 ];
 
 module.exports = { spots };

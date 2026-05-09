@@ -4,11 +4,12 @@ import BrandIcon from './BrandIcon.jsx';
 const NAV_LINKS = [
   { to: '/',        label: '首页'   },
   { to: '/spots',   label: '发现'   },
+  { to: '/foods',   label: '美食'   },
   { to: '/route',   label: '路线'   },
   { to: '/diary',   label: '日记'   },
   { to: '/plaza',   label: '广场'   },
   { to: '/profile', label: '旅行者' },
-  { to: '/algo',    label: '算法'   },
+  { to: '/globe',   label: '🌍 星球' },
 ];
 
 const SECTIONS = [
@@ -17,6 +18,7 @@ const SECTIONS = [
     links: [
       { to: '/',        label: '系统首页' },
       { to: '/spots',   label: '景点发现' },
+      { to: '/foods',   label: '美食推荐' },
       { to: '/route',   label: '路线规划' },
       { to: '/diary',   label: '旅行日记' },
     ],
@@ -26,19 +28,7 @@ const SECTIONS = [
     links: [
       { to: '/plaza',   label: '动态广场' },
       { to: '/profile', label: '旅行者社区' },
-      { to: '/algo',    label: '算法演示' },
-      { to: '/explore', label: '探索主界面' },
-    ],
-  },
-  {
-    title: '核心算法',
-    items: [
-      { color: '#0071e3', text: 'Dijkstra 最短路径' },
-      { color: '#34c759', text: 'MinHeap TopK 推荐' },
-      { color: '#ff9500', text: 'Trie 前缀补全' },
-      { color: '#ff3b30', text: 'KMP 字符串匹配' },
-      { color: '#af52de', text: '2-opt 路径优化' },
-      { color: '#ff6b35', text: '倒排索引全文检索' },
+      { to: '/globe',   label: '🌍 3D 星球' },
     ],
   },
 ];
@@ -61,7 +51,7 @@ export function FooterFull() {
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: '#86868b' }}>
-              旅游系统课程设计项目，涵盖景点发现、智能路线规划、旅行日记、算法可视化演示等功能。
+              旅游系统课程设计项目，涵盖景点发现、智能路线规划、旅行日记、3D 地球可视化等功能。
             </p>
             <div className="mt-4 text-xs" style={{ color: '#aeaeb2' }}>
               265 景点 · 210+ 道路 · 11 用户

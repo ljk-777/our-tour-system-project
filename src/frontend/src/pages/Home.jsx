@@ -86,7 +86,6 @@ export default function Home() {
   const spotsRef = useScrollReveal('reveal');
   const featRef  = useScrollReveal('reveal');
   const diaryRef = useScrollReveal('reveal');
-  const algoRef  = useScrollReveal('reveal');
 
   useEffect(() => {
     Promise.all([
@@ -345,10 +344,22 @@ export default function Home() {
               <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Find Your Next<br /><span style={{ color: '#1a73e8' }}>Destination</span></h2>
               <p style={{ fontSize: '0.85rem', color: '#5f6368' }}>点击图钉或列表查看景点详情 · 支持类型筛选</p>
             </div>
-            <Link to="/route" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a73e8', textDecoration: 'none' }}
-              onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-              onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-            >规划路线 →</Link>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <Link to="/globe" style={{
+                fontSize: '0.78rem', fontWeight: 600, padding: '6px 14px', borderRadius: 99,
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                color: '#93c5fd', textDecoration: 'none',
+                border: '1px solid rgba(147,197,253,0.2)',
+                transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 5,
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(147,197,253,0.5)'; e.currentTarget.style.background = 'linear-gradient(135deg, #1e2a5e,#1a4080)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(147,197,253,0.2)'; e.currentTarget.style.background = 'linear-gradient(135deg,#0f172a,#1e3a5f)'; }}
+              >🌍 3D 星球</Link>
+              <Link to="/route" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a73e8', textDecoration: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+              >规划路线 →</Link>
+            </div>
           </div>
           <MapPreview />
         </div>
@@ -397,14 +408,16 @@ export default function Home() {
             <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Built with Real Algorithms</h2>
             <p style={{ fontSize: '0.9rem', color: '#5f6368' }}>每个功能均内置自主实现的数据结构与算法</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <FeatureCard icon="🗺️" title="景点发现" to="/spots" color="#1a73e8" bgColor="#e8f1fc" delay={0}
               desc="200+ 景区高校，Trie 前缀搜索 + 倒排索引全文检索" badge="Trie + TopK" />
-            <FeatureCard icon="🧭" title="路线规划" to="/route" color="#34a853" bgColor="#edfaf2" delay={80}
+            <FeatureCard icon="🍜" title="美食推荐" to="/foods" color="#f97316" bgColor="#fff1ec" delay={60}
+              desc="全国特色餐厅，覆盖各地老字号与网红美食" badge="MinHeap TopK" />
+            <FeatureCard icon="🧭" title="路线规划" to="/route" color="#34a853" bgColor="#edfaf2" delay={120}
               desc="Dijkstra 单点最短路 + 最近邻 2-opt 多点路径优化" badge="Dijkstra + 2-opt" />
-            <FeatureCard icon="📖" title="旅行日记" to="/diary" color="#9c27b0" bgColor="#f5ecfd" delay={160}
+            <FeatureCard icon="📖" title="旅行日记" to="/diary" color="#9c27b0" bgColor="#f5ecfd" delay={180}
               desc="KMP 精确检索 / 倒排索引全文检索，发布与分享" badge="KMP + 倒排索引" />
-            <FeatureCard icon="🌏" title="动态广场" to="/plaza" color="#ff6d00" bgColor="#fff1ec" delay={240}
+            <FeatureCard icon="🌏" title="动态广场" to="/plaza" color="#ff6d00" bgColor="#fff7ec" delay={240}
               desc="旅行动态社交广场，热门排行，MinHeap 实时排序" badge="MinHeap 排序" />
           </div>
         </div>
@@ -454,55 +467,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* ════════════════════ 算法展示 ════════════════════ */}
-      <section ref={algoRef} style={{ padding: '64px 0', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a73e8', marginBottom: 10 }}>Under the Hood · 算法实现</div>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Real Data Structures,<br />Real Performance</h2>
-          <p style={{ fontSize: '0.875rem', color: '#86868b', marginBottom: 36 }}>每个核心功能均使用自主实现的数据结构与算法</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-            {[
-              { name: 'MinHeap TopK',    desc: 'O(N log K) 景点评分推荐',  color: '#1a73e8', bg: '#e8f1fc' },
-              { name: 'Dijkstra',         desc: 'O((V+E)logV) 最短路径',    color: '#34a853', bg: '#edfaf2' },
-              { name: '最近邻 + 2-opt',   desc: 'TSP 多点路径优化',          color: '#9c27b0', bg: '#f5ecfd' },
-              { name: 'Trie + 编辑距离',  desc: 'O(m) 前缀 & 模糊搜索',     color: '#ff6d00', bg: '#fff1ec' },
-              { name: 'KMP',              desc: 'O(m+n) 字符串精确匹配',     color: '#ff9500', bg: '#fff6e5' },
-              { name: '倒排索引',          desc: 'O(1) 词项查询全文检索',     color: '#ff3b30', bg: '#fff1f0' },
-            ].map((algo, i) => (
-              <div key={algo.name} className="glass-card p-4 text-left" style={{
-                borderRadius: '0.875rem',
-                transitionDelay: `${i * 0.07}s`,
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = algo.bg; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.transform = algoVisible ? 'none' : 'translateY(16px)'; }}
-              >
-                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1d1d1f', marginBottom: 4 }}>{algo.name}</div>
-                <div style={{ fontSize: '0.75rem', color: algo.color }}>{algo.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-            <RippleButton rippleColor="rgba(0,0,0,0.08)" style={{
-              fontSize: '0.875rem', fontWeight: 600, padding: '10px 24px', borderRadius: 24,
-              background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.10)', color: '#1d1d1f', cursor: 'pointer',
-              transition: 'background 0.15s ease, transform 0.15s ease',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#e8e8ed'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#f5f5f7'; e.currentTarget.style.transform = 'scale(1)'; }}
-              onClick={() => window.location.href = '/algo'}
-            >⚙️ 交互式算法演示</RippleButton>
-            <RippleButton style={{
-              fontSize: '0.875rem', fontWeight: 600, padding: '10px 24px', borderRadius: 24,
-              background: '#1a73e8', color: '#fff', cursor: 'pointer',
-              transition: 'background 0.15s ease, transform 0.15s ease',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#1557b0'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1a73e8'; e.currentTarget.style.transform = 'scale(1)'; }}
-              onClick={() => window.location.href = '/route'}
-            >🧭 立即体验路线规划</RippleButton>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
