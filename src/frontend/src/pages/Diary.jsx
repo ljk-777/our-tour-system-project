@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, searchDiaries, createDiary, likeDiary, commentDiary } from '../api/index.js';
+import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, commentDiary } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const WEATHER_ICON = { '晴':'☀️','多云':'⛅','阴':'🌥️','雨':'🌧️','雪':'❄️','多云转晴':'🌤️' };
@@ -227,6 +227,7 @@ export default function Diary() {
   });
   const [imgPreview,  setImgPreview]  = useState('');
   const [submitting,  setSubmitting]  = useState(false);
+  const [generating,  setGenerating]  = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => { loadAll(); }, [sortBy]);
@@ -259,6 +260,27 @@ export default function Diary() {
       setForm(f => ({ ...f, coverImage: b64 }));
     } catch { alert('图片处理失败'); }
     e.target.value = '';
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!form.title.trim() && !form.spotName.trim() && !form.content.trim()) {
+      alert('请先填写标题、地点或一些旅行素材');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const res = await generateDiaryDraft({
+        ...form,
+        notes: form.content,
+      });
+      const content = res.data?.data?.content;
+      if (content) setForm(f => ({ ...f, content }));
+    } catch (error) {
+      alert(error?.response?.data?.message || '日记文案生成失败，请稍后重试');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -315,8 +337,17 @@ export default function Diary() {
               placeholder="日记标题 *" required className="input-base" />
             <input value={form.spotName} onChange={e => setForm({...form, spotName:e.target.value})}
               placeholder="旅游地点名称（选填）" className="input-base" />
-            <textarea value={form.content} onChange={e => setForm({...form, content:e.target.value})}
-              placeholder="写下你的旅行故事... *" required rows={5} className="input-base resize-none" />
+            <div>
+              <textarea value={form.content} onChange={e => setForm({...form, content:e.target.value})}
+                placeholder="写下几个关键词、路线、感受，或直接输入草稿... *" required rows={5} className="input-base resize-none" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                <button type="button" onClick={handleGenerateDraft} disabled={generating}
+                  className="btn-outline text-sm shrink-0">
+                  {generating ? '生成中...' : 'AI 生成日记文案'}
+                </button>
+                <span className="text-xs text-gray-400">根据标题、地点、天气、心情和当前输入自动润色正文</span>
+              </div>
+            </div>
 
             {/* 图片上传 */}
             <div>

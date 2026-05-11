@@ -3,6 +3,7 @@ const router = express.Router();
 const diaryRepo = require('../repositories/diaryRepository');
 const { searchInItems } = require('../algorithms/kmp');
 const { FullTextIndex } = require('../algorithms/trie');
+const { generateDiaryDraft } = require('../services/diaryAiService');
 
 async function buildDiaryIndex() {
   const allDiaries = await diaryRepo.getAll();
@@ -51,6 +52,30 @@ router.get('/search', async (req, res, next) => {
       query: q,
       algorithm: mode === 'kmp' ? 'KMP' : 'InvertedIndex',
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/generate', async (req, res, next) => {
+  try {
+    const { title, content, notes, spotName, tags, weather, mood, rating } = req.body;
+    if (!title && !content && !notes && !spotName) {
+      return res.status(400).json({ success: false, message: '请先填写标题、地点或旅行素材' });
+    }
+
+    const draft = await generateDiaryDraft({
+      title,
+      content,
+      notes,
+      spotName,
+      tags,
+      weather,
+      mood,
+      rating,
+    });
+
+    res.json({ success: true, data: { content: draft } });
   } catch (error) {
     next(error);
   }
