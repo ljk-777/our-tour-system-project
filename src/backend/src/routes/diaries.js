@@ -93,7 +93,21 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { userId, userName, userAvatar, title, content, spotId, spotName, tags, rating, visitDate } = req.body;
+    const {
+      userId,
+      userName,
+      userAvatar,
+      title,
+      content,
+      spotId,
+      spotName,
+      coverImage,
+      tags,
+      rating,
+      visitDate,
+      weather,
+      mood,
+    } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: '标题和内容不能为空' });
 
     const diary = await diaryRepo.create({
@@ -104,9 +118,12 @@ router.post('/', async (req, res, next) => {
       content,
       spotId,
       spotName,
+      coverImage,
       tags,
       rating,
       visitDate,
+      weather,
+      mood,
     });
 
     res.json({ success: true, data: diary, message: '日记发布成功' });
