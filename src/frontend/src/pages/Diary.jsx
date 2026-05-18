@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, searchDiaries, createDiary, likeDiary, commentDiary } from '../api/index.js';
+import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, commentDiary } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const WEATHER_ICON = { '晴':'☀️','多云':'⛅','阴':'🌥️','雨':'🌧️','雪':'❄️','多云转晴':'🌤️' };
 const MOOD_ICON    = { '愉悦':'😊','激动':'🤩','满足':'😌','宁静':'😶','震撼':'😲','感动':'🥹','自由':'🤸','虔诚':'🙏' };
+
+function formatLocalDate(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDiaryDate(value) {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return formatLocalDate(value);
+}
 
 /* ── 图片压缩工具 ─────────────────────────────────────── */
 function compressImage(file, size = 600) {
@@ -116,7 +131,7 @@ function DiaryCard({ diary, onLike, onComment, currentUser }) {
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-3">
             <span className="font-medium text-gray-600">{diary.userName}</span>
             {diary.spotName && <span>📍 <span className="text-blue-500">{diary.spotName}</span></span>}
-            <span>{diary.visitDate}</span>
+            <span>{formatDiaryDate(diary.visitDate)}</span>
             {diary.weather && <span>{WEATHER_ICON[diary.weather] || '🌤️'} {diary.weather}</span>}
             {diary.mood && <span>{MOOD_ICON[diary.mood] || '😊'} {diary.mood}</span>}
           </div>
@@ -172,7 +187,7 @@ function DiaryCard({ diary, onLike, onComment, currentUser }) {
             <span className="flex items-center gap-1.5 text-sm text-gray-400">
               <span>👁️</span> <span>{diary.views || 0}</span>
             </span>
-            <span className="ml-auto text-xs text-gray-300">{diary.createdAt?.slice(0, 10)}</span>
+            <span className="ml-auto text-xs text-gray-300">{formatDiaryDate(diary.createdAt)}</span>
           </div>
 
           {/* 评论区 */}
@@ -227,6 +242,8 @@ export default function Diary() {
   });
   const [imgPreview,  setImgPreview]  = useState('');
   const [submitting,  setSubmitting]  = useState(false);
+  const [generating,  setGenerating]  = useState(false);
+  const [aiDraft,     setAiDraft]     = useState('');
   const fileRef = useRef(null);
 
   useEffect(() => { loadAll(); }, [sortBy]);
@@ -261,6 +278,38 @@ export default function Diary() {
     e.target.value = '';
   };
 
+  const handleGenerateDraft = async () => {
+    if (!form.title.trim() && !form.spotName.trim() && !form.content.trim()) {
+      alert('请先填写标题、地点或一些旅行素材');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const res = await generateDiaryDraft({
+        ...form,
+        notes: form.content,
+      });
+      const content = res.data?.data?.content;
+      if (content) setAiDraft(content);
+    } catch (error) {
+      alert(error?.response?.data?.message || '日记文案生成失败，请稍后重试');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleUseAiDraft = () => {
+    if (!aiDraft) return;
+    setForm(f => ({ ...f, content: aiDraft }));
+    setAiDraft('');
+  };
+
+  const handleContentChange = (e) => {
+    setForm(f => ({ ...f, content: e.target.value }));
+    if (aiDraft) setAiDraft('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title || !form.content) return;
@@ -272,17 +321,24 @@ export default function Diary() {
         userId: user?.id || 1,
         userName: user?.nickname || user?.username || '旅行者',
         userAvatar: user?.avatar || '🧭',
-        visitDate: new Date().toISOString().slice(0, 10),
+        visitDate: formatLocalDate(),
       });
-      setDiaries(prev => [res.data.data, ...prev]);
+      const createdDiary = res.data?.data;
+      if (createdDiary) {
+        setDiaries(prev => [createdDiary, ...prev.filter(Boolean)]);
+      } else {
+        loadAll();
+      }
       setShowCreate(false);
       setForm({ title:'', content:'', spotName:'', tags:'', weather:'晴', mood:'愉悦', rating:5, coverImage:'' });
+      setAiDraft('');
       setImgPreview('');
     } finally { setSubmitting(false); }
   };
 
-  const totalLikes = diaries.reduce((s, d) => s + (d.likes || 0), 0);
-  const totalViews = diaries.reduce((s, d) => s + (d.views || 0), 0);
+  const visibleDiaries = diaries.filter(Boolean);
+  const totalLikes = visibleDiaries.reduce((s, d) => s + (d.likes || 0), 0);
+  const totalViews = visibleDiaries.reduce((s, d) => s + (d.views || 0), 0);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -292,7 +348,7 @@ export default function Diary() {
         <div>
           <h1 className="section-title">旅行日记</h1>
           <p className="section-sub">
-            {diaries.length} 篇日记 · ❤️ {totalLikes} 获赞 · 👁️ {totalViews} 浏览
+            {visibleDiaries.length} 篇日记 · ❤️ {totalLikes} 获赞 · 👁️ {totalViews} 浏览
           </p>
         </div>
         <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm shrink-0">
@@ -315,8 +371,33 @@ export default function Diary() {
               placeholder="日记标题 *" required className="input-base" />
             <input value={form.spotName} onChange={e => setForm({...form, spotName:e.target.value})}
               placeholder="旅游地点名称（选填）" className="input-base" />
-            <textarea value={form.content} onChange={e => setForm({...form, content:e.target.value})}
-              placeholder="写下你的旅行故事... *" required rows={5} className="input-base resize-none" />
+            <div>
+              <textarea value={form.content} onChange={handleContentChange}
+                placeholder="写下几个关键词、路线、感受，例如：傍晚去了沙河校园，风很舒服，拍了晚霞... *" required rows={5} className="input-base resize-none" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                <button type="button" onClick={handleGenerateDraft} disabled={generating}
+                  className="btn-outline text-sm shrink-0">
+                  {generating ? '正在润色...' : 'AI 润色正文'}
+                </button>
+                <span className="text-xs text-gray-400">根据标题、地点、天气、心情和当前输入自动润色正文</span>
+              </div>
+              {aiDraft && (
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <span className="text-sm font-medium text-blue-700">润色结果预览</span>
+                    <button type="button" onClick={() => setAiDraft('')}
+                      className="text-xs text-gray-400 hover:text-gray-600">保留原文</button>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{aiDraft}</p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <button type="button" onClick={handleUseAiDraft}
+                      className="btn-primary text-sm">使用润色结果</button>
+                    <button type="button" onClick={handleGenerateDraft} disabled={generating}
+                      className="btn-outline text-sm">{generating ? '正在润色...' : '重新润色'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* 图片上传 */}
             <div>
@@ -354,7 +435,7 @@ export default function Diary() {
               <button type="submit" disabled={submitting} className="btn-primary text-sm">
                 {submitting ? '发布中...' : '发布日记'}
               </button>
-              <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); }}
+              <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); setAiDraft(''); }}
                 className="btn-outline text-sm">取消</button>
             </div>
           </div>
@@ -394,7 +475,7 @@ export default function Diary() {
         <div className="space-y-4">
           {[...Array(4)].map((_,i) => <div key={i} className="card h-36 skeleton" />)}
         </div>
-      ) : diaries.length === 0 ? (
+      ) : visibleDiaries.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <div className="text-5xl mb-3">📖</div>
           <p>暂无日记{searchQ ? `（"${searchQ}" 无匹配结果）` : ''}</p>
@@ -402,7 +483,7 @@ export default function Diary() {
         </div>
       ) : (
         <div className="space-y-4">
-          {diaries.map((d, i) => (
+          {visibleDiaries.map((d, i) => (
             <div key={d.id} style={{ animation:`itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i,6)*60}ms both` }}>
               <DiaryCard diary={d} currentUser={user} />
             </div>
