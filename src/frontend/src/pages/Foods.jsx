@@ -245,47 +245,59 @@ export default function Foods() {
             {foods.map((food, i) => (
               <Link key={food.id} to={`/spots/${food.id}`} style={{ textDecoration: 'none' }}>
                 <div className="glass-card" style={{
-                  borderRadius: 16, padding: '20px', cursor: 'pointer',
+                  borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   animationDelay: `${i * 0.03}s`,
                 }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = ''; }}
                 >
-                  {/* 头部 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#9aa0a6' }}>
-                        {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
+                  {/* 封面图 */}
+                  <div style={{ height: 150, background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', position: 'relative', overflow: 'hidden' }}>
+                    {food.imageUrl ? (
+                      <img src={food.imageUrl} alt={food.name} loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 0.35s ease' }}
+                        onLoad={e => e.target.style.opacity = '1'}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <span style={{ fontSize: '2.5rem' }}>{CITY_EMOJI[food.city] || '🍽️'}</span>
                       </div>
-                    </div>
+                    )}
+                    {/* 评分浮动在封面右下角 */}
                     <div style={{
-                      fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1.1rem',
-                      color: getRatingColor(food.rating), lineHeight: 1,
+                      position: 'absolute', bottom: 8, right: 8, zIndex: 1,
+                      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+                      borderRadius: 8, padding: '4px 10px',
+                      fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1rem',
+                      color: '#fbbf24',
                     }}>
                       {food.rating?.toFixed(1)}
-                      <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#9aa0a6', textAlign: 'center' }}>评分</div>
                     </div>
                   </div>
 
-                  {/* 描述 */}
-                  <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {food.description}
-                  </p>
-
-                  {/* 底部信息 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(food.tags || []).slice(0, 3).map(tag => (
-                        <span key={tag} style={{
-                          fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                          background: 'rgba(249,115,22,0.1)', color: '#f97316',
-                        }}>{tag}</span>
-                      ))}
+                  {/* 内容区 */}
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#9aa0a6', marginBottom: 8 }}>
+                      {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
-                      🕐 {food.openHours || '营业中'}
+                    <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {food.description}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {(food.tags || []).slice(0, 3).map(tag => (
+                          <span key={tag} style={{
+                            fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                            background: 'rgba(249,115,22,0.1)', color: '#f97316',
+                          }}>{tag}</span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
+                        🕐 {food.openHours || '营业中'}
+                      </div>
                     </div>
                   </div>
                 </div>

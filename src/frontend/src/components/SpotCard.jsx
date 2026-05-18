@@ -73,7 +73,24 @@ export default function SpotCard({ spot, animDelay = 0 }) {
         className="h-36 relative overflow-hidden flex items-center justify-center"
         style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
       >
-        {/* emoji 在 hover 时放大（靠父元素 group） */}
+        {/* 真实图片（渐显 + 懒加载），失败时隐藏退回渐变+emoji */}
+        {spot.imageUrl && (
+          <img
+            src={spot.imageUrl}
+            alt={spot.name}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0, transition: 'opacity 0.35s ease' }}
+            onLoad={e => {
+              e.target.style.opacity = '1';
+            }}
+            onError={e => {
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
+
+        {/* emoji 在 hover 时放大（靠父元素 group） — 图片覆盖其上 */}
         <span
           className="text-5xl select-none"
           style={{
@@ -93,7 +110,7 @@ export default function SpotCard({ spot, animDelay = 0 }) {
         </span>
 
         {/* 类型徽章 */}
-        <div className="absolute top-2.5 right-2.5">
+        <div className="absolute top-2.5 right-2.5" style={{ zIndex: 1 }}>
           <span className="text-xs font-medium px-2.5 py-0.5 rounded-full glass-badge"
             style={{ color: acc.text }}>
             {label}
@@ -103,7 +120,7 @@ export default function SpotCard({ spot, animDelay = 0 }) {
         {/* 评分 */}
         {spot.rating && (
           <div className="absolute bottom-2 left-2.5 flex items-center gap-1 text-xs rounded-full px-2 py-0.5 glass-badge"
-            style={{ color: '#1d1d1f' }}>
+            style={{ color: '#1d1d1f', zIndex: 1 }}>
             ⭐ {spot.rating}
           </div>
         )}
