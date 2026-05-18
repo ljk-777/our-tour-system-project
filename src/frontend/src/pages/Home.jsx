@@ -392,9 +392,9 @@ export default function Home() {
             {[...Array(8)].map((_, i) => <div key={i} className="rounded-2xl h-52 skeleton" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gridAutoRows:'160px', gap:14 }}>
             {(spotTab === 'scenic' ? topSpots : topCampus).map((s, i) => (
-              <SpotCard key={s.id} spot={s} animDelay={i * 50} />
+              <SpotCard key={s.id} spot={s} index={i} animDelay={i * 50} />
             ))}
           </div>
         )}
