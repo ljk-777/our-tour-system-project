@@ -179,8 +179,15 @@ export default function Spots() {
         </div>
       ) : dataSource === 'local' ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {spots.map((spot) => <SpotCard key={spot.id} spot={spot} />)}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridAutoRows: '160px',
+            gap: 14,
+          }}>
+            {spots.map((spot, i) => (
+              <SpotCard key={spot.id} spot={spot} index={i} animDelay={Math.min(i, 8) * 40} />
+            ))}
           </div>
           {spots.length < total && (
             <div className="text-center mt-8">

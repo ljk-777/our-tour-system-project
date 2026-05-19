@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { getTopK, getGraphStats, searchSpots, getDiaries } from '../api/index.js';
 import SpotCard from '../components/SpotCard.jsx';
 import RippleButton from '../components/RippleButton.jsx';
@@ -15,6 +16,24 @@ const HERO_SLIDES = [
 ];
 
 const CITIES = ['北京', '上海', '杭州', '成都', '西安', '云南', '广州', '桂林'];
+
+const CAROUSEL_GRADIENTS = {
+  北京:  ['#1a1a2e','#16213e','#0f3460'],
+  上海:  ['#0f2027','#203a43','#2c5364'],
+  杭州:  ['#134e5e','#71b280'],
+  成都:  ['#4e342e','#6a1b4d'],
+  西安:  ['#5d4037','#8d6e63'],
+  云南:  ['#004d40','#00695c'],
+  广州:  ['#1b5e20','#2e7d32'],
+  武汉:  ['#b71c1c','#c62828'],
+  南京:  ['#4a148c','#6a1b9a'],
+  桂林:  ['#1b5e20','#2e7d32'],
+  default:['#1a237e','#283593'],
+};
+const CAROUSEL_ICONS = {
+  北京:'🏯', 上海:'🌆', 杭州:'🌊', 成都:'🐼', 西安:'🏛️',
+  云南:'🏔️', 广州:'🌸', 武汉:'🌸', 南京:'🏯', 桂林:'⛰️', default:'🌏',
+};
 
 /* ── 滚动淡入 Hook（CSS class 驱动，更可靠）──────────────────── */
 function useScrollReveal(className = 'reveal', threshold = 0.12) {
@@ -79,6 +98,10 @@ export default function Home() {
 
   /* Hero 轮播 */
   const [slideIdx, setSlideIdx] = useState(0);
+
+  /* 横向轮播拖拽状态 */
+  const spotCarouselRef = useRef(null);
+  const isDragging = useRef(false);
 
   /* 滚动区 refs */
   const statsRef = useScrollReveal('reveal');
@@ -387,17 +410,97 @@ export default function Home() {
             ))}
           </div>
         </div>
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => <div key={i} className="rounded-2xl h-52 skeleton" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {(spotTab === 'scenic' ? topSpots : topCampus).map((s, i) => (
-              <SpotCard key={s.id} spot={s} animDelay={i * 50} />
-            ))}
-          </div>
-        )}
+        {/* 横向弹性轮播 — 拖动可见更多卡片 */}
+        <div
+          ref={spotCarouselRef}
+          style={{
+            overflow: 'hidden',
+            margin: '0 -32px',
+            padding: '6px 32px 18px',
+            cursor: 'grab',
+            userSelect: 'none',
+          }}
+        >
+          <motion.div
+            drag="x"
+            dragConstraints={spotCarouselRef}
+            dragElastic={0.12}
+            dragTransition={{ bounceStiffness: 480, bounceDamping: 38 }}
+            whileDrag={{ cursor: 'grabbing' }}
+            onDragStart={() => { isDragging.current = true; }}
+            onDragEnd={() => { setTimeout(() => { isDragging.current = false; }, 60); }}
+            style={{ display: 'flex', gap: 12, width: 'max-content' }}
+          >
+            {loading
+              ? [...Array(8)].map((_, i) => (
+                  <div key={i} style={{ width: 224, height: 284, flexShrink: 0, borderRadius: 20, background: '#e5e7eb', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                ))
+              : (spotTab === 'scenic' ? topSpots : topCampus).map((spot, i) => {
+                  const colors = CAROUSEL_GRADIENTS[spot.city] || CAROUSEL_GRADIENTS.default;
+                  const [c1, c2, c3] = colors;
+                  const icon = CAROUSEL_ICONS[spot.city] || CAROUSEL_ICONS.default;
+                  return (
+                    <motion.div
+                      key={spot.id}
+                      whileHover={{ y: -5, scale: 1.025 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+                      style={{ flexShrink: 0 }}
+                    >
+                      <Link
+                        to={`/spots/${spot.id}`}
+                        onClick={e => { if (isDragging.current) e.preventDefault(); }}
+                        style={{
+                          display: 'block', width: 224, height: 284,
+                          borderRadius: 20, overflow: 'hidden', position: 'relative',
+                          background: `linear-gradient(145deg, ${c1}, ${c2}${c3 ? ', ' + c3 : ''})`,
+                          textDecoration: 'none',
+                          boxShadow: '0 4px 22px rgba(0,0,0,0.18)',
+                        }}
+                      >
+                        {/* 噪点质感 */}
+                        <div style={{ position:'absolute', inset:0, opacity:0.04, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize:'200px' }} />
+                        {/* 底部渐变 */}
+                        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.06) 50%, transparent 100%)' }} />
+                        {/* 城市 emoji */}
+                        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-62%)', fontSize:'4.2rem', opacity:0.22, userSelect:'none', pointerEvents:'none', filter:'blur(0.5px)' }}>
+                          {icon}
+                        </div>
+                        {/* 类型标签 */}
+                        <div style={{ position:'absolute', top:12, left:12 }}>
+                          <span style={{ fontSize:'0.62rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', padding:'3px 10px', borderRadius:99, background:'rgba(255,255,255,0.12)', backdropFilter:'blur(8px)', color:'rgba(255,255,255,0.82)', border:'1px solid rgba(255,255,255,0.2)' }}>
+                            {spot.type === 'scenic' ? 'Scenic' : spot.type === 'campus' ? 'Campus' : spot.type || 'Spot'}
+                          </span>
+                        </div>
+                        {/* 评分 */}
+                        {spot.rating && (
+                          <div style={{ position:'absolute', top:12, right:12, fontSize:'0.72rem', fontWeight:700, color:'#fbbf24' }}>★ {spot.rating}</div>
+                        )}
+                        {/* 底部文字 */}
+                        <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'16px 16px 14px' }}>
+                          <h3 style={{ fontFamily:'Inter,sans-serif', fontSize:'1.05rem', fontWeight:800, color:'#fff', letterSpacing:'-0.02em', lineHeight:1.2, marginBottom:5, textShadow:'0 2px 8px rgba(0,0,0,0.4)' }}>
+                            {spot.name}
+                          </h3>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:'0.68rem', color:'rgba(255,255,255,0.6)' }}>
+                            <span>📍 {spot.city}</span>
+                            {spot.entranceFee === 0 ? (
+                              <span style={{ fontWeight:700, color:'#4ade80' }}>免费</span>
+                            ) : spot.entranceFee ? (
+                              <span style={{ fontWeight:700, color:'#fbbf24' }}>¥{spot.entranceFee}</span>
+                            ) : null}
+                          </div>
+                          {spot.description && (
+                            <p style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.5)', marginTop:6, lineHeight:1.45, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                              {spot.description}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })
+            }
+          </motion.div>
+        </div>
       </section>
 
       {/* ════════════════════ 核心功能 ════════════════════ */}

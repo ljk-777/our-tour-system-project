@@ -8,3 +8,6 @@ __pycache__/
 agent.md
 AGENTS.md
 records/
+# Local AI assistant configs
+.claude/settings.local.json
+.trae/
