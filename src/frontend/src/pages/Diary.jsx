@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { getDiaries, searchDiaries, createDiary, likeDiary, commentDiary } from '../api/index.js';
 import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, commentDiary } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -131,6 +132,7 @@ function DiaryCard({ diary, onLike, onComment, currentUser }) {
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-3">
             <span className="font-medium text-gray-600">{diary.userName}</span>
             {diary.spotName && <span>📍 <span className="text-blue-500">{diary.spotName}</span></span>}
+            <span>{diary.visitDate}</span>
             <span>{formatDiaryDate(diary.visitDate)}</span>
             {diary.weather && <span>{WEATHER_ICON[diary.weather] || '🌤️'} {diary.weather}</span>}
             {diary.mood && <span>{MOOD_ICON[diary.mood] || '😊'} {diary.mood}</span>}
@@ -321,6 +323,7 @@ export default function Diary() {
         userId: user?.id || 1,
         userName: user?.nickname || user?.username || '旅行者',
         userAvatar: user?.avatar || '🧭',
+        visitDate: new Date().toISOString().slice(0, 10),
         visitDate: formatLocalDate(),
       });
       const createdDiary = res.data?.data;
@@ -371,6 +374,8 @@ export default function Diary() {
               placeholder="日记标题 *" required className="input-base" />
             <input value={form.spotName} onChange={e => setForm({...form, spotName:e.target.value})}
               placeholder="旅游地点名称（选填）" className="input-base" />
+            <textarea value={form.content} onChange={e => setForm({...form, content:e.target.value})}
+              placeholder="写下你的旅行故事... *" required rows={5} className="input-base resize-none" />
             <div>
               <textarea value={form.content} onChange={handleContentChange}
                 placeholder="写下几个关键词、路线、感受，例如：傍晚去了沙河校园，风很舒服，拍了晚霞... *" required rows={5} className="input-base resize-none" />
@@ -435,6 +440,7 @@ export default function Diary() {
               <button type="submit" disabled={submitting} className="btn-primary text-sm">
                 {submitting ? '发布中...' : '发布日记'}
               </button>
+              <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); }}
               <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); setAiDraft(''); }}
                 className="btn-outline text-sm">取消</button>
             </div>
@@ -483,6 +489,7 @@ export default function Diary() {
         </div>
       ) : (
         <div className="space-y-4">
+          {diaries.map((d, i) => (
           {visibleDiaries.map((d, i) => (
             <div key={d.id} style={{ animation:`itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i,6)*60}ms both` }}>
               <DiaryCard diary={d} currentUser={user} />

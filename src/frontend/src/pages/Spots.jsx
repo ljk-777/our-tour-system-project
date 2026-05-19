@@ -179,6 +179,8 @@ export default function Spots() {
         </div>
       ) : dataSource === 'local' ? (
         <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {spots.map((spot) => <SpotCard key={spot.id} spot={spot} />)}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
