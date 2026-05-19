@@ -70,6 +70,20 @@ export default function Foods() {
     finally { setLoading(false); }
   };
 
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQ.trim()) { load(); return; }
+    setLoading(true);
+    try {
+      const res = await searchSpots({ q: searchQ, mode: 'fulltext' });
+      const data = (res.data.data || []).filter(s => s.type === 'restaurant');
+      setFoods(data); setTotal(data.length);
+    } catch { setFoods([]); }
+    finally { setLoading(false); }
+  };
+
   /* Hero 背景轮播 */
   const [slideIdx, setSlideIdx] = useState(0);
   useEffect(() => {
@@ -229,6 +243,13 @@ export default function Foods() {
           {loading ? '加载中...' : `共 ${foods.length} 家餐厅${city !== '全部' ? ` · ${city}` : ''}`}
         </div>
 
+        </div>
+
+        {/* 结果数 */}
+        <div style={{ fontSize: '0.82rem', color: '#9aa0a6', marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+          {loading ? '加载中...' : `共 ${foods.length} 家餐厅${city !== '全部' ? ` · ${city}` : ''}`}
+        </div>
+
         {/* 餐厅卡片网格 */}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
@@ -246,6 +267,7 @@ export default function Foods() {
               <Link key={food.id} to={`/spots/${food.id}`} style={{ textDecoration: 'none' }}>
                 <div className="glass-card" style={{
                   borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+                  borderRadius: 16, padding: '20px', cursor: 'pointer',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   animationDelay: `${i * 0.03}s`,
                 }}
@@ -298,6 +320,40 @@ export default function Foods() {
                       <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
                         🕐 {food.openHours || '营业中'}
                       </div>
+                  {/* 头部 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#9aa0a6' }}>
+                        {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1.1rem',
+                      color: getRatingColor(food.rating), lineHeight: 1,
+                    }}>
+                      {food.rating?.toFixed(1)}
+                      <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#9aa0a6', textAlign: 'center' }}>评分</div>
+                    </div>
+                  </div>
+
+                  {/* 描述 */}
+                  <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {food.description}
+                  </p>
+
+                  {/* 底部信息 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {(food.tags || []).slice(0, 3).map(tag => (
+                        <span key={tag} style={{
+                          fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                          background: 'rgba(249,115,22,0.1)', color: '#f97316',
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
+                      🕐 {food.openHours || '营业中'}
                     </div>
                   </div>
                 </div>

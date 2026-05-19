@@ -14,7 +14,7 @@ function mapDiary(row) {
     coverImage: row.cover_image,
     tags: row.tags || [],
     rating: row.rating === null ? null : Number(row.rating),
-    visitDate: row.visit_date,
+    visitDate: row.visit_date_text || row.visit_date,
     weather: row.weather,
     mood: row.mood,
     likes: Number(row.likes_count || 0),
@@ -28,6 +28,7 @@ function mapDiary(row) {
 const baseSelect = `
   SELECT
     d.*,
+    d.visit_date::text AS visit_date_text,
     COALESCE(tags.tags, '{}'::text[]) AS tags,
     COALESCE(comments.comments, '[]'::json) AS comments
   FROM diaries d
@@ -109,7 +110,7 @@ async function getAll() {
 }
 
 async function create(data) {
-  return withTransaction(async (client) => {
+  const diaryId = await withTransaction(async (client) => {
     const inserted = await client.query(
       `
         INSERT INTO diaries (
@@ -134,26 +135,28 @@ async function create(data) {
         data.spotName || null,
         data.coverImage || null,
         data.rating ?? 0,
-        data.visitDate ? new Date(data.visitDate) : null,
+        data.visitDate || null,
         data.weather || null,
         data.mood || null,
       ]
     );
 
-    const diaryId = inserted.rows[0].id;
+    const newDiaryId = inserted.rows[0].id;
     for (const tag of data.tags || []) {
-      await client.query('INSERT INTO diary_tags (diary_id, tag) VALUES ($1, $2)', [diaryId, tag]);
+      await client.query('INSERT INTO diary_tags (diary_id, tag) VALUES ($1, $2)', [newDiaryId, tag]);
     }
 
-    return findById(diaryId);
+    return newDiaryId;
   });
+
+  return findById(diaryId);
 }
 
 async function update(id, data) {
   const existing = await findById(id);
   if (!existing) return null;
 
-  return withTransaction(async (client) => {
+  await withTransaction(async (client) => {
     const merged = { ...existing, ...data };
     await client.query(
       `
@@ -186,7 +189,7 @@ async function update(id, data) {
         merged.spotName || null,
         merged.coverImage || null,
         merged.rating ?? 0,
-        merged.visitDate ? new Date(merged.visitDate) : null,
+        merged.visitDate || null,
         merged.weather || null,
         merged.mood || null,
         merged.likes ?? 0,
@@ -201,9 +204,9 @@ async function update(id, data) {
         await client.query('INSERT INTO diary_tags (diary_id, tag) VALUES ($1, $2)', [Number(id), tag]);
       }
     }
-
-    return findById(id);
   });
+
+  return findById(id);
 }
 
 async function remove(id) {
