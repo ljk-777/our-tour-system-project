@@ -85,6 +85,22 @@ export default function SpotCard({ spot, animDelay = 0, index = 0 }) {
         backgroundSize:'200px',
       }} />
 
+      {/* 真实图片（渐显 + 懒加载），失败隐藏退回渐变+emoji */}
+      {spot.imageUrl && (
+        <img
+          src={spot.imageUrl}
+          alt={spot.name}
+          loading="lazy"
+          style={{
+            position:'absolute', inset:0, width:'100%', height:'100%',
+            objectFit:'cover', opacity:0,
+            transition:'opacity 0.35s ease',
+          }}
+          onLoad={e => { e.target.style.opacity = '1'; }}
+          onError={e => { e.target.style.display = 'none'; }}
+        />
+      )}
+
       {/* 渐变遮罩让底部文字更清晰 */}
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 45%, transparent 100%)' }} />
 

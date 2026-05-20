@@ -34,6 +34,7 @@ const schemaStatements = [
       visit_time INTEGER DEFAULT 0,
       entrance_fee NUMERIC(10, 2) DEFAULT 0,
       open_hours VARCHAR(100),
+      image_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -121,6 +122,7 @@ const schemaStatements = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `,
+  `ALTER TABLE spots ADD COLUMN IF NOT EXISTS image_url TEXT;`,
   `CREATE INDEX IF NOT EXISTS idx_spots_city ON spots(city);`,
   `CREATE INDEX IF NOT EXISTS idx_spots_type ON spots(type);`,
   `CREATE INDEX IF NOT EXISTS idx_spots_province ON spots(province);`,
