@@ -1,0 +1,1854 @@
+{
+  "presetId": "xitucheng",
+  "imageUrl": "/src/assets/bupt-xitucheng-campus-map.png",
+  "imageSize": {
+    "width": 960,
+    "height": 1344
+  },
+  "nodes": [
+    {
+      "id": "北门",
+      "name": "北门",
+      "x": 396.5,
+      "y": 169.25,
+      "type": "entrance"
+    },
+    {
+      "id": "东北门",
+      "name": "东北门",
+      "x": 857,
+      "y": 252,
+      "type": "entrance"
+    },
+    {
+      "id": "东门",
+      "name": "东门",
+      "x": 857,
+      "y": 586,
+      "type": "entrance"
+    },
+    {
+      "id": "西门",
+      "name": "西门",
+      "x": 116,
+      "y": 801,
+      "type": "entrance"
+    },
+    {
+      "id": "中门",
+      "name": "中门",
+      "x": 403.42857142857144,
+      "y": 1037.1428571428573,
+      "type": "entrance"
+    },
+    {
+      "id": "南门",
+      "name": "南门",
+      "x": 516,
+      "y": 1260,
+      "type": "entrance"
+    },
+    {
+      "id": "北邮科技酒店",
+      "name": "北邮科技酒店外入口",
+      "x": 150,
+      "y": 160,
+      "type": "building"
+    },
+    {
+      "id": "青年公寓",
+      "name": "青年公寓",
+      "x": 158,
+      "y": 323,
+      "type": "building"
+    },
+    {
+      "id": "学十三公寓",
+      "name": "学十三公寓",
+      "x": 158,
+      "y": 447,
+      "type": "building"
+    },
+    {
+      "id": "学十一公寓",
+      "name": "学十一公寓",
+      "x": 260,
+      "y": 229.14285714285717,
+      "type": "building"
+    },
+    {
+      "id": "学九公寓",
+      "name": "学九公寓",
+      "x": 232.57142857142858,
+      "y": 281.28571428571433,
+      "type": "building"
+    },
+    {
+      "id": "留学生公寓",
+      "name": "留学生公寓",
+      "x": 236.25,
+      "y": 301.25,
+      "type": "building"
+    },
+    {
+      "id": "学五公寓",
+      "name": "学五公寓",
+      "x": 231.42857142857142,
+      "y": 386.28571428571433,
+      "type": "building"
+    },
+    {
+      "id": "学三公寓",
+      "name": "学三公寓",
+      "x": 232.625,
+      "y": 456.8571428571429,
+      "type": "building"
+    },
+    {
+      "id": "学一公寓",
+      "name": "学一公寓",
+      "x": 232,
+      "y": 574,
+      "type": "building"
+    },
+    {
+      "id": "学十公寓",
+      "name": "学十公寓",
+      "x": 333.4782608695652,
+      "y": 279.3478260869565,
+      "type": "building"
+    },
+    {
+      "id": "综合食堂",
+      "name": "综合食堂东门",
+      "x": 380.1086956521739,
+      "y": 320.8695652173913,
+      "type": "building"
+    },
+    {
+      "id": "学八公寓",
+      "name": "学八公寓",
+      "x": 331.7391304347826,
+      "y": 392.17391304347825,
+      "type": "building"
+    },
+    {
+      "id": "学四公寓",
+      "name": "学四公寓",
+      "x": 332.60869565217394,
+      "y": 461.304347826087,
+      "type": "building"
+    },
+    {
+      "id": "学二公寓",
+      "name": "学二公寓",
+      "x": 334.3478260869565,
+      "y": 566.5217391304348,
+      "type": "building"
+    },
+    {
+      "id": "经管楼",
+      "name": "经管楼南门",
+      "x": 442.7445652173913,
+      "y": 240.8967391304348,
+      "type": "building"
+    },
+    {
+      "id": "学生活动中心",
+      "name": "学生活动中心西门",
+      "x": 435.2173913043478,
+      "y": 280.6521739130435,
+      "type": "building"
+    },
+    {
+      "id": "学六公寓",
+      "name": "学六公寓",
+      "x": 566.5217391304348,
+      "y": 235.8695652173913,
+      "type": "building"
+    },
+    {
+      "id": "浴室联通水房锅炉房",
+      "name": "浴室/联通/水房/锅炉房",
+      "x": 583.9130434782609,
+      "y": 338.69565217391306,
+      "type": "building"
+    },
+    {
+      "id": "教工餐厅学苑书屋",
+      "name": "教工餐厅/学苑书屋",
+      "x": 586.5217391304348,
+      "y": 424.7826086956522,
+      "type": "building"
+    },
+    {
+      "id": "图书馆",
+      "name": "图书馆",
+      "x": 521.304347826087,
+      "y": 511.304347826087,
+      "type": "building"
+    },
+    {
+      "id": "科研大楼",
+      "name": "科研大楼",
+      "x": 676.0869565217391,
+      "y": 267.39130434782606,
+      "type": "building"
+    },
+    {
+      "id": "学生食堂",
+      "name": "学生食堂",
+      "x": 667.3913043478261,
+      "y": 449.5652173913044,
+      "type": "building"
+    },
+    {
+      "id": "篮球场网球场",
+      "name": "篮球场/排球场",
+      "x": 733.7631184407796,
+      "y": 570.4347826086956,
+      "type": "building"
+    },
+    {
+      "id": "保卫处基建处",
+      "name": "保卫处/基建处",
+      "x": 771.304347826087,
+      "y": 402.60869565217394,
+      "type": "building"
+    },
+    {
+      "id": "学29公寓",
+      "name": "学29公寓",
+      "x": 806.9565217391304,
+      "y": 565.2173913043479,
+      "type": "building"
+    },
+    {
+      "id": "体育馆游泳馆",
+      "name": "体育馆/游泳馆",
+      "x": 771.7391304347826,
+      "y": 602.1739130434783,
+      "type": "building"
+    },
+    {
+      "id": "体育场",
+      "name": "体育场",
+      "x": 736.0869565217391,
+      "y": 658.695652173913,
+      "type": "building"
+    },
+    {
+      "id": "教四楼",
+      "name": "教四楼",
+      "x": 282.32298136645966,
+      "y": 687.416149068323,
+      "type": "building"
+    },
+    {
+      "id": "教一楼",
+      "name": "教一楼",
+      "x": 521.7391304347826,
+      "y": 713.0434782608696,
+      "type": "building"
+    },
+    {
+      "id": "教三楼",
+      "name": "教三楼",
+      "x": 282.57142857142856,
+      "y": 880.5714285714287,
+      "type": "building"
+    },
+    {
+      "id": "教二楼",
+      "name": "教二楼",
+      "x": 521.7391304347826,
+      "y": 909.5652173913044,
+      "type": "building"
+    },
+    {
+      "id": "主楼",
+      "name": "主楼",
+      "x": 532.1739130434783,
+      "y": 794.7826086956522,
+      "type": "building"
+    },
+    {
+      "id": "科学会堂",
+      "name": "科学会堂",
+      "x": 642.3745819397993,
+      "y": 806.9565217391305,
+      "type": "building"
+    },
+    {
+      "id": "校医院",
+      "name": "校医院",
+      "x": 342,
+      "y": 1040,
+      "type": "building"
+    },
+    {
+      "id": "可信网络通信协同创新中心",
+      "name": "可信网络通信协同创新中心",
+      "x": 677.8260869565217,
+      "y": 988.695652173913,
+      "type": "building"
+    },
+    {
+      "id": "明光楼出版社",
+      "name": "明光楼出版社",
+      "x": 801,
+      "y": 1106,
+      "type": "building"
+    },
+    {
+      "id": "主干道_中段",
+      "name": "主干道(中段)",
+      "x": 400.8695652173913,
+      "y": 589.5652173913044,
+      "type": "road"
+    },
+    {
+      "id": "主干道_南段",
+      "name": "主干道(南段)",
+      "x": 402.42857142857144,
+      "y": 871.5714285714286,
+      "type": "road"
+    },
+    {
+      "id": "东西向路_教四楼北侧",
+      "name": "教四楼北侧路",
+      "x": 277.82608695652175,
+      "y": 587.3913043478261,
+      "type": "road"
+    },
+    {
+      "id": "东西向路_教一楼北侧",
+      "name": "教一楼北侧路",
+      "x": 630.4347826086956,
+      "y": 586.5217391304348,
+      "type": "road"
+    },
+    {
+      "id": "东西向路_主楼北侧",
+      "name": "行政办公",
+      "x": 529.6551724137931,
+      "y": 590.6896551724137,
+      "type": "road"
+    },
+    {
+      "id": "东西向路_教三楼北侧",
+      "name": "教三楼北侧路",
+      "x": 176.5217391304348,
+      "y": 869.1304347826087,
+      "type": "road"
+    },
+    {
+      "id": "东西向路_教二楼北侧",
+      "name": "教二楼北侧路",
+      "x": 614.7826086956522,
+      "y": 870,
+      "type": "road"
+    },
+    {
+      "id": "node_manual_10",
+      "name": "学十公寓东门",
+      "type": "road",
+      "x": 383.2078475952148,
+      "y": 207.66654368809284,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_14",
+      "name": "学苑超市",
+      "type": "road",
+      "x": 531.587717725085,
+      "y": 364.0269332984825,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_15",
+      "name": "教工餐厅",
+      "type": "road",
+      "x": 617.1185618809292,
+      "y": 389.4879722595215,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_16",
+      "name": "澡堂",
+      "type": "road",
+      "x": 531.7435618809292,
+      "y": 333.32725797380715,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_17",
+      "name": "节点 17",
+      "type": "road",
+      "x": 397.6364190237863,
+      "y": 348.9165436880928,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_18",
+      "name": "节点 18",
+      "type": "road",
+      "x": 395.4578475952148,
+      "y": 399.4165436880929,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_19",
+      "name": "节点 19",
+      "type": "road",
+      "x": 173.3271489919223,
+      "y": 584.5734729619481,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_20",
+      "name": "节点 20",
+      "type": "road",
+      "x": 401.13202704070284,
+      "y": 443.59786320585056,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_21",
+      "name": "节点 21",
+      "type": "road",
+      "x": 176.15638155670888,
+      "y": 725.9783236193415,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_22",
+      "name": "节点 22",
+      "type": "road",
+      "x": 172.74174741036742,
+      "y": 816.2222260583659,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_23",
+      "name": "节点 23",
+      "type": "road",
+      "x": 172.50758082309608,
+      "y": 995.0124646016205,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_24",
+      "name": "节点 24",
+      "type": "road",
+      "x": 617.5026980105962,
+      "y": 993.9978221187699,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_25",
+      "name": "节点 25",
+      "type": "road",
+      "x": 724.0783577857487,
+      "y": 868.7490368672455,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_26",
+      "name": "节点 26",
+      "type": "road",
+      "x": 728.8783411127304,
+      "y": 726.6417162212852,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_27",
+      "name": "节点 27",
+      "type": "road",
+      "x": 628.8783411127304,
+      "y": 727.1295210993339,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_28",
+      "name": "节点 28",
+      "type": "road",
+      "x": 729.6783482583097,
+      "y": 586.0368131629772,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_29",
+      "name": "节点 29",
+      "type": "road",
+      "x": 769.6783482583096,
+      "y": 584.085593650782,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_30",
+      "name": "节点 30",
+      "type": "road",
+      "x": 770.0295534793463,
+      "y": 459.53921884133075,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_31",
+      "name": "节点 31",
+      "type": "road",
+      "x": 838.8100412842243,
+      "y": 459.05141396328196,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_32",
+      "name": "节点 32",
+      "type": "road",
+      "x": 630.517358357395,
+      "y": 461.4904383535259,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_33",
+      "name": "节点 33",
+      "type": "road",
+      "x": 837.4638736965719,
+      "y": 259.987976106003,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_34",
+      "name": "节点 34",
+      "type": "road",
+      "x": 634.5370444282792,
+      "y": 259.5001712279542,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_35",
+      "name": "节点 35",
+      "type": "road",
+      "x": 626.2443615014499,
+      "y": 349.7440736669786,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_36",
+      "name": "节点 36",
+      "type": "road",
+      "x": 628.6833858916938,
+      "y": 436.08553708161276,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_37",
+      "name": "节点 37",
+      "type": "road",
+      "x": 462.3419224770596,
+      "y": 437.06114683771034,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_38",
+      "name": "节点 38",
+      "type": "road",
+      "x": 459.4150932087669,
+      "y": 354.1343175694176,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_39",
+      "name": "节点 39",
+      "type": "road",
+      "x": 399.929512681036,
+      "y": 725.8236070411355,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_40",
+      "name": "节点 40",
+      "type": "road",
+      "x": 398.19038224625336,
+      "y": 993.6496939976572,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_41",
+      "name": "篮球场",
+      "type": "road",
+      "x": 639.4101617566913,
+      "y": 549.9768691595833,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_42",
+      "name": "节点 42",
+      "type": "road",
+      "x": 401.34110363438526,
+      "y": 1199.8802652398635,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_43",
+      "name": "节点 43",
+      "type": "road",
+      "x": 506.8583450136956,
+      "y": 1204.7078514467603,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_44",
+      "name": "留学生公寓东门",
+      "type": "road",
+      "x": 266.70616657521595,
+      "y": 319.51807229070596,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_45",
+      "name": "邮局",
+      "type": "road",
+      "x": 156.9545895431156,
+      "y": 644.0946844743025,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_46",
+      "name": "教四西",
+      "type": "road",
+      "x": 183.7966948062735,
+      "y": 660.4104739479868,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_47",
+      "name": "教四东",
+      "type": "road",
+      "x": 375.9019579641683,
+      "y": 656.726263421671,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_48",
+      "name": "移动",
+      "type": "road",
+      "x": 156.84935208423403,
+      "y": 735.3789444712187,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_49",
+      "name": "鸿通楼",
+      "type": "road",
+      "x": 130.7651428428689,
+      "y": 568.9789586056759,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_50",
+      "name": "学四",
+      "type": "road",
+      "x": 296.954685914415,
+      "y": 489.88423846792915,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_51",
+      "name": "学四",
+      "type": "road",
+      "x": 370.11258065125713,
+      "y": 489.88423846792915,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_52",
+      "name": "校训石",
+      "type": "road",
+      "x": 284.36199402186054,
+      "y": 800.7716587515672,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_53",
+      "name": "教三",
+      "type": "road",
+      "x": 184.51584956573075,
+      "y": 927.6023847882258,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_54",
+      "name": "教三",
+      "type": "road",
+      "x": 382.20815725803845,
+      "y": 926.0639232497642,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_55",
+      "name": "教二",
+      "type": "road",
+      "x": 426.0851103830384,
+      "y": 931.2024261043316,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_56",
+      "name": "教二",
+      "type": "road",
+      "x": 606.8543411522692,
+      "y": 928.1255030274085,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_57",
+      "name": "科学会堂",
+      "type": "road",
+      "x": 686.5773354431346,
+      "y": 745.4178895959182,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_58",
+      "name": "科学会堂",
+      "type": "road",
+      "x": 653.5004123662115,
+      "y": 833.1101972882258,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_10",
+      "name": "节点 10",
+      "type": "road",
+      "x": 383.2078475952148,
+      "y": 207.66654368809284,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_14",
+      "name": "学苑超市",
+      "type": "road",
+      "x": 531.587717725085,
+      "y": 364.0269332984825,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_15",
+      "name": "教工餐厅",
+      "type": "road",
+      "x": 617.1185618809292,
+      "y": 389.4879722595215,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_16",
+      "name": "澡堂",
+      "type": "road",
+      "x": 531.7435618809292,
+      "y": 333.32725797380715,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_17",
+      "name": "节点 17",
+      "type": "road",
+      "x": 397.6364190237863,
+      "y": 348.9165436880928,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_2",
+      "name": "节点 2",
+      "type": "road",
+      "x": 279.74512101733956,
+      "y": 238.4956778907125,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_3",
+      "name": "节点 3",
+      "type": "road",
+      "x": 281.10875738097593,
+      "y": 185.76840516343975,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_4",
+      "name": "节点 4",
+      "type": "road",
+      "x": 401.25426380631325,
+      "y": 287.38884521304476,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_5",
+      "name": "节点 5",
+      "type": "road",
+      "x": 172.12920277115697,
+      "y": 348.8388116437088,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_6",
+      "name": "节点 6",
+      "type": "road",
+      "x": 279.004202771157,
+      "y": 353.2138116437088,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_7",
+      "name": "节点 7",
+      "type": "road",
+      "x": 283.379202771157,
+      "y": 398.8388116437089,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_8",
+      "name": "节点 8",
+      "type": "road",
+      "x": 280.879202771157,
+      "y": 450.7138116437089,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_9",
+      "name": "节点 9",
+      "type": "road",
+      "x": 177.35415546891088,
+      "y": 453.01380706607216,
+      "routingOnly": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "东北门",
+      "to": "科研大楼",
+      "bidirectional": true
+    },
+    {
+      "from": "东门",
+      "to": "篮球场网球场",
+      "bidirectional": true
+    },
+    {
+      "from": "中门",
+      "to": "主干道_南段",
+      "bidirectional": true
+    },
+    {
+      "from": "主干道_中段",
+      "to": "主干道_南段",
+      "bidirectional": true
+    },
+    {
+      "from": "主干道_南段",
+      "to": "中门",
+      "bidirectional": true
+    },
+    {
+      "from": "教一楼",
+      "to": "主楼",
+      "bidirectional": true
+    },
+    {
+      "from": "主楼",
+      "to": "科学会堂",
+      "bidirectional": true
+    },
+    {
+      "from": "篮球场网球场",
+      "to": "体育馆游泳馆",
+      "bidirectional": true
+    },
+    {
+      "from": "体育馆游泳馆",
+      "to": "体育场",
+      "bidirectional": true
+    },
+    {
+      "from": "学生食堂",
+      "to": "科研大楼",
+      "bidirectional": true
+    },
+    {
+      "from": "科研大楼",
+      "to": "学生活动中心",
+      "bidirectional": true
+    },
+    {
+      "from": "北门",
+      "to": "经管楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学十公寓",
+      "to": "综合食堂",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学十公寓",
+      "to": "学九公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学九公寓",
+      "to": "留学生公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_40",
+      "to": "node_manual_23",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_40",
+      "to": "node_manual_24",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_40",
+      "to": "中门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_40",
+      "to": "主干道_南段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_24",
+      "to": "东西向路_教二楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教二楼北侧",
+      "to": "主干道_南段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教二楼北侧",
+      "to": "node_manual_25",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "东西向路_教二楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "node_manual_25",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "科学会堂",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "主楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "教一楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "node_manual_26",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_27",
+      "to": "东西向路_教一楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "体育场",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "node_manual_28",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_29",
+      "to": "node_manual_28",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_28",
+      "to": "东西向路_教一楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_28",
+      "to": "篮球场网球场",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_29",
+      "to": "学29公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_29",
+      "to": "东门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_31",
+      "to": "node_manual_30",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_30",
+      "to": "node_manual_29",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_29",
+      "to": "体育馆游泳馆",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教一楼北侧",
+      "to": "node_manual_32",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教一楼北侧",
+      "to": "node_manual_41",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_41",
+      "to": "node_manual_32",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "图书馆",
+      "to": "东西向路_主楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "图书馆",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_38",
+      "to": "node_manual_37",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "node_manual_20",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "node_manual_36",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "教工餐厅学苑书屋",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "教工餐厅学苑书屋",
+      "to": "node_manual_36",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_36",
+      "to": "node_manual_35",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学生食堂",
+      "to": "node_manual_36",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学生食堂",
+      "to": "node_manual_32",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_32",
+      "to": "node_manual_30",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学生食堂",
+      "to": "node_manual_30",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "保卫处基建处",
+      "to": "node_manual_30",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_35",
+      "to": "node_manual_38",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_38",
+      "to": "浴室联通水房锅炉房",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "浴室联通水房锅炉房",
+      "to": "node_manual_35",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_35",
+      "to": "node_manual_34",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_34",
+      "to": "科研大楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_34",
+      "to": "node_manual_33",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_33",
+      "to": "东北门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学六公寓",
+      "to": "node_manual_34",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教四楼北侧",
+      "to": "学一公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教四楼北侧",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_19",
+      "to": "学一公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教四楼北侧",
+      "to": "学二公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教四楼北侧",
+      "to": "主干道_中段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "主干道_中段",
+      "to": "学二公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_19",
+      "to": "node_manual_21",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_21",
+      "to": "node_manual_22",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_22",
+      "to": "西门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_22",
+      "to": "东西向路_教三楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "教三楼",
+      "to": "东西向路_教三楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教三楼北侧",
+      "to": "node_manual_23",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "校医院",
+      "to": "中门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "可信网络通信协同创新中心",
+      "to": "node_manual_24",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "中门",
+      "to": "node_manual_42",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_42",
+      "to": "node_manual_43",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_43",
+      "to": "南门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "经管楼",
+      "to": "学生活动中心",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_44",
+      "to": "留学生公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_21",
+      "to": "教四楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "教四楼",
+      "to": "node_manual_39",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_45",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_45",
+      "to": "node_manual_21",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_46",
+      "to": "node_manual_45",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_46",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_46",
+      "to": "node_manual_21",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_46",
+      "to": "教四楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "主干道_中段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "教四楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_46",
+      "to": "node_manual_47",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "node_manual_39",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_48",
+      "to": "node_manual_21",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_48",
+      "to": "node_manual_45",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_48",
+      "to": "node_manual_22",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_49",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_50",
+      "to": "学四公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学四公寓",
+      "to": "node_manual_51",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_51",
+      "to": "node_manual_50",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_51",
+      "to": "node_manual_20",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_50",
+      "to": "东西向路_教四楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_51",
+      "to": "主干道_中段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "node_manual_22",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "教四楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "教三楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_54",
+      "to": "主干道_南段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_54",
+      "to": "教三楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_54",
+      "to": "node_manual_53",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_53",
+      "to": "教三楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_53",
+      "to": "东西向路_教三楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_53",
+      "to": "node_manual_23",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_54",
+      "to": "node_manual_40",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_56",
+      "to": "东西向路_教二楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_56",
+      "to": "node_manual_24",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_教二楼北侧",
+      "to": "教二楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "教二楼",
+      "to": "主干道_南段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_55",
+      "to": "教二楼",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "主干道_南段",
+      "to": "node_manual_55",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_55",
+      "to": "node_manual_40",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_56",
+      "to": "node_manual_55",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "教二楼",
+      "to": "node_manual_56",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "科学会堂",
+      "to": "东西向路_教二楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_57",
+      "to": "node_manual_27",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_57",
+      "to": "科学会堂",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_57",
+      "to": "node_manual_26",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_58",
+      "to": "科学会堂",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_58",
+      "to": "东西向路_教二楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_58",
+      "to": "node_manual_57",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_18",
+      "to": "学八公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_18",
+      "to": "node_manual_20",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "学十公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "学生活动中心",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "北门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "综合食堂",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_主楼北侧",
+      "to": "东西向路_教一楼北侧",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "东西向路_主楼北侧",
+      "to": "主干道_中段",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_38",
+      "to": "node_manual_14",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_14",
+      "to": "node_manual_35",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_14",
+      "to": "浴室联通水房锅炉房",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_35",
+      "to": "node_manual_15",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_15",
+      "to": "node_manual_36",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_17",
+      "to": "node_manual_10",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_17",
+      "to": "node_manual_38",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_38",
+      "to": "node_manual_16",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "浴室联通水房锅炉房",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "node_manual_14",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_17",
+      "to": "node_manual_18",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "node_manual_17",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_17",
+      "to": "node_manual_15",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_3",
+      "to": "node_manual_2",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_2",
+      "to": "学十一公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_3",
+      "to": "北门",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "node_manual_10",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "学生活动中心",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "学十公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "node_manual_17",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "北门",
+      "to": "node_manual_4",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_6",
+      "to": "node_manual_5",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_6",
+      "to": "node_manual_44",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_6",
+      "to": "node_manual_7",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_7",
+      "to": "node_manual_8",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_7",
+      "to": "学五公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_7",
+      "to": "学八公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_8",
+      "to": "学三公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_8",
+      "to": "学十三公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_8",
+      "to": "学四公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "学三公寓",
+      "to": "学十三公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_5",
+      "to": "青年公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_5",
+      "to": "node_manual_9",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_9",
+      "to": "学十三公寓",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_9",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    }
+  ]
+}
