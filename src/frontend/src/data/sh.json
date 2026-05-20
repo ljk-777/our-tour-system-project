@@ -1,0 +1,1914 @@
+{
+  "presetId": "shahe",
+  "imageUrl": "/src/assets/bupt-shahe-campus-map.jpg",
+  "imageSize": {
+    "width": 1280,
+    "height": 914
+  },
+  "nodes": [
+    {
+      "id": "n_west_gate",
+      "name": "西门",
+      "type": "road",
+      "x": 62,
+      "y": 426,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_gate",
+      "name": "南门",
+      "type": "road",
+      "x": 753,
+      "y": 834,
+      "routingOnly": false
+    },
+    {
+      "id": "n_outer_nw",
+      "name": "西北外框路点",
+      "type": "road",
+      "x": 60,
+      "y": 106,
+      "routingOnly": false
+    },
+    {
+      "id": "n_outer_ne",
+      "name": "东北外框路点",
+      "type": "road",
+      "x": 1220,
+      "y": 116,
+      "routingOnly": false
+    },
+    {
+      "id": "n_outer_se",
+      "name": "东南外框路点",
+      "type": "road",
+      "x": 1222,
+      "y": 833,
+      "routingOnly": false
+    },
+    {
+      "id": "n_outer_sw",
+      "name": "西南外框路点",
+      "type": "road",
+      "x": 60,
+      "y": 833,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_250",
+      "name": "鸿雁路-雁西路口",
+      "type": "road",
+      "x": 340,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_380",
+      "name": "鸿雁路-中西纵路口",
+      "type": "road",
+      "x": 495,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_500",
+      "name": "鸿雁路-中部纵路口",
+      "type": "road",
+      "x": 638,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_585",
+      "name": "鸿雁路-国脉路口",
+      "type": "road",
+      "x": 740,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_790",
+      "name": "鸿雁路-东部纵路口",
+      "type": "road",
+      "x": 985,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_hongyan_970",
+      "name": "鸿雁路东端路口",
+      "type": "road",
+      "x": 1199,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_250",
+      "name": "北侧路-雁西路口",
+      "type": "road",
+      "x": 340,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_380",
+      "name": "北侧路-中西纵路口",
+      "type": "road",
+      "x": 495,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_500",
+      "name": "北侧路-中部纵路口",
+      "type": "road",
+      "x": 638,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_585",
+      "name": "北侧路-国脉路口",
+      "type": "road",
+      "x": 740,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_790",
+      "name": "北侧路-东部纵路口",
+      "type": "road",
+      "x": 985,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_north_970",
+      "name": "北侧路-东端路口",
+      "type": "road",
+      "x": 1199,
+      "y": 148,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_250",
+      "name": "雅北园南侧路-雁西路口",
+      "type": "road",
+      "x": 339.3103448275862,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_300",
+      "name": "雅北园南侧支路转点",
+      "type": "road",
+      "x": 400,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_380",
+      "name": "风味餐厅南侧路口",
+      "type": "road",
+      "x": 495,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_500",
+      "name": "综合办公楼南侧路口",
+      "type": "road",
+      "x": 638,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_585",
+      "name": "图书馆北侧西路口",
+      "type": "road",
+      "x": 740,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_790",
+      "name": "图书馆北侧东路口",
+      "type": "road",
+      "x": 985,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_midnorth_970",
+      "name": "学院楼北侧东路口",
+      "type": "road",
+      "x": 1199,
+      "y": 261,
+      "routingOnly": false
+    },
+    {
+      "id": "n_staff_250",
+      "name": "雅北园中部支路口",
+      "type": "road",
+      "x": 340,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_staff_300",
+      "name": "雅北园中部支路转点",
+      "type": "road",
+      "x": 400,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_staff_380",
+      "name": "教工餐厅西侧路口",
+      "type": "road",
+      "x": 495,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_staff_500",
+      "name": "学生活动中心西侧路口",
+      "type": "road",
+      "x": 638,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_west",
+      "name": "图书馆西侧路点",
+      "type": "road",
+      "x": 788,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_east",
+      "name": "图书馆东侧路点",
+      "type": "road",
+      "x": 985,
+      "y": 333,
+      "routingOnly": false
+    },
+    {
+      "id": "n_public_nw",
+      "name": "公共教学楼西北路口",
+      "type": "road",
+      "x": 495,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_public_ne",
+      "name": "公共教学楼东北路口",
+      "type": "road",
+      "x": 740,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_nw",
+      "name": "教学实验综合楼西北路口",
+      "type": "road",
+      "x": 740,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_ne",
+      "name": "教学实验综合楼东北路口",
+      "type": "road",
+      "x": 985,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s1_west",
+      "name": "智慧教学楼 S1 西侧路口",
+      "type": "road",
+      "x": 985,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s1_east",
+      "name": "智慧教学楼 S1 东侧路口",
+      "type": "road",
+      "x": 1199,
+      "y": 511,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_west_mid",
+      "name": "雁南园西侧中部路口",
+      "type": "road",
+      "x": 346.85714285714283,
+      "y": 600.7142857142857,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_east_mid",
+      "name": "雁南园东侧中部路口",
+      "type": "road",
+      "x": 495,
+      "y": 595,
+      "routingOnly": false
+    },
+    {
+      "id": "n_public_sw",
+      "name": "公共教学楼西南路口",
+      "type": "road",
+      "x": 495,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_public_se",
+      "name": "公共教学楼东南路口",
+      "type": "road",
+      "x": 740,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_sw",
+      "name": "教学实验综合楼西南路口",
+      "type": "road",
+      "x": 740.6896551724138,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_se",
+      "name": "教学实验综合楼东南路口",
+      "type": "road",
+      "x": 985,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s23_west",
+      "name": "S2/S3 西侧路口",
+      "type": "road",
+      "x": 985,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s23_east",
+      "name": "S2/S3 东侧路口",
+      "type": "road",
+      "x": 1199,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_250",
+      "name": "南侧路-雁西路口",
+      "type": "road",
+      "x": 325.51724137931035,
+      "y": 814.5172413793103,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_380",
+      "name": "南侧路-中西纵路口",
+      "type": "road",
+      "x": 496.37931034482756,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_500",
+      "name": "南侧路-中部纵路口",
+      "type": "road",
+      "x": 638,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_585",
+      "name": "南侧路-南门内路口",
+      "type": "road",
+      "x": 740,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_790",
+      "name": "南侧路-东部纵路口",
+      "type": "road",
+      "x": 985,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_south_970",
+      "name": "南侧路-东南路口",
+      "type": "road",
+      "x": 1199,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_west_south_20",
+      "name": "西侧南北路南段起点",
+      "type": "road",
+      "x": 66,
+      "y": 481,
+      "routingOnly": false
+    },
+    {
+      "id": "n_west_south_250",
+      "name": "西侧南北路南段东口",
+      "type": "road",
+      "x": 317.2413793103448,
+      "y": 485.1379310344828,
+      "routingOnly": false
+    },
+    {
+      "id": "n_planned_sw_nw",
+      "name": "西南规划区西北边路点",
+      "type": "road",
+      "x": 81.24137931034483,
+      "y": 501.48275862068965,
+      "routingOnly": false
+    },
+    {
+      "id": "n_planned_sw_sw",
+      "name": "西南规划区西南边路点",
+      "type": "road",
+      "x": 84,
+      "y": 809,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lake_west",
+      "name": "湖区西侧绕行点",
+      "type": "road",
+      "x": 635.2413793103449,
+      "y": 620.1379310344828,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lake_mid_west",
+      "name": "湖区南侧西转点",
+      "type": "road",
+      "x": 664.3103448275863,
+      "y": 674.7931034482758,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lake_mid",
+      "name": "湖区南侧中转点",
+      "type": "road",
+      "x": 751.7241379310344,
+      "y": 686.2413793103449,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lake_mid_east",
+      "name": "湖区南侧东转点",
+      "type": "road",
+      "x": 784.6896551724137,
+      "y": 685.3793103448276,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lake_east",
+      "name": "湖区东侧绕行点",
+      "type": "road",
+      "x": 856.0344827586207,
+      "y": 655.3103448275862,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_south_west",
+      "name": "图书馆南侧西接入点",
+      "type": "road",
+      "x": 806,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_south_east",
+      "name": "图书馆南侧东接入点",
+      "type": "road",
+      "x": 985,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_college_inner_west",
+      "name": "学院楼西侧内路点",
+      "type": "road",
+      "x": 1020,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_college_inner_east",
+      "name": "学院楼东侧内路点",
+      "type": "road",
+      "x": 1199,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s1_internal_mid",
+      "name": "S1/S2/S3 中部连接路点",
+      "type": "road",
+      "x": 1199,
+      "y": 618,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_internal_west",
+      "name": "教学实验综合楼中部西接点",
+      "type": "road",
+      "x": 740,
+      "y": 618,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_internal_east",
+      "name": "教学实验综合楼中部东接点",
+      "type": "road",
+      "x": 985,
+      "y": 618,
+      "routingOnly": false
+    },
+    {
+      "id": "n_express_station_access",
+      "name": "快递站接入点",
+      "type": "road",
+      "x": 97,
+      "y": 368,
+      "routingOnly": false
+    },
+    {
+      "id": "n_construction_office_access",
+      "name": "基建处接入点",
+      "type": "road",
+      "x": 108,
+      "y": 395,
+      "routingOnly": false
+    },
+    {
+      "id": "n_sports_field_access",
+      "name": "运动场接入点",
+      "type": "road",
+      "x": 281.7391304347826,
+      "y": 327,
+      "routingOnly": false
+    },
+    {
+      "id": "n_dorm_yabei_access",
+      "name": "学生公寓（雁北园）接入点",
+      "type": "road",
+      "x": 421.0344827586207,
+      "y": 214.8620689655172,
+      "routingOnly": false
+    },
+    {
+      "id": "n_dorm_yannan_access",
+      "name": "学生公寓（雁南园）接入点",
+      "type": "road",
+      "x": 390,
+      "y": 588.1379310344828,
+      "routingOnly": false
+    },
+    {
+      "id": "n_flavor_cafeteria_access",
+      "name": "风味餐厅接入点",
+      "type": "road",
+      "x": 543,
+      "y": 225,
+      "routingOnly": false
+    },
+    {
+      "id": "n_staff_cafeteria_access",
+      "name": "教工餐厅接入点",
+      "type": "road",
+      "x": 543,
+      "y": 315,
+      "routingOnly": false
+    },
+    {
+      "id": "n_admin_office_access",
+      "name": "综合办公楼接入点",
+      "type": "road",
+      "x": 693,
+      "y": 225,
+      "routingOnly": false
+    },
+    {
+      "id": "n_activity_center_access",
+      "name": "学生活动中心接入点",
+      "type": "road",
+      "x": 693,
+      "y": 315,
+      "routingOnly": false
+    },
+    {
+      "id": "n_medical_room_access",
+      "name": "医务室接入点",
+      "type": "road",
+      "x": 676,
+      "y": 128,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_access_south",
+      "name": "图书馆南侧接入点",
+      "type": "road",
+      "x": 865,
+      "y": 405,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_access_east",
+      "name": "图书馆东侧接入点",
+      "type": "road",
+      "x": 949.3448275862069,
+      "y": 363.6551724137931,
+      "routingOnly": false
+    },
+    {
+      "id": "n_east_support_access",
+      "name": "东配楼接入点",
+      "type": "road",
+      "x": 985,
+      "y": 291,
+      "routingOnly": false
+    },
+    {
+      "id": "n_college_building_access",
+      "name": "学院楼接入点",
+      "type": "road",
+      "x": 1095.0344827586207,
+      "y": 302.1034482758621,
+      "routingOnly": false
+    },
+    {
+      "id": "n_netsec_college_access",
+      "name": "网络空间安全学院接入点",
+      "type": "road",
+      "x": 1107.2413793103449,
+      "y": 200.58620689655172,
+      "routingOnly": false
+    },
+    {
+      "id": "n_digital_art_college_access",
+      "name": "数字媒体与设计艺术学院接入点",
+      "type": "road",
+      "x": 1080,
+      "y": 374,
+      "routingOnly": false
+    },
+    {
+      "id": "n_post_auto_college_access",
+      "name": "现代邮政学院/自动化学院接入点",
+      "type": "road",
+      "x": 1194,
+      "y": 339,
+      "routingOnly": false
+    },
+    {
+      "id": "n_public_teaching_access",
+      "name": "公共教学楼接入点",
+      "type": "road",
+      "x": 598.9310344827586,
+      "y": 528.0689655172414,
+      "routingOnly": false
+    },
+    {
+      "id": "n_lab_complex_access",
+      "name": "教学实验综合楼接入点",
+      "type": "road",
+      "x": 884,
+      "y": 618,
+      "routingOnly": false
+    },
+    {
+      "id": "n_report_hall_access",
+      "name": "报告厅接入点",
+      "type": "road",
+      "x": 901,
+      "y": 553,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s1_access",
+      "name": "智慧教学楼 S1 接入点",
+      "type": "road",
+      "x": 1104,
+      "y": 541,
+      "routingOnly": false
+    },
+    {
+      "id": "n_humanities_access",
+      "name": "人文学院接入点",
+      "type": "road",
+      "x": 1122,
+      "y": 624,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s2_marx_access",
+      "name": "S2/马克思主义学院接入点",
+      "type": "road",
+      "x": 1063,
+      "y": 702,
+      "routingOnly": false
+    },
+    {
+      "id": "n_s3_engineering_access",
+      "name": "S3/工程实验楼接入点",
+      "type": "road",
+      "x": 1128,
+      "y": 749,
+      "routingOnly": false
+    },
+    {
+      "id": "n_science_college_access",
+      "name": "理学院接入点",
+      "type": "road",
+      "x": 1105.3793103448277,
+      "y": 786,
+      "routingOnly": false
+    },
+    {
+      "id": "n_student_cafeteria_access",
+      "name": "学生餐厅接入点",
+      "type": "road",
+      "x": 566.3103448275862,
+      "y": 768,
+      "routingOnly": false
+    },
+    {
+      "id": "n_long_term_project_access",
+      "name": "远期规划项目接入点",
+      "type": "road",
+      "x": 908,
+      "y": 743,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yabei_a_access",
+      "name": "雁北园 A 区接入点",
+      "type": "road",
+      "x": 383.3793103448276,
+      "y": 347.24642556770397,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yabei_c_access",
+      "name": "雁北园 C 区接入点",
+      "type": "road",
+      "x": 424.2758620689655,
+      "y": 275.9655172413793,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yabei_d1_access",
+      "name": "雁北园 D1 区接入点",
+      "type": "road",
+      "x": 454.44827586206895,
+      "y": 262.2413793103448,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yabei_d2_access",
+      "name": "雁北园 D2 区接入点",
+      "type": "road",
+      "x": 455.82758620689657,
+      "y": 161.79310344827584,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yabei_e_access",
+      "name": "雁北园 E 区接入点",
+      "type": "road",
+      "x": 369.17672413793105,
+      "y": 167.3103448275862,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s1_access",
+      "name": "雁南园 S1 区接入点",
+      "type": "road",
+      "x": 371.17241379310343,
+      "y": 526.1034482758621,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s2_access",
+      "name": "雁南园 S2 区接入点",
+      "type": "road",
+      "x": 441.51724137931035,
+      "y": 487.8965517241379,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s3_access",
+      "name": "雁南园 S3 区接入点",
+      "type": "road",
+      "x": 442.2068965517241,
+      "y": 564.3103448275862,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s4_access",
+      "name": "雁南园 S4 区接入点",
+      "type": "road",
+      "x": 441.51724137931035,
+      "y": 618.4827586206897,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s5_access",
+      "name": "雁南园 S5 区接入点",
+      "type": "road",
+      "x": 417.9310344827586,
+      "y": 678.4827586206897,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_s6_access",
+      "name": "雁南园 S6 区接入点",
+      "type": "road",
+      "x": 420.13793103448273,
+      "y": 751.7241379310344,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_info_building_access",
+      "name": "雁南园信息楼接入点",
+      "type": "road",
+      "x": 385.6551724137931,
+      "y": 488.1034482758621,
+      "routingOnly": false
+    },
+    {
+      "id": "n_yannan_big_screen_access",
+      "name": "雁南园大屏幕接入点",
+      "type": "road",
+      "x": 370.62068965517244,
+      "y": 457.51724137931035,
+      "routingOnly": false
+    },
+    {
+      "id": "n_activity_market_access",
+      "name": "学生活动中心超市接入点",
+      "type": "road",
+      "x": 650.1034482758621,
+      "y": 301.8965517241379,
+      "routingOnly": false
+    },
+    {
+      "id": "n_activity_service_hall_access",
+      "name": "学生活动中心综合服务大厅接入点",
+      "type": "road",
+      "x": 729,
+      "y": 314.3103448275862,
+      "routingOnly": false
+    },
+    {
+      "id": "n_activity_bluepost_ai_access",
+      "name": "蓝邮/信息化创新实践 AI 接入点",
+      "type": "road",
+      "x": 657,
+      "y": 350,
+      "routingOnly": false
+    },
+    {
+      "id": "n_library_cafe_access",
+      "name": "图书馆咖啡厅接入点",
+      "type": "road",
+      "x": 911.6206896551724,
+      "y": 353.44827586206895,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_nanfeng_north",
+      "name": "南丰路北侧接驳点",
+      "type": "road",
+      "x": 6,
+      "y": 106,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_nanfeng_west_gate",
+      "name": "南丰路-西门接驳点",
+      "type": "road",
+      "x": 6,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_nanfeng_south",
+      "name": "南丰路南侧接驳点",
+      "type": "road",
+      "x": 6,
+      "y": 833,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_south_street_west",
+      "name": "高教园南三街西侧接驳点",
+      "type": "road",
+      "x": 60,
+      "y": 880,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_south_street_gate",
+      "name": "高教园南三街-南门接驳点",
+      "type": "road",
+      "x": 740,
+      "y": 880,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_south_street_east",
+      "name": "高教园南三街东侧接驳点",
+      "type": "road",
+      "x": 1218,
+      "y": 880,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_huichang_north",
+      "name": "回昌路（规划）北侧接驳点",
+      "type": "road",
+      "x": 1272,
+      "y": 106,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_huichang_hongyan",
+      "name": "回昌路（规划）-鸿雁路接驳点",
+      "type": "road",
+      "x": 1272,
+      "y": 422,
+      "routingOnly": false
+    },
+    {
+      "id": "n_external_huichang_south",
+      "name": "回昌路（规划）南侧接驳点",
+      "type": "road",
+      "x": 1272,
+      "y": 833,
+      "routingOnly": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_outer_nw",
+      "to": "n_north_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_250",
+      "to": "n_north_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_380",
+      "to": "n_north_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_500",
+      "to": "n_north_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_585",
+      "to": "n_north_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_790",
+      "to": "n_north_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_970",
+      "to": "n_outer_ne",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_outer_nw",
+      "to": "n_west_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_gate",
+      "to": "n_outer_sw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_outer_sw",
+      "to": "n_south_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_gate",
+      "to": "n_outer_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_outer_ne",
+      "to": "n_hongyan_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_970",
+      "to": "n_outer_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_gate",
+      "to": "n_hongyan_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_250",
+      "to": "n_hongyan_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_380",
+      "to": "n_hongyan_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_500",
+      "to": "n_hongyan_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_585",
+      "to": "n_hongyan_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_790",
+      "to": "n_hongyan_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_250",
+      "to": "n_midnorth_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_250",
+      "to": "n_staff_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_250",
+      "to": "n_hongyan_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_250",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_south_250",
+      "to": "n_yannan_west_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_west_mid",
+      "to": "n_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_380",
+      "to": "n_midnorth_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_380",
+      "to": "n_staff_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_380",
+      "to": "n_hongyan_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_380",
+      "to": "n_public_nw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_nw",
+      "to": "n_yannan_east_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_east_mid",
+      "to": "n_public_sw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_sw",
+      "to": "n_south_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_500",
+      "to": "n_midnorth_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_500",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_500",
+      "to": "n_hongyan_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_500",
+      "to": "n_lab_internal_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_internal_west",
+      "to": "n_public_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_se",
+      "to": "n_south_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_585",
+      "to": "n_midnorth_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_585",
+      "to": "n_library_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_west",
+      "to": "n_hongyan_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_585",
+      "to": "n_lab_nw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_nw",
+      "to": "n_lab_internal_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_internal_west",
+      "to": "n_lab_sw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_sw",
+      "to": "n_south_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_585",
+      "to": "n_south_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_790",
+      "to": "n_midnorth_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_790",
+      "to": "n_library_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_east",
+      "to": "n_hongyan_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_790",
+      "to": "n_lab_ne",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_ne",
+      "to": "n_lab_internal_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_internal_east",
+      "to": "n_lab_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_se",
+      "to": "n_south_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_north_970",
+      "to": "n_midnorth_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_970",
+      "to": "n_hongyan_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_970",
+      "to": "n_s1_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s1_east",
+      "to": "n_s1_internal_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s1_internal_mid",
+      "to": "n_s23_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s23_east",
+      "to": "n_south_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_250",
+      "to": "n_midnorth_300",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_300",
+      "to": "n_midnorth_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_250",
+      "to": "n_staff_300",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_300",
+      "to": "n_staff_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_380",
+      "to": "n_midnorth_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_500",
+      "to": "n_midnorth_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_585",
+      "to": "n_midnorth_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_midnorth_790",
+      "to": "n_midnorth_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_380",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_west",
+      "to": "n_library_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_south_20",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_gate",
+      "to": "n_west_south_20",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_planned_sw_nw",
+      "to": "n_planned_sw_sw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_west_south_20",
+      "to": "n_planned_sw_nw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_planned_sw_sw",
+      "to": "n_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_nw",
+      "to": "n_public_ne",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_sw",
+      "to": "n_public_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_ne",
+      "to": "n_public_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_nw",
+      "to": "n_lab_ne",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_internal_west",
+      "to": "n_lab_internal_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_sw",
+      "to": "n_lab_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s1_west",
+      "to": "n_s1_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_internal_east",
+      "to": "n_s1_internal_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s23_west",
+      "to": "n_s23_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s1_west",
+      "to": "n_s23_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_250",
+      "to": "n_south_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_380",
+      "to": "n_south_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_500",
+      "to": "n_south_585",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_585",
+      "to": "n_south_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_south_790",
+      "to": "n_south_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_se",
+      "to": "n_lake_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lake_west",
+      "to": "n_lake_mid_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lake_mid_west",
+      "to": "n_lake_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lake_mid",
+      "to": "n_lake_mid_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lake_mid_east",
+      "to": "n_lake_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lake_east",
+      "to": "n_lab_se",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_585",
+      "to": "n_library_south_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_south_west",
+      "to": "n_library_south_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_south_east",
+      "to": "n_hongyan_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_college_inner_west",
+      "to": "n_college_inner_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_790",
+      "to": "n_college_inner_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_college_inner_east",
+      "to": "n_hongyan_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_ne",
+      "to": "n_lab_nw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_ne",
+      "to": "n_s1_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_se",
+      "to": "n_s23_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_express_station_access",
+      "to": "n_west_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_construction_office_access",
+      "to": "n_west_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_sports_field_access",
+      "to": "n_staff_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_dorm_yabei_access",
+      "to": "n_midnorth_300",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_dorm_yannan_access",
+      "to": "n_yannan_east_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_flavor_cafeteria_access",
+      "to": "n_midnorth_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_staff_cafeteria_access",
+      "to": "n_staff_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_admin_office_access",
+      "to": "n_midnorth_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_activity_center_access",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_medical_room_access",
+      "to": "n_north_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_access_south",
+      "to": "n_library_south_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_access_east",
+      "to": "n_library_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_east_support_access",
+      "to": "n_library_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_college_building_access",
+      "to": "n_college_inner_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_netsec_college_access",
+      "to": "n_midnorth_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_digital_art_college_access",
+      "to": "n_college_inner_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_post_auto_college_access",
+      "to": "n_hongyan_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_public_teaching_access",
+      "to": "n_public_nw",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_lab_complex_access",
+      "to": "n_lab_internal_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_report_hall_access",
+      "to": "n_lab_ne",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s1_access",
+      "to": "n_s1_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_humanities_access",
+      "to": "n_s1_internal_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s2_marx_access",
+      "to": "n_s23_west",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_s3_engineering_access",
+      "to": "n_s23_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_science_college_access",
+      "to": "n_south_970",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_student_cafeteria_access",
+      "to": "n_south_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_long_term_project_access",
+      "to": "n_south_790",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yabei_a_access",
+      "to": "n_staff_300",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yabei_c_access",
+      "to": "n_staff_300",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yabei_d1_access",
+      "to": "n_midnorth_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yabei_d2_access",
+      "to": "n_north_380",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yabei_e_access",
+      "to": "n_north_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s1_access",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s2_access",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s3_access",
+      "to": "n_yannan_east_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s4_access",
+      "to": "n_yannan_east_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s5_access",
+      "to": "n_yannan_west_mid",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_s6_access",
+      "to": "n_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_info_building_access",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_yannan_big_screen_access",
+      "to": "n_west_south_250",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_activity_market_access",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_activity_service_hall_access",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_activity_bluepost_ai_access",
+      "to": "n_staff_500",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_library_cafe_access",
+      "to": "n_library_south_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_nanfeng_north",
+      "to": "n_external_nanfeng_west_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_nanfeng_west_gate",
+      "to": "n_external_nanfeng_south",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_nanfeng_west_gate",
+      "to": "n_west_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_south_street_west",
+      "to": "n_external_south_street_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_south_street_gate",
+      "to": "n_external_south_street_east",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_south_street_gate",
+      "to": "n_south_gate",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_huichang_north",
+      "to": "n_external_huichang_hongyan",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_external_huichang_hongyan",
+      "to": "n_external_huichang_south",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "n_hongyan_970",
+      "to": "n_external_huichang_hongyan",
+      "type": "walkway",
+      "bidirectional": true
+    }
+  ]
+}

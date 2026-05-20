@@ -8,12 +8,10 @@ import {
   shortestPath,
 } from '../api/index.js';
 import AmapRouteMap from '../components/AmapRouteMap.jsx';
-import CampusMapAnnotator from '../components/CampusMapAnnotator.jsx';
-import CampusNavigationMap from '../components/CampusNavigationMap.jsx';
+import MapWorkspace from './MapWorkspace.jsx';
 
 const PLANNER_MODES = [
-  { value: 'annotate', label: '地图标注' },
-  { value: 'campus', label: '校园地图导航' },
+  { value: 'workspace', label: '地图工作台' },
   { value: 'algorithm', label: '本地算法模式' },
   { value: 'amap', label: '高德真实导航' },
 ];
@@ -45,7 +43,7 @@ const MODE_BADGES = {
 export default function RoutePlanner() {
   const [searchParams] = useSearchParams();
 
-  const [plannerMode, setPlannerMode] = useState('campus');
+  const [plannerMode, setPlannerMode] = useState('workspace');
   const [algoMode, setAlgoMode] = useState('single');
   const [weightMode, setWeightMode] = useState('distance');
   const [loading, setLoading] = useState(false);
@@ -80,8 +78,7 @@ export default function RoutePlanner() {
   }, [amapDestination]);
 
   const titleText = useMemo(() => {
-    if (plannerMode === 'annotate') return '校园路网标注';
-    if (plannerMode === 'campus') return '校园可视化导航';
+    if (plannerMode === 'workspace') return '地图工作台';
     if (plannerMode === 'amap') return '真实导航模式';
     return algoMode === 'multi' ? '多点路线规划' : '最短路径规划';
   }, [algoMode, plannerMode]);
@@ -237,7 +234,7 @@ export default function RoutePlanner() {
             <div className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Route Planner</div>
             <h1 className="mt-2 text-3xl font-black text-gray-900 md:text-4xl">{titleText}</h1>
             <p className="mt-3 text-sm text-gray-500 md:text-base">
-              保留课程设计里的 Dijkstra / 多点路径算法，并接入你提供的北邮沙河校区地图做可视化导航。
+              上传地图图片、一键识别道路、编辑路网、Dijkstra 导航 — 一站式地图工作台。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -257,9 +254,7 @@ export default function RoutePlanner() {
         </div>
       </section>
 
-      {plannerMode === 'annotate' && <CampusMapAnnotator />}
-
-      {plannerMode === 'campus' && <CampusNavigationMap />}
+      {plannerMode === 'workspace' && <MapWorkspace />}
 
       {plannerMode === 'algorithm' && (
         <>
