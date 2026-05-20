@@ -16,7 +16,6 @@ function mapSpot(row) {
     visitTime: row.visit_time === null ? null : Number(row.visit_time),
     entranceFee: row.entrance_fee === null ? null : Number(row.entrance_fee),
     openHours: row.open_hours,
-    imageUrl: row.image_url || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -123,9 +122,9 @@ async function create(data) {
       `
         INSERT INTO spots (
           name, type, city, province, lat, lng, description, rating,
-          visit_time, entrance_fee, open_hours, image_url, created_at, updated_at
+          visit_time, entrance_fee, open_hours, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
         RETURNING id
       `,
       [
@@ -140,7 +139,6 @@ async function create(data) {
         data.visitTime ?? 0,
         data.entranceFee ?? 0,
         data.openHours || null,
-        data.imageUrl || null,
       ]
     );
 
@@ -175,9 +173,8 @@ async function update(id, data) {
           visit_time = $9,
           entrance_fee = $10,
           open_hours = $11,
-          image_url = $12,
           updated_at = NOW()
-        WHERE id = $13
+        WHERE id = $12
       `,
       [
         merged.name,
@@ -191,7 +188,6 @@ async function update(id, data) {
         merged.visitTime ?? 0,
         merged.entranceFee ?? 0,
         merged.openHours || null,
-        merged.imageUrl || null,
         Number(id),
       ]
     );

@@ -78,62 +78,6 @@ export default function SpotCard({ spot, animDelay = 0, index = 0 }) {
       }}
       className="animate-item-in"
     >
-      {/* 封面 — overflow:hidden 让 emoji 缩放不溢出 */}
-      <div
-        className="h-36 relative overflow-hidden flex items-center justify-center"
-        style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-      >
-        {/* 真实图片（渐显 + 懒加载），失败时隐藏退回渐变+emoji */}
-        {spot.imageUrl && (
-          <img
-            src={spot.imageUrl}
-            alt={spot.name}
-            loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ opacity: 0, transition: 'opacity 0.35s ease' }}
-            onLoad={e => {
-              e.target.style.opacity = '1';
-            }}
-            onError={e => {
-              e.target.style.display = 'none';
-            }}
-          />
-        )}
-
-        {/* emoji 在 hover 时放大（靠父元素 group） — 图片覆盖其上 */}
-        <span
-          className="text-5xl select-none"
-          style={{
-            transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-            display: 'inline-block',
-          }}
-          ref={el => {
-            if (!el) return;
-            const card = el.closest('a');
-            const enter = () => { el.style.transform = 'scale(1.22) rotate(-4deg)'; };
-            const leave = () => { el.style.transform = 'scale(1) rotate(0deg)'; };
-            card.addEventListener('mouseenter', enter);
-            card.addEventListener('mouseleave', leave);
-          }}
-        >
-          {icon}
-        </span>
-
-        {/* 类型徽章 */}
-        <div className="absolute top-2.5 right-2.5" style={{ zIndex: 1 }}>
-          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full glass-badge"
-            style={{ color: acc.text }}>
-            {label}
-          </span>
-        </div>
-
-        {/* 评分 */}
-        {spot.rating && (
-          <div className="absolute bottom-2 left-2.5 flex items-center gap-1 text-xs rounded-full px-2 py-0.5 glass-badge"
-            style={{ color: '#1d1d1f', zIndex: 1 }}>
-            ⭐ {spot.rating}
-          </div>
-        )}
       {/* 噪点质感叠层 */}
       <div style={{
         position:'absolute', inset:0, opacity:0.04,

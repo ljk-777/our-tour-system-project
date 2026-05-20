@@ -42,9 +42,9 @@ async function seedDatabase() {
         `
           INSERT INTO spots (
             id, name, type, city, province, lat, lng, description, rating,
-            visit_time, entrance_fee, open_hours, image_url, created_at, updated_at
+            visit_time, entrance_fee, open_hours, created_at, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
         `,
         [
           spot.id,
@@ -59,7 +59,6 @@ async function seedDatabase() {
           spot.visitTime ?? 0,
           spot.entranceFee ?? 0,
           spot.openHours || null,
-          spot.imageUrl || null,
         ]
       );
 
