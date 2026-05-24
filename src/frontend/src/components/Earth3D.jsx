@@ -11,23 +11,23 @@ const TravelerDots = ({ traveler, radius = 5 }) => {
   useFrame(({ clock }) => {
     dotsRef.current.forEach((mesh, i) => {
       if (!mesh) return;
-      const s = 1 + Math.sin(clock.elapsedTime * 3 + i * 1.2) * 0.45;
+      const s = 1 + Math.sin(clock.elapsedTime * 2.8 + i * 1.2) * 0.35;
       mesh.scale.setScalar(s);
-      mesh.material.opacity = 0.5 + Math.sin(clock.elapsedTime * 3 + i) * 0.3;
+      mesh.material.opacity = 0.35 + Math.sin(clock.elapsedTime * 2.8 + i) * 0.2;
     });
   });
   if (!traveler) return null;
   return traveler.spots.map((spot, i) => {
-    const pos = latLngToVector3(spot.lat, spot.lng, radius * 1.02);
+    const pos = latLngToVector3(spot.lat, spot.lng, radius * 1.015);
     return (
       <group key={i} position={pos}>
         <mesh>
-          <sphereGeometry args={[0.12, 12, 12]} />
+          <sphereGeometry args={[0.055, 10, 10]} />
           <meshBasicMaterial color={traveler.color} />
         </mesh>
         <mesh ref={el => dotsRef.current[i] = el}>
-          <sphereGeometry args={[0.22, 12, 12]} />
-          <meshBasicMaterial color={traveler.color} transparent opacity={0.4}
+          <sphereGeometry args={[0.10, 10, 10]} />
+          <meshBasicMaterial color={traveler.color} transparent opacity={0.35}
             blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
       </group>
@@ -35,42 +35,154 @@ const TravelerDots = ({ traveler, radius = 5 }) => {
   });
 };
 
-/* ── AI 路线动画（飞行光点）─────────────────────────────── */
+/* ── AI 路线动画（飞机 + 拖尾）──────────────────────────── */
+const TRAIL_LEN = 55;
+
 const AiRouteAnimation = ({ from, to, radius = 5, playing, onDone }) => {
-  const dotRef  = useRef(null);
-  const tRef    = useRef(0);
-  const lineRef = useRef(null);
+  const planeRef = useRef(null);
+  const tRef     = useRef(0);
+  const trailPos = useRef([]);
+  const upVec    = useRef(new THREE.Vector3(0, 1, 0));
 
   const { curve, points } = useMemo(() => {
     if (!from || !to) return { curve: null, points: [] };
-    const a = latLngToVector3(from.lat, from.lng, radius);
-    const b = latLngToVector3(to.lat,   to.lng,   radius);
-    const mid = a.clone().lerp(b, 0.5).normalize().multiplyScalar(radius * 1.55);
-    const c = new THREE.QuadraticBezierCurve3(a, mid, b);
-    return { curve: c, points: c.getPoints(80) };
+    const a   = latLngToVector3(from.lat, from.lng, radius);
+    const b   = latLngToVector3(to.lat,   to.lng,   radius);
+    const mid = a.clone().lerp(b, 0.5).normalize().multiplyScalar(radius * 1.62);
+    const c   = new THREE.QuadraticBezierCurve3(a, mid, b);
+    return { curve: c, points: c.getPoints(90) };
   }, [from, to, radius]);
 
+  /* 拖尾几何体（BufferGeometry，每帧更新顶点色和位置）*/
+  const trailGeo = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_LEN * 3), 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(TRAIL_LEN * 3), 3));
+    geo.setDrawRange(0, 0);
+    return geo;
+  }, []);
+
+  const trailMat  = useMemo(() => new THREE.LineBasicMaterial({ vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false }), []);
+  const trailLine = useMemo(() => new THREE.Line(trailGeo, trailMat), [trailGeo, trailMat]);
+
+  /* 换路线时重置 */
+  useEffect(() => {
+    tRef.current = 0;
+    trailPos.current = [];
+    trailGeo.setDrawRange(0, 0);
+  }, [from, to, trailGeo]);
+
   useFrame((_, delta) => {
-    if (!playing || !curve || !dotRef.current) return;
-    tRef.current = Math.min(tRef.current + delta * 0.22, 1);
+    if (!playing || !curve || !planeRef.current) return;
+    tRef.current = Math.min(tRef.current + delta * 0.18, 1);
     const p = curve.getPoint(tRef.current);
-    dotRef.current.position.copy(p);
-    if (tRef.current >= 1 && onDone) { tRef.current = 0; onDone(); }
+    planeRef.current.position.copy(p);
+
+    /* 飞机朝向：+Y=前进方向, +X=右翼, +Z=机背朝外（远离地心）*/
+    if (tRef.current < 0.99) {
+      const tangent   = curve.getTangent(tRef.current).normalize();
+      const surfaceUp = p.clone().normalize();
+      const right     = new THREE.Vector3().crossVectors(tangent, surfaceUp).normalize();
+      const localZ    = new THREE.Vector3().crossVectors(right, tangent).normalize();
+      planeRef.current.quaternion.setFromRotationMatrix(
+        new THREE.Matrix4().makeBasis(right, tangent, localZ)
+      );
+    }
+
+    /* 更新拖尾位置和颜色 */
+    trailPos.current.unshift(p.clone());
+    if (trailPos.current.length > TRAIL_LEN) trailPos.current.pop();
+
+    const posAttr = trailGeo.getAttribute('position');
+    const colAttr = trailGeo.getAttribute('color');
+    trailPos.current.forEach((pt, i) => {
+      const t = Math.pow(1 - i / TRAIL_LEN, 1.4);
+      posAttr.setXYZ(i, pt.x, pt.y, pt.z);
+      colAttr.setXYZ(i, t * 0.98, t * 0.55, t * 0.08); // 橙→暗（加法混合=渐隐）
+    });
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+    trailGeo.setDrawRange(0, trailPos.current.length);
+
+    if (tRef.current >= 1 && onDone) {
+      tRef.current = 0;
+      trailPos.current = [];
+      trailGeo.setDrawRange(0, 0);
+      onDone();
+    }
   });
 
   if (!curve || !from || !to) return null;
   return (
     <group>
-      <Line points={points} color="#fbbf24" lineWidth={1.8} transparent opacity={0.7} />
-      <mesh ref={dotRef}>
-        <sphereGeometry args={[0.15, 12, 12]} />
-        <meshBasicMaterial color="#fff" />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[0.28, 12, 12]} />
-        <meshBasicMaterial color="#fbbf24" transparent opacity={0.5}
-          blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
+      {/* 淡显参考弧线 */}
+      <Line points={points} color="#f97316" lineWidth={1.0} transparent opacity={0.15} />
+      {/* 动态拖尾 */}
+      <primitive object={trailLine} />
+      {/* ── 飞机主体（+Y = 机头朝前）── */}
+      <group ref={planeRef}>
+        {/* 机身 */}
+        <mesh>
+          <cylinderGeometry args={[0.022, 0.018, 0.26, 10]} />
+          <meshStandardMaterial color="#f4f6ff" roughness={0.25} metalness={0.55} />
+        </mesh>
+        {/* 机头半球 */}
+        <mesh position={[0, 0.148, 0]}>
+          <sphereGeometry args={[0.022, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color="#eef0ff" roughness={0.2} metalness={0.5} />
+        </mesh>
+        {/* 主机翼（薄平板，沿 X 轴展开）*/}
+        <mesh position={[0, 0.025, 0]}>
+          <boxGeometry args={[0.30, 0.006, 0.052]} />
+          <meshStandardMaterial color="#e8ecff" roughness={0.35} metalness={0.45} />
+        </mesh>
+        {/* 翼梢小翼 */}
+        <mesh position={[0.148, 0.038, -0.008]}>
+          <boxGeometry args={[0.005, 0.028, 0.022]} />
+          <meshStandardMaterial color="#dce2ff" roughness={0.3} metalness={0.5} />
+        </mesh>
+        <mesh position={[-0.148, 0.038, -0.008]}>
+          <boxGeometry args={[0.005, 0.028, 0.022]} />
+          <meshStandardMaterial color="#dce2ff" roughness={0.3} metalness={0.5} />
+        </mesh>
+        {/* 水平尾翼 */}
+        <mesh position={[0, -0.112, 0]}>
+          <boxGeometry args={[0.15, 0.005, 0.032]} />
+          <meshStandardMaterial color="#e8ecff" roughness={0.35} metalness={0.45} />
+        </mesh>
+        {/* 垂直尾翼 */}
+        <mesh position={[0, -0.085, -0.020]}>
+          <boxGeometry args={[0.005, 0.072, 0.044]} />
+          <meshStandardMaterial color="#f0f2ff" roughness={0.25} metalness={0.5} />
+        </mesh>
+        {/* 左发动机 */}
+        <mesh position={[-0.090, 0.005, 0.016]}>
+          <cylinderGeometry args={[0.013, 0.010, 0.065, 8]} />
+          <meshStandardMaterial color="#b0b8c8" roughness={0.5} metalness={0.7} />
+        </mesh>
+        {/* 右发动机 */}
+        <mesh position={[0.090, 0.005, 0.016]}>
+          <cylinderGeometry args={[0.013, 0.010, 0.065, 8]} />
+          <meshStandardMaterial color="#b0b8c8" roughness={0.5} metalness={0.7} />
+        </mesh>
+        {/* 发动机尾焰 */}
+        <mesh position={[-0.090, -0.040, 0.016]}>
+          <sphereGeometry args={[0.014, 6, 6]} />
+          <meshBasicMaterial color="#ff7800" transparent opacity={0.75}
+            blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+        <mesh position={[0.090, -0.040, 0.016]}>
+          <sphereGeometry args={[0.014, 6, 6]} />
+          <meshBasicMaterial color="#ff7800" transparent opacity={0.75}
+            blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+        {/* 整机光晕 */}
+        <mesh>
+          <sphereGeometry args={[0.13, 10, 10]} />
+          <meshBasicMaterial color="#fbbf24" transparent opacity={0.18}
+            blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      </group>
     </group>
   );
 };
@@ -183,6 +295,11 @@ const Earth = ({ radius = 5 }) => {
   const groupRef = useRef(null);
   const cloudRef = useRef(null);
 
+  const selectedTraveler = useAppStore(s => s.selectedTraveler);
+  const aiRoute          = useAppStore(s => s.aiRoute);
+  const aiPlaying        = useAppStore(s => s.aiPlaying);
+  const setAiPlaying     = useAppStore(s => s.setAiPlaying);
+
   const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg',
@@ -225,8 +342,19 @@ const Earth = ({ radius = 5 }) => {
 
 
 
-      {GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
+      {/* 有旅行者选中时隐藏默认地标，只显示其足迹 */}
+      {!selectedTraveler && GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
       {GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
+
+      {/* 旅行者足迹点 & AI航线 — 在旋转组内，随地球一起转 */}
+      <TravelerDots traveler={selectedTraveler} radius={radius} />
+      {aiRoute && (
+        <AiRouteAnimation
+          from={aiRoute.from} to={aiRoute.to} radius={radius}
+          playing={aiPlaying}
+          onDone={() => setAiPlaying(false)}
+        />
+      )}
     </group>
   );
 };
@@ -256,12 +384,12 @@ const Marker = ({ marker, radius }) => {
         onPointerOut={() => setHovered(false)}
         onClick={e => { e.stopPropagation(); setSelectedMarker(marker); }}
       >
-        <sphereGeometry args={[0.1, 16, 16]} />
+        <sphereGeometry args={[0.038, 10, 10]} />
         <meshBasicMaterial color={hovered ? '#fde68a' : '#f97316'} />
       </mesh>
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.22, 16, 16]} />
-        <meshBasicMaterial color="#f97316" transparent opacity={0.22}
+        <sphereGeometry args={[0.075, 10, 10]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.28}
           blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
@@ -282,7 +410,7 @@ const RoutePath = ({ route, radius }) => {
   }, [route, radius]);
 
   if (!curve) return null;
-  return <Line points={curve} color={route.color} lineWidth={1.0} transparent opacity={0.6} />;
+  return <Line points={curve} color={route.color} lineWidth={1.2} transparent opacity={route.opacity ?? 0.4} />;
 };
 
 /* ── 轨道控制器 ──────────────────────────────────────────── */

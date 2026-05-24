@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { EarthScene, TravelerDots, AiRouteAnimation } from '../components/Earth3D.jsx';
+import { EarthScene } from '../components/Earth3D.jsx';
 import GlobeOverlay from '../components/GlobeOverlay.jsx';
-import { useAppStore } from '@/store/useAppStore';
 
 function LoadingScreen() {
   return (
@@ -24,27 +23,6 @@ function LoadingScreen() {
   );
 }
 
-/* Canvas 内部组件，访问 store */
-function SceneExtras() {
-  const selectedTraveler = useAppStore(s => s.selectedTraveler);
-  const aiRoute   = useAppStore(s => s.aiRoute);
-  const aiPlaying = useAppStore(s => s.aiPlaying);
-  const setAiPlaying = useAppStore(s => s.setAiPlaying);
-
-  return (
-    <>
-      <TravelerDots traveler={selectedTraveler} radius={5} />
-      {aiRoute && (
-        <AiRouteAnimation
-          from={aiRoute.from} to={aiRoute.to} radius={5}
-          playing={aiPlaying}
-          onDone={() => setAiPlaying(false)}
-        />
-      )}
-    </>
-  );
-}
-
 export default function Globe() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#00010a' }}>
@@ -54,7 +32,6 @@ export default function Globe() {
         <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
           <Suspense fallback={null}>
             <EarthScene />
-            <SceneExtras />
           </Suspense>
         </Canvas>
       </div>

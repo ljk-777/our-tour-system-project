@@ -56,31 +56,49 @@ function useScrollReveal(className = 'reveal', threshold = 0.12) {
   return ref;
 }
 
-/* ── 功能卡片 ────────────────────────────────────────────────────── */
-function FeatureCard({ icon, title, desc, badge, to, color, bgColor, delay = 0 }) {
+/* ── 功能行（Apple 编号列表，纯文字无任何盒子）──────────────────── */
+function FeatureCard({ index, title, desc, badge, to, color }) {
   return (
     <Link to={to}
-      className="flex flex-col p-6 rounded-2xl glass-card"
-      style={{ animationDelay: `${delay}ms` }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-6px)';
-        e.currentTarget.style.boxShadow = '0 20px 56px rgba(0,0,0,0.14)';
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '72px 1fr auto',
+        alignItems: 'center',
+        gap: 32,
+        padding: '32px 0',
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
+        textDecoration: 'none',
+        transition: 'opacity 0.2s ease',
       }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '';
-      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.5'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" style={{ background: bgColor }}>
-        {icon}
+      {/* 序号 */}
+      <span style={{
+        fontFamily: 'Inter, sans-serif', fontSize: '0.72rem', fontWeight: 700,
+        color: '#c7c7cc', letterSpacing: '0.1em',
+      }}>
+        {String(index).padStart(2, '0')}
+      </span>
+
+      {/* 标题 + 描述 */}
+      <div>
+        <div style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 'clamp(1.1rem, 2vw, 1.5rem)',
+          fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.03em', marginBottom: 6,
+        }}>{title}</div>
+        <div style={{
+          fontSize: '0.82rem', color: '#86868b',
+          fontFamily: 'Inter, sans-serif', lineHeight: 1.5,
+        }}>{desc}</div>
       </div>
-      <h3 className="text-base font-semibold mb-2" style={{ color: '#1d1d1f' }}>{title}</h3>
-      <p className="text-sm flex-1 leading-relaxed" style={{ color: '#6e6e73' }}>{desc}</p>
-      <div className="mt-4">
-        <span className="text-xs font-medium px-3 py-1 rounded-full" style={{ background: bgColor, color, border: `1px solid ${color}20` }}>
-          {badge}
-        </span>
-      </div>
+
+      {/* 算法标签 */}
+      <div style={{
+        fontSize: '0.68rem', fontWeight: 700, color,
+        fontFamily: 'SF Mono, Fira Code, monospace',
+        letterSpacing: '0.04em', whiteSpace: 'nowrap',
+      }}>{badge} →</div>
     </Link>
   );
 }
@@ -142,7 +160,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ background: '#f5f5f7' }}>
+    <div style={{ background: '#ffffff' }}>
 
       {/* ════════════════════ HERO — Apple 风格全屏 ════════════════════ */}
       <section style={{ position: 'relative', height: '100vh', minHeight: 600, overflow: 'hidden', marginTop: '-52px' }}>
@@ -503,24 +521,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ════════════════════ 核心功能 ════════════════════ */}
-      <section ref={featRef} style={{ padding: '64px 0', background: 'linear-gradient(180deg, #f8f9ff 0%, #fff 100%)', borderTop: '1px solid rgba(0,0,0,0.05)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+      {/* ════════════════════ 核心功能（白底 Apple 风格）════════════════ */}
+      <section ref={featRef} style={{ background: '#fff', padding: '88px 0', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9c27b0', marginBottom: 10 }}>Core Features · 核心功能</div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#202124', letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Built with Real Algorithms</h2>
-            <p style={{ fontSize: '0.9rem', color: '#5f6368' }}>每个功能均内置自主实现的数据结构与算法</p>
+
+          {/* 标题区 */}
+          <div style={{ marginBottom: 64 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#aeaeb2', marginBottom: 16, fontFamily: 'Inter, sans-serif' }}>
+              Core Features
+            </div>
+            <h2 style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
+              fontWeight: 800, color: '#1d1d1f',
+              letterSpacing: '-0.04em', lineHeight: 1.05,
+              maxWidth: 520,
+            }}>
+              Built with<br />
+              <span style={{ color: '#aeaeb2' }}>Real Algorithms.</span>
+            </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <FeatureCard icon="🗺️" title="景点发现" to="/spots" color="#1a73e8" bgColor="#e8f1fc" delay={0}
+
+          {/* 编号列表——无边框无背景，纯文字排版 */}
+          <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+            <FeatureCard index={1} title="景点发现" to="/spots" color="#60a5fa"
               desc="200+ 景区高校，Trie 前缀搜索 + 倒排索引全文检索" badge="Trie + TopK" />
-            <FeatureCard icon="🍜" title="美食推荐" to="/foods" color="#f97316" bgColor="#fff1ec" delay={60}
+            <FeatureCard index={2} title="美食推荐" to="/foods" color="#fb923c"
               desc="全国特色餐厅，覆盖各地老字号与网红美食" badge="MinHeap TopK" />
-            <FeatureCard icon="🧭" title="路线规划" to="/route" color="#34a853" bgColor="#edfaf2" delay={120}
+            <FeatureCard index={3} title="路线规划" to="/route" color="#4ade80"
               desc="Dijkstra 单点最短路 + 最近邻 2-opt 多点路径优化" badge="Dijkstra + 2-opt" />
-            <FeatureCard icon="📖" title="旅行日记" to="/diary" color="#9c27b0" bgColor="#f5ecfd" delay={180}
+            <FeatureCard index={4} title="旅行日记" to="/diary" color="#c084fc"
               desc="KMP 精确检索 / 倒排索引全文检索，发布与分享" badge="KMP + 倒排索引" />
-            <FeatureCard icon="🌏" title="动态广场" to="/plaza" color="#ff6d00" bgColor="#fff7ec" delay={240}
+            <FeatureCard index={5} title="动态广场" to="/plaza" color="#f472b6"
               desc="旅行动态社交广场，热门排行，MinHeap 实时排序" badge="MinHeap 排序" />
           </div>
         </div>
@@ -536,33 +568,52 @@ export default function Home() {
             </div>
             <Link to="/diary" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1a73e8', textDecoration: 'none', letterSpacing: '0.02em' }}>View All →</Link>
           </div>
-          <p className="section-sub">最受旅行者喜爱的日记</p>
-          <div className="grid md:grid-cols-3 gap-5">
+          <p style={{ fontSize: '0.8rem', color: '#aeaeb2', marginBottom: 0, fontFamily: 'Inter, sans-serif' }}>最受旅行者喜爱的日记</p>
+          {/* 报纸式分隔线列表，无卡片盒子 */}
+          <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', marginTop: 24 }}>
             {hotDiaries.map((diary, i) => (
-              <div key={diary.id} className="glass-card p-5 flex flex-col" style={{
-                borderRadius: '1.25rem',
-                transitionDelay: `${i * 0.1}s`,
-              }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+              <div key={diary.id}
+                style={{
+                  display: 'grid', gridTemplateColumns: '1fr auto',
+                  alignItems: 'start', gap: 24,
+                  padding: '28px 0', borderBottom: '1px solid rgba(0,0,0,0.08)',
+                  transition: 'opacity 0.2s ease', cursor: 'pointer',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.6'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: '1.25rem' }}>{diary.userAvatar}</span>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1d1d1f' }}>{diary.userName}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#aeaeb2' }}>{diary.spotName && `📍 ${diary.spotName} · `}{diary.visitDate}</div>
+                <div>
+                  {/* 作者行 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: '1rem' }}>{diary.userAvatar}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>{diary.userName}</span>
+                    {diary.spotName && <span style={{ fontSize: '0.75rem', color: '#aeaeb2' }}>· 📍 {diary.spotName}</span>}
                   </div>
-                </div>
-                <h3 style={{ fontWeight: 600, marginBottom: 8, color: '#1d1d1f' }} className="line-clamp-1">{diary.title}</h3>
-                <p style={{ fontSize: '0.875rem', color: '#6e6e73', flex: 1 }} className="line-clamp-3">{diary.content}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)', fontSize: '0.75rem', color: '#aeaeb2' }}>
-                  <span>❤️ {diary.likes}</span>
-                  <span>💬 {typeof diary.comments === 'number' ? diary.comments : (diary.comments?.length || 0)}</span>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                  {/* 标题 */}
+                  <h3 style={{
+                    fontFamily: 'Inter, sans-serif', fontSize: '1.15rem',
+                    fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.02em',
+                    marginBottom: 8, lineHeight: 1.3,
+                  }} className="line-clamp-1">{diary.title}</h3>
+                  {/* 正文摘要 */}
+                  <p style={{ fontSize: '0.85rem', color: '#6e6e73', lineHeight: 1.65 }} className="line-clamp-2">{diary.content}</p>
+                  {/* 底部元数据 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, fontSize: '0.75rem', color: '#aeaeb2', fontFamily: 'Inter, sans-serif' }}>
+                    <span>❤️ {diary.likes}</span>
+                    <span>💬 {typeof diary.comments === 'number' ? diary.comments : (diary.comments?.length || 0)}</span>
+                    <span>{diary.visitDate}</span>
                     {(diary.tags || []).slice(0, 2).map(tag => (
-                      <span key={tag} style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, background: '#f5f5f7', color: '#86868b' }}>#{tag}</span>
+                      <span key={tag} style={{ color: '#c7c7cc' }}>#{tag}</span>
                     ))}
                   </div>
+                </div>
+                {/* 右侧期号（苹果风格小标注） */}
+                <div style={{ textAlign: 'right', flexShrink: 0, paddingTop: 4 }}>
+                  <span style={{
+                    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', color: '#c7c7cc',
+                    fontFamily: 'Inter, sans-serif',
+                  }}>No.{String(i + 1).padStart(2, '0')}</span>
                 </div>
               </div>
             ))}
