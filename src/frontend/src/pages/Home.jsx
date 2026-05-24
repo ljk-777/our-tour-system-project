@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import { getTopK, getGraphStats, searchSpots, getDiaries } from '../api/index.js';
 import SpotCard from '../components/SpotCard.jsx';
 import RippleButton from '../components/RippleButton.jsx';
@@ -117,9 +117,29 @@ export default function Home() {
   /* Hero 轮播 */
   const [slideIdx, setSlideIdx] = useState(0);
 
-  /* 横向轮播拖拽状态 */
-  const spotCarouselRef = useRef(null);
-  const isDragging = useRef(false);
+  /* 横向轮播 */
+  const spotCarouselRef  = useRef(null);
+  const innerCarouselRef = useRef(null);
+  const isDragging       = useRef(false);
+  const carouselX        = useMotionValue(0);
+  const edgeTimer        = useRef(null);
+  const [edgeHover, setEdgeHover] = useState(null); // 'left' | 'right' | null
+
+  const startEdgeScroll = (dir) => {
+    if (edgeTimer.current) clearInterval(edgeTimer.current);
+    edgeTimer.current = setInterval(() => {
+      const container = spotCarouselRef.current;
+      const inner     = innerCarouselRef.current;
+      if (!container || !inner) return;
+      const maxX = -(inner.offsetWidth - container.clientWidth + 64);
+      const cur  = carouselX.get();
+      const next = dir === 'right' ? Math.max(maxX, cur - 5) : Math.min(0, cur + 5);
+      carouselX.set(next);
+    }, 16);
+  };
+  const stopEdgeScroll = () => {
+    if (edgeTimer.current) { clearInterval(edgeTimer.current); edgeTimer.current = null; }
+  };
 
   /* 滚动区 refs */
   const statsRef = useScrollReveal('reveal');
@@ -428,26 +448,58 @@ export default function Home() {
             ))}
           </div>
         </div>
-        {/* 横向弹性轮播 — 拖动可见更多卡片 */}
-        <div
-          ref={spotCarouselRef}
-          style={{
-            overflow: 'hidden',
-            margin: '0 -32px',
-            padding: '6px 32px 18px',
-            cursor: 'grab',
-            userSelect: 'none',
-          }}
-        >
+        {/* 横向弹性轮播 — 拖拽 / 边缘悬停滚动 */}
+        <div style={{ position: 'relative', margin: '0 -32px' }} onMouseLeave={() => { stopEdgeScroll(); setEdgeHover(null); }}>
+
+          {/* 左边缘触发区 */}
+          <div
+            onMouseEnter={() => { startEdgeScroll('left'); setEdgeHover('left'); }}
+            onMouseLeave={() => { stopEdgeScroll(); setEdgeHover(null); }}
+            style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 96,
+              zIndex: 20, cursor: 'w-resize', display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
+              background: 'linear-gradient(to right, rgba(255,255,255,0.95) 0%, transparent 100%)',
+              opacity: edgeHover === 'left' ? 1 : 0,
+              transition: 'opacity 0.2s ease', pointerEvents: 'all',
+            }}
+          >
+            <span style={{ paddingLeft: 12, fontSize: '1.6rem', color: '#1d1d1f', opacity: 0.55, fontWeight: 300, lineHeight: 1 }}>‹</span>
+          </div>
+
+          {/* 右边缘触发区 */}
+          <div
+            onMouseEnter={() => { startEdgeScroll('right'); setEdgeHover('right'); }}
+            onMouseLeave={() => { stopEdgeScroll(); setEdgeHover(null); }}
+            style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 96,
+              zIndex: 20, cursor: 'e-resize', display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+              background: 'linear-gradient(to left, rgba(255,255,255,0.95) 0%, transparent 100%)',
+              opacity: edgeHover === 'right' ? 1 : 0.6,
+              transition: 'opacity 0.2s ease', pointerEvents: 'all',
+            }}
+          >
+            <span style={{ paddingRight: 12, fontSize: '1.6rem', color: '#1d1d1f', opacity: 0.55, fontWeight: 300, lineHeight: 1 }}>›</span>
+          </div>
+
+          <div
+            ref={spotCarouselRef}
+            style={{
+              overflow: 'hidden',
+              padding: '6px 32px 18px',
+              cursor: 'grab',
+              userSelect: 'none',
+            }}
+          >
           <motion.div
+            ref={innerCarouselRef}
             drag="x"
             dragConstraints={spotCarouselRef}
             dragElastic={0.12}
             dragTransition={{ bounceStiffness: 480, bounceDamping: 38 }}
             whileDrag={{ cursor: 'grabbing' }}
-            onDragStart={() => { isDragging.current = true; }}
+            onDragStart={() => { isDragging.current = true; stopEdgeScroll(); }}
             onDragEnd={() => { setTimeout(() => { isDragging.current = false; }, 60); }}
-            style={{ display: 'flex', gap: 12, width: 'max-content' }}
+            style={{ display: 'flex', gap: 12, width: 'max-content', x: carouselX }}
           >
             {loading
               ? [...Array(8)].map((_, i) => (
@@ -518,7 +570,8 @@ export default function Home() {
                 })
             }
           </motion.div>
-        </div>
+          </div>{/* spotCarouselRef */}
+        </div>{/* outer relative wrapper */}
       </section>
 
       {/* ════════════════════ 核心功能（白底 Apple 风格）════════════════ */}
