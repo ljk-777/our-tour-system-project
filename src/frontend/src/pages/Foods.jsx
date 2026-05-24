@@ -81,7 +81,7 @@ export default function Foods() {
   const slide = HERO_SLIDES[slideIdx];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9ff' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(145deg, #fff8f2 0%, #fdf4ee 40%, #f8f9ff 100%)' }}>
 
       {/* ── Hero 动态背景 ── */}
       <div style={{ position: 'relative', height: 380, overflow: 'hidden', marginTop: '-52px' }}>

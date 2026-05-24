@@ -146,6 +146,7 @@ export default function SpotDetail() {
   const typeLabel = TYPE_LABELS[spot.type] || spot.type;
 
   return (
+    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
         <Link to="/" className="hover:text-blue-600">首页</Link>
@@ -155,7 +156,7 @@ export default function SpotDetail() {
         <span className="text-gray-700">{spot.name}</span>
       </div>
 
-      <div className="card overflow-hidden mb-6">
+      <div className="glass-card overflow-hidden mb-6">
         <div className={`h-56 bg-gradient-to-br ${grad} flex items-center justify-center relative`}>
           <span className="text-8xl opacity-75">{typeIcon}</span>
           <div className="absolute inset-0 bg-black/20" />
@@ -183,7 +184,7 @@ export default function SpotDetail() {
               key={key}
               onClick={() => setActiveTab(key)}
               className={`px-5 py-3 text-sm font-medium transition-colors ${
-                activeTab === key ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
+                activeTab === key ? 'text-orange-500 border-b-2 border-orange-400' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {label}
@@ -228,7 +229,7 @@ export default function SpotDetail() {
                 </div>
               )}
 
-              <div className="bg-gray-50 rounded-xl p-4 text-sm">
+              <div className="glass-card rounded-xl p-4 text-sm">
                 <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <span>🗺️</span> 位置信息
                   <span className="text-xs text-gray-400 font-normal ml-1">（已接入高德地图第一版）</span>
@@ -259,7 +260,7 @@ export default function SpotDetail() {
                     <div className="text-sm font-medium text-gray-700 mb-2">高德附近 POI（示例：美食）</div>
                     <div className="grid sm:grid-cols-2 gap-2">
                       {amapMeta.nearbyPois.map((item) => (
-                        <div key={item.id} className="rounded-xl border border-gray-200 bg-white px-3 py-2">
+                        <div key={item.id} className="glass-card rounded-xl px-3 py-2">
                           <div className="text-sm font-medium text-gray-900">{item.name}</div>
                           <div className="text-xs text-gray-500 mt-1">{item.address || item.district || item.city}</div>
                         </div>
@@ -321,7 +322,7 @@ export default function SpotDetail() {
               ) : (
                 <div className="space-y-4">
                   {diaries.map((diary) => (
-                    <div key={diary.id} className="border border-gray-100 rounded-xl p-4 hover:border-blue-100 transition-colors">
+                    <div key={diary.id} className="glass-card rounded-xl p-4 transition-all" style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">{diary.userAvatar}</span>
                         <span className="text-sm font-medium text-gray-900">{diary.userName}</span>
@@ -356,22 +357,17 @@ export default function SpotDetail() {
         <button onClick={() => navigate(-1)} className="btn-ghost px-4 text-sm">返回</button>
       </div>
     </div>
+    </div>
   );
 }
 
 function InfoCard({ icon, value, label, color }) {
-  const colors = {
-    yellow: 'bg-yellow-50 text-yellow-600',
-    green: 'bg-green-50 text-green-600',
-    blue: 'bg-blue-50 text-blue-600',
-    purple: 'bg-purple-50 text-purple-600',
-  };
-
+  const accent = { yellow: '#f97316', green: '#34a853', blue: '#1a73e8', purple: '#9c27b0' };
   return (
-    <div className={`${colors[color]} rounded-xl p-4 text-center`}>
+    <div className="glass-card rounded-xl p-4 text-center">
       <div className="text-xl mb-1">{icon}</div>
-      <div className="font-bold text-sm leading-tight">{value}</div>
-      <div className="text-xs opacity-70 mt-0.5">{label}</div>
+      <div className="font-bold text-sm leading-tight" style={{ color: accent[color] }}>{value}</div>
+      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
     </div>
   );
 }

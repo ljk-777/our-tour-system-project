@@ -56,6 +56,7 @@ export default function Plaza() {
   };
 
   return (
+    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 页头 */}
       <div className="flex items-center justify-between mb-6">
@@ -78,7 +79,7 @@ export default function Plaza() {
 
       {/* 发布框 */}
       {showPost && (
-        <form onSubmit={handlePost} className="card p-5 mb-6 animate-slide-up border-2 border-blue-100">
+        <form onSubmit={handlePost} className="glass-card p-5 mb-6 animate-slide-up border-2 border-blue-100">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">🧭</span>
             <div>
@@ -123,9 +124,13 @@ export default function Plaza() {
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
-                }`}>
+                    ? 'text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800 border border-gray-100'
+                }`}
+                style={ activeTab === tab.key
+                  ? { background: 'linear-gradient(135deg,#f59e0b,#f97316)', border: 'none' }
+                  : { background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)' }
+                }>
                 {tab.label}
               </button>
             ))}
@@ -133,7 +138,7 @@ export default function Plaza() {
 
           {/* 附近 Tab 提示 */}
           {activeTab === 'near' && (
-            <div className="card p-8 text-center text-gray-400 mb-4">
+            <div className="glass-card p-8 text-center text-gray-400 mb-4">
               <div className="text-4xl mb-3">📍</div>
               <div className="font-medium text-gray-600 mb-1">附近旅行者（Phase 2）</div>
               <p className="text-sm">此功能将在 Phase 2 集成 Geolocation API 后开放，<br/>届时可发现 5km 内的旅行动态。</p>
@@ -144,7 +149,7 @@ export default function Plaza() {
           {loading ? (
             <div className="space-y-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="card h-36 animate-pulse bg-gray-100" />
+                <div key={i} className="glass-card h-36 animate-pulse bg-gray-100" />
               ))}
             </div>
           ) : posts.length === 0 ? (
@@ -155,7 +160,7 @@ export default function Plaza() {
           ) : (
             <div className="space-y-4">
               {posts.map((post, i) => (
-                <div key={post.id} className="card p-5"
+                <div key={post.id} className="glass-card p-5"
                   style={{
                     transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
                     animation: `itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i, 6) * 55}ms both`,
@@ -240,7 +245,7 @@ export default function Plaza() {
         {/* 侧边栏 */}
         <div className="space-y-5">
           {/* 热门景点 */}
-          <div className="card p-5">
+          <div className="glass-card p-5">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>🏆</span> 热门景点
             </h3>
@@ -268,7 +273,7 @@ export default function Plaza() {
           </div>
 
           {/* 快速导航 */}
-          <div className="card p-5">
+          <div className="glass-card p-5">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>🧭</span> 快速入口
             </h3>
@@ -289,7 +294,7 @@ export default function Plaza() {
           </div>
 
           {/* 热门标签 */}
-          <div className="card p-5">
+          <div className="glass-card p-5">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <span>🏷️</span> 热门标签
             </h3>
@@ -305,7 +310,7 @@ export default function Plaza() {
           </div>
 
           {/* 系统数据 */}
-          <div className="card p-5">
+          <div className="glass-card p-5">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <span>📊</span> 系统数据
             </h3>
@@ -326,6 +331,7 @@ export default function Plaza() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
