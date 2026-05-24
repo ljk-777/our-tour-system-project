@@ -230,8 +230,9 @@ export default function RoutePlanner() {
   };
 
   return (
+    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-      <section className="card p-6 md:p-8">
+      <section className="glass-card p-6 md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Route Planner</div>
@@ -263,7 +264,7 @@ export default function RoutePlanner() {
 
       {plannerMode === 'algorithm' && (
         <>
-          <section className="card space-y-5 p-6">
+          <section className="glass-card space-y-5 p-6">
             <div className="flex flex-wrap gap-2">
               {ALGO_MODE_OPTIONS.map((option) => (
                 <ModeButton key={option.value} active={algoMode === option.value} onClick={() => setAlgoMode(option.value)}>
@@ -368,7 +369,7 @@ export default function RoutePlanner() {
 
       {plannerMode === 'amap' && (
         <>
-          <section className="card space-y-5 p-6">
+          <section className="glass-card space-y-5 p-6">
             <div className="grid gap-4 md:grid-cols-2">
               <SearchField
                 label="起点"
@@ -424,7 +425,7 @@ export default function RoutePlanner() {
             />
 
             {result?.source === 'amap' && (
-              <div className="card p-6">
+              <div className="glass-card p-6">
                 <h2 className="text-2xl font-bold text-gray-900">高德导航结果</h2>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <MetricCard value={formatDistance(result.payload.distance)} label="路线距离" />
@@ -444,12 +445,13 @@ export default function RoutePlanner() {
         </div>
       )}
     </div>
+    </div>
   );
 }
 
 function AlgorithmResult({ result, weightMode }) {
   return (
-    <section className="card p-6">
+    <section className="glass-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">算法规划结果</h2>

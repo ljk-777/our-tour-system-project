@@ -94,6 +94,7 @@ export default function Spots() {
   };
 
   return (
+    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="section-title">发现景点与高校</h1>
       <p className="section-sub">
@@ -113,9 +114,10 @@ export default function Spots() {
               setDataSource(value);
               setSearchQ('');
             }}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              dataSource === value ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              dataSource === value ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 border border-gray-200'
             }`}
+            style={dataSource === value ? { background: 'linear-gradient(135deg,#f59e0b,#f97316)', backdropFilter: 'none' } : { background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)' }}
           >
             {label}
           </button>
@@ -123,15 +125,21 @@ export default function Spots() {
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-        <input
-          type="text"
-          value={searchQ}
-          onChange={(e) => setSearchQ(e.target.value)}
-          placeholder={dataSource === 'local' ? '搜索景点名称、城市...' : '搜索真实景点、餐饮、酒店...'}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button className="btn-primary text-sm">搜索</button>
-        <button type="button" onClick={resetFilters} className="btn-outline text-sm">清除</button>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '0 16px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.3 }}>
+            <circle cx="11" cy="11" r="7" stroke="#000" strokeWidth="2.2"/>
+            <path d="M16.5 16.5L21 21" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder={dataSource === 'local' ? '搜索景点名称、城市...' : '搜索真实景点、餐饮、酒店...'}
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.88rem', color: '#1d1d1f', padding: '11px 0', fontFamily: 'Inter, sans-serif' }}
+          />
+        </div>
+        <button style={{ padding: '0 18px', background: 'linear-gradient(135deg,#f59e0b,#f97316)', color: '#fff', border: 'none', borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>搜索</button>
+        <button type="button" onClick={resetFilters} style={{ padding: '0 14px', background: 'rgba(255,255,255,0.7)', color: '#86868b', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, fontSize: '0.85rem', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>清除</button>
       </form>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -139,9 +147,12 @@ export default function Spots() {
           <button
             key={item}
             onClick={() => setSearchParams(item === '全部' ? {} : { city: item, ...(type ? { type } : {}) })}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              (item === '全部' && !city) || item === city ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              (item === '全部' && !city) || item === city ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
             }`}
+            style={(item === '全部' && !city) || item === city
+              ? { background: 'linear-gradient(135deg,#f59e0b,#f97316)' }
+              : { background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(10px)', border: '1px solid rgba(0,0,0,0.08)' }}
           >
             {item}
           </button>
@@ -153,9 +164,12 @@ export default function Spots() {
           <button
             key={item.value}
             onClick={() => setSearchParams({ ...(city ? { city } : {}), ...(item.value ? { type: item.value } : {}) })}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              type === item.value ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              type === item.value ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
             }`}
+            style={type === item.value
+              ? { background: 'linear-gradient(135deg,#f59e0b,#f97316)' }
+              : { background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(10px)', border: '1px solid rgba(0,0,0,0.08)' }}
           >
             {item.label}
           </button>
@@ -170,7 +184,7 @@ export default function Spots() {
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => <div key={i} className="card h-52 animate-pulse bg-gray-200" />)}
+          {[...Array(8)].map((_, i) => <div key={i} className="glass-card h-52 animate-pulse bg-gray-200" />)}
         </div>
       ) : spots.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
@@ -198,7 +212,7 @@ export default function Spots() {
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {spots.map((spot) => (
-            <div key={spot.id} className="card p-5">
+            <div key={spot.id} className="glass-card p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-lg font-semibold text-gray-900">{spot.name}</div>
@@ -233,6 +247,7 @@ export default function Spots() {
           ))}
         </div>
       )}
+    </div>
     </div>
   );
 }
