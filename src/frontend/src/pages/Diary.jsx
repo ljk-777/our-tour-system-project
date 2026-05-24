@@ -9,27 +9,21 @@ const MOOD_ICON    = { '愉悦':'😊','激动':'🤩','满足':'😌','宁静':
 function formatLocalDate(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${date.getFullYear()}-${`${date.getMonth()+1}`.padStart(2,'0')}-${`${date.getDate()}`.padStart(2,'0')}`;
 }
-
 function formatDiaryDate(value) {
   if (!value) return '';
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   return formatLocalDate(value);
 }
 
-/* ── 图片压缩工具 ─────────────────────────────────────── */
 function compressImage(file, size = 600) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       const ratio = Math.min(size / img.width, size / img.height, 1);
-      const w = Math.round(img.width * ratio);
-      const h = Math.round(img.height * ratio);
+      const w = Math.round(img.width * ratio), h = Math.round(img.height * ratio);
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -41,13 +35,12 @@ function compressImage(file, size = 600) {
   });
 }
 
-/* ── 日记卡片 ─────────────────────────────────────────── */
-function DiaryCard({ diary, onLike, onComment, currentUser }) {
+/* ── 单条日记行（无卡片，border-bottom 分隔）──────────────── */
+function DiaryRow({ diary, index, currentUser }) {
   const [expanded,     setExpanded]     = useState(false);
-  const [liked,        setLiked]        = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
-    return saved.includes(diary.id);
-  });
+  const [liked,        setLiked]        = useState(() =>
+    JSON.parse(localStorage.getItem('likedDiaries') || '[]').includes(diary.id)
+  );
   const [likes,        setLikes]        = useState(diary.likes || 0);
   const [likeAnim,     setLikeAnim]     = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -56,24 +49,17 @@ function DiaryCard({ diary, onLike, onComment, currentUser }) {
   );
   const [commentText,  setCommentText]  = useState('');
   const [submitting,   setSubmitting]   = useState(false);
-  const floatRef = useRef(null);
-  const isLong = (diary.content?.length || 0) > 120;
+  const isLong = (diary.content?.length || 0) > 140;
 
   const handleLike = async () => {
+    const saved = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
     if (liked) {
-      // 取消点赞（仅前端，后端只有加赞接口）
-      const saved = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
       localStorage.setItem('likedDiaries', JSON.stringify(saved.filter(id => id !== diary.id)));
-      setLiked(false);
-      setLikes(l => Math.max(0, l - 1));
+      setLiked(false); setLikes(l => Math.max(0, l - 1));
       return;
     }
-    // 点赞
-    setLikeAnim(true);
-    setTimeout(() => setLikeAnim(false), 500);
-    setLiked(true);
-    setLikes(l => l + 1);
-    const saved = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
+    setLikeAnim(true); setTimeout(() => setLikeAnim(false), 500);
+    setLiked(true); setLikes(l => l + 1);
     localStorage.setItem('likedDiaries', JSON.stringify([...saved, diary.id]));
     try { await likeDiary(diary.id); } catch {}
   };
@@ -99,128 +85,157 @@ function DiaryCard({ diary, onLike, onComment, currentUser }) {
   };
 
   return (
-    <div className="card p-5" style={{ transition: 'box-shadow 0.2s ease', position: 'relative', overflow: 'visible' }}>
-
+    <div style={{
+      padding: '32px 0',
+      borderBottom: '1px solid rgba(0,0,0,0.07)',
+      position: 'relative',
+    }}>
       {/* 浮动爱心特效 */}
       {likeAnim && (
-        <span className="like-float" style={{
-          position: 'absolute', left: 24, bottom: 52,
-          fontSize: '1.6rem', pointerEvents: 'none', zIndex: 99,
-        }}>❤️</span>
+        <span style={{ position:'absolute', left:0, bottom:52, fontSize:'1.4rem', pointerEvents:'none', zIndex:99, animation:'itemSlideIn 0.5s ease both' }}>❤️</span>
       )}
 
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
-          {diary.userAvatar}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          {/* 标题 + 评分 */}
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-gray-900 text-base leading-snug">{diary.title}</h3>
-            {diary.rating && (
-              <div className="flex items-center gap-0.5 shrink-0">
-                {Array.from({length:5}).map((_,i) => (
-                  <span key={i} className={`text-sm ${i < diary.rating ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
-                ))}
-              </div>
+      {/* 主体行：左内容 + 右序号 */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:32, alignItems:'start' }}>
+        <div>
+          {/* 作者信息 */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+            <span style={{ fontSize:'1.2rem' }}>{diary.userAvatar}</span>
+            <span style={{ fontSize:'0.82rem', fontWeight:600, color:'#1d1d1f', fontFamily:'Inter, sans-serif' }}>{diary.userName}</span>
+            {diary.spotName && (
+              <span style={{ fontSize:'0.75rem', color:'#aeaeb2', fontFamily:'Inter, sans-serif' }}>
+                · 📍 {diary.spotName}
+              </span>
             )}
-          </div>
-
-          {/* 元信息 */}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-3">
-            <span className="font-medium text-gray-600">{diary.userName}</span>
-            {diary.spotName && <span>📍 <span className="text-blue-500">{diary.spotName}</span></span>}
-            <span>{formatDiaryDate(diary.visitDate)}</span>
-            {diary.weather && <span>{WEATHER_ICON[diary.weather] || '🌤️'} {diary.weather}</span>}
-            {diary.mood && <span>{MOOD_ICON[diary.mood] || '😊'} {diary.mood}</span>}
+            {diary.weather && (
+              <span style={{ fontSize:'0.75rem', color:'#aeaeb2' }}>{WEATHER_ICON[diary.weather] || '🌤️'} {diary.weather}</span>
+            )}
+            {diary.mood && (
+              <span style={{ fontSize:'0.75rem', color:'#aeaeb2' }}>{MOOD_ICON[diary.mood] || '😊'} {diary.mood}</span>
+            )}
           </div>
 
           {/* 封面图 */}
           {diary.coverImage && (
             <img src={diary.coverImage} alt="封面"
-              style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:12, marginBottom:10 }} />
+              style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:12, marginBottom:14 }} />
           )}
 
-          {/* 正文 */}
-          <div className="mb-2">
-            <p className={`text-sm text-gray-600 leading-relaxed ${!expanded && isLong ? 'line-clamp-3' : ''}`}>
-              {diary.content}
-            </p>
-            {isLong && (
-              <button onClick={() => setExpanded(!expanded)}
-                className="text-xs text-blue-500 hover:text-blue-700 mt-1 font-medium">
-                {expanded ? '收起 ▲' : '展开全文 ▼'}
-              </button>
-            )}
-          </div>
+          {/* 标题 */}
+          <h3 style={{
+            fontFamily:'Inter, sans-serif', fontSize:'1.15rem', fontWeight:700,
+            color:'#1d1d1f', letterSpacing:'-0.02em', lineHeight:1.3, marginBottom:8,
+          }}>{diary.title}</h3>
+
+          {/* 正文摘要 */}
+          <p style={{
+            fontSize:'0.875rem', color:'#6e6e73', lineHeight:1.7,
+            display: !expanded && isLong ? '-webkit-box' : 'block',
+            WebkitLineClamp: !expanded && isLong ? 3 : undefined,
+            WebkitBoxOrient: 'vertical',
+            overflow: !expanded && isLong ? 'hidden' : 'visible',
+          }}>{diary.content}</p>
+          {isLong && (
+            <button onClick={() => setExpanded(!expanded)} style={{
+              fontSize:'0.75rem', color:'#1a73e8', background:'none', border:'none',
+              cursor:'pointer', padding:'4px 0', fontFamily:'Inter, sans-serif', fontWeight:500,
+            }}>{expanded ? '收起 ▲' : '展开全文 ▼'}</button>
+          )}
 
           {/* 标签 */}
           {diary.tags?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:10 }}>
               {diary.tags.map(tag => (
-                <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">#{tag}</span>
+                <span key={tag} style={{
+                  fontSize:'0.7rem', color:'#aeaeb2', fontFamily:'Inter, sans-serif',
+                }}>#{tag}</span>
               ))}
             </div>
           )}
 
           {/* 操作栏 */}
-          <div className="flex items-center gap-4 pt-2 border-t border-gray-50">
-            {/* 点赞 */}
-            <button onClick={handleLike}
-              className={`flex items-center gap-1.5 text-sm transition-all select-none ${liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
-              style={{ userSelect:'none' }}
-            >
-              <span className={likeAnim ? 'like-pop' : ''} style={{ display:'inline-block', fontSize:'1.1rem' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:20, marginTop:16, paddingTop:14, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
+            <button onClick={handleLike} style={{
+              display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem',
+              color: liked ? '#ef4444' : '#aeaeb2', background:'none', border:'none',
+              cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:500,
+              transition:'color 0.2s ease',
+            }}>
+              <span style={{ fontSize:'1rem', display:'inline-block', transform: likeAnim ? 'scale(1.4)' : 'scale(1)', transition:'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
                 {liked ? '❤️' : '🤍'}
               </span>
-              <span className="font-medium">{likes}</span>
+              {likes}
             </button>
 
-            {/* 评论 */}
-            <button onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-500 transition-colors">
-              <span>💬</span>
-              <span>{comments.length} 评论</span>
+            <button onClick={() => setShowComments(!showComments)} style={{
+              display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem',
+              color:'#aeaeb2', background:'none', border:'none', cursor:'pointer',
+              fontFamily:'Inter, sans-serif',
+            }}>
+              <span>💬</span> {comments.length}
             </button>
 
-            <span className="flex items-center gap-1.5 text-sm text-gray-400">
-              <span>👁️</span> <span>{diary.views || 0}</span>
+            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem', color:'#aeaeb2', fontFamily:'Inter, sans-serif' }}>
+              <span>👁️</span> {diary.views || 0}
             </span>
-            <span className="ml-auto text-xs text-gray-300">{formatDiaryDate(diary.createdAt)}</span>
+
+            {diary.rating && (
+              <span style={{ marginLeft:'auto', fontSize:'0.72rem', color:'#fbbf24', letterSpacing:'0.02em' }}>
+                {'★'.repeat(diary.rating)}{'☆'.repeat(5 - diary.rating)}
+              </span>
+            )}
+            <span style={{ fontSize:'0.72rem', color:'#c7c7cc', fontFamily:'Inter, sans-serif', marginLeft: diary.rating ? 0 : 'auto' }}>
+              {formatDiaryDate(diary.visitDate || diary.createdAt)}
+            </span>
           </div>
 
           {/* 评论区 */}
           {showComments && (
-            <div className="mt-3 pt-3 border-t border-gray-50">
-              {/* 已有评论 */}
+            <div style={{ marginTop:16, paddingTop:16, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
               {comments.length > 0 && (
-                <div className="space-y-2 mb-3">
+                <div style={{ marginBottom:12, display:'flex', flexDirection:'column', gap:8 }}>
                   {comments.map((c, i) => (
-                    <div key={c.id || i} className="flex gap-2 text-sm">
-                      <span className="font-medium text-gray-700 shrink-0">{c.userName}：</span>
-                      <span className="text-gray-600">{c.content}</span>
+                    <div key={c.id || i} style={{ display:'flex', gap:8, fontSize:'0.82rem' }}>
+                      <span style={{ fontWeight:600, color:'#1d1d1f', flexShrink:0, fontFamily:'Inter, sans-serif' }}>{c.userName}：</span>
+                      <span style={{ color:'#6e6e73' }}>{c.content}</span>
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* 评论输入框 */}
-              <form onSubmit={handleComment} className="flex gap-2">
+              <form onSubmit={handleComment} style={{ display:'flex', gap:8 }}>
                 <input
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
                   placeholder="写下你的评论..."
-                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  style={{
+                    flex:1, fontSize:'0.85rem', border:'1px solid rgba(0,0,0,0.12)',
+                    borderRadius:10, padding:'8px 14px', outline:'none',
+                    fontFamily:'Inter, sans-serif', color:'#1d1d1f', background:'#fff',
+                  }}
                   maxLength={200}
                 />
-                <button type="submit" disabled={submitting || !commentText.trim()}
-                  className="shrink-0 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white text-sm rounded-xl font-medium transition-colors">
+                <button type="submit" disabled={submitting || !commentText.trim()} style={{
+                  flexShrink:0, padding:'8px 18px',
+                  background: 'transparent',
+                  color: submitting || !commentText.trim() ? '#c7c7cc' : '#f97316',
+                  border: `1px solid ${submitting || !commentText.trim() ? 'rgba(0,0,0,0.08)' : 'rgba(249,115,22,0.4)'}`,
+                  borderRadius:10, fontSize:'0.82rem', fontWeight:600,
+                  cursor: submitting || !commentText.trim() ? 'not-allowed' : 'pointer',
+                  fontFamily:'Inter, sans-serif', transition:'all 0.2s ease',
+                }}>
                   {submitting ? '...' : '发送'}
                 </button>
               </form>
             </div>
           )}
+        </div>
+
+        {/* 右侧序号 */}
+        <div style={{ paddingTop:4, flexShrink:0 }}>
+          <span style={{
+            fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.1em',
+            textTransform:'uppercase', color:'#c7c7cc', fontFamily:'Inter, sans-serif',
+          }}>No.{String(index + 1).padStart(2, '0')}</span>
         </div>
       </div>
     </div>
@@ -265,7 +280,6 @@ export default function Diary() {
     } finally { setLoading(false); }
   };
 
-  /* 图片选择 */
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -283,31 +297,20 @@ export default function Diary() {
       alert('请先填写标题、地点或一些旅行素材');
       return;
     }
-
     setGenerating(true);
     try {
-      const res = await generateDiaryDraft({
-        ...form,
-        notes: form.content,
-      });
+      const res = await generateDiaryDraft({ ...form, notes: form.content });
       const content = res.data?.data?.content;
       if (content) setAiDraft(content);
     } catch (error) {
       alert(error?.response?.data?.message || '日记文案生成失败，请稍后重试');
-    } finally {
-      setGenerating(false);
-    }
+    } finally { setGenerating(false); }
   };
 
   const handleUseAiDraft = () => {
     if (!aiDraft) return;
     setForm(f => ({ ...f, content: aiDraft }));
     setAiDraft('');
-  };
-
-  const handleContentChange = (e) => {
-    setForm(f => ({ ...f, content: e.target.value }));
-    if (aiDraft) setAiDraft('');
   };
 
   const handleSubmit = async (e) => {
@@ -340,156 +343,264 @@ export default function Diary() {
   const totalLikes = visibleDiaries.reduce((s, d) => s + (d.likes || 0), 0);
   const totalViews = visibleDiaries.reduce((s, d) => s + (d.views || 0), 0);
 
+  /* ── 共用 input 样式 */
+  const inputStyle = {
+    width:'100%', fontSize:'0.88rem', border:'1px solid rgba(0,0,0,0.12)',
+    borderRadius:10, padding:'10px 14px', outline:'none',
+    fontFamily:'Inter, sans-serif', color:'#1d1d1f', background:'#fff',
+    boxSizing:'border-box',
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div style={{ background:'#fff', minHeight:'100vh' }}>
+      <div style={{ maxWidth:860, margin:'0 auto', padding:'56px 32px' }}>
 
-      {/* 页头 */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="section-title">旅行日记</h1>
-          <p className="section-sub">
-            {visibleDiaries.length} 篇日记 · ❤️ {totalLikes} 获赞 · 👁️ {totalViews} 浏览
-          </p>
-        </div>
-        <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm shrink-0">
-          ✏️ 写日记
-        </button>
-      </div>
-
-      {/* 算法说明 */}
-      <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 px-4 py-2.5 rounded-xl mb-5">
-        <span>🔬</span>
-        <span>搜索算法：<b>KMP</b> 精确字符串匹配 / <b>倒排索引</b>全文检索，标题+正文+地点全字段搜索</span>
-      </div>
-
-      {/* 发布日记表单 */}
-      {showCreate && (
-        <form onSubmit={handleSubmit} className="card p-6 mb-6 animate-slide-up">
-          <h2 className="text-lg font-semibold mb-4">✏️ 发布新日记</h2>
-          <div className="space-y-3">
-            <input value={form.title} onChange={e => setForm({...form, title:e.target.value})}
-              placeholder="日记标题 *" required className="input-base" />
-            <input value={form.spotName} onChange={e => setForm({...form, spotName:e.target.value})}
-              placeholder="旅游地点名称（选填）" className="input-base" />
-            <div>
-              <textarea value={form.content} onChange={handleContentChange}
-                placeholder="写下几个关键词、路线、感受，例如：傍晚去了沙河校园，风很舒服，拍了晚霞... *" required rows={5} className="input-base resize-none" />
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
-                <button type="button" onClick={handleGenerateDraft} disabled={generating}
-                  className="btn-outline text-sm shrink-0">
-                  {generating ? '正在润色...' : 'AI 润色正文'}
-                </button>
-                <span className="text-xs text-gray-400">根据标题、地点、天气、心情和当前输入自动润色正文</span>
-              </div>
-              {aiDraft && (
-                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <span className="text-sm font-medium text-blue-700">润色结果预览</span>
-                    <button type="button" onClick={() => setAiDraft('')}
-                      className="text-xs text-gray-400 hover:text-gray-600">保留原文</button>
-                  </div>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{aiDraft}</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <button type="button" onClick={handleUseAiDraft}
-                      className="btn-primary text-sm">使用润色结果</button>
-                    <button type="button" onClick={handleGenerateDraft} disabled={generating}
-                      className="btn-outline text-sm">{generating ? '正在润色...' : '重新润色'}</button>
-                  </div>
-                </div>
-              )}
+        {/* ── 页头 */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:48 }}>
+          <div>
+            <div style={{ fontSize:'0.68rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aeaeb2', marginBottom:12, fontFamily:'Inter, sans-serif' }}>
+              Travel Stories
             </div>
-
-            {/* 图片上传 */}
-            <div>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors text-gray-500 hover:text-blue-600 w-full justify-center">
-                📷 {imgPreview ? '重新选择封面图' : '添加封面图（选填）'}
-              </button>
-              {imgPreview && (
-                <div className="relative mt-2">
-                  <img src={imgPreview} alt="预览" style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:10 }} />
-                  <button type="button" onClick={() => { setImgPreview(''); setForm(f => ({...f, coverImage:''})); }}
-                    className="absolute top-2 right-2 w-6 h-6 bg-black/50 text-white rounded-full text-xs flex items-center justify-center hover:bg-black/70">
-                    ✕
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <input value={form.tags} onChange={e => setForm({...form, tags:e.target.value})}
-                placeholder="标签（逗号分隔）" className="input-base" />
-              <select value={form.weather} onChange={e => setForm({...form, weather:e.target.value})} className="input-base">
-                {['晴','多云','阴','雨','雪'].map(w => <option key={w}>{w}</option>)}
-              </select>
-              <select value={form.mood} onChange={e => setForm({...form, mood:e.target.value})} className="input-base">
-                {['愉悦','激动','满足','宁静','震撼','感动'].map(m => <option key={m}>{m}</option>)}
-              </select>
-              <select value={form.rating} onChange={e => setForm({...form, rating:+e.target.value})} className="input-base">
-                {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} 星</option>)}
-              </select>
-            </div>
-
-            <div className="flex gap-3 pt-1">
-              <button type="submit" disabled={submitting} className="btn-primary text-sm">
-                {submitting ? '发布中...' : '发布日记'}
-              </button>
-              <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); setAiDraft(''); }}
-                className="btn-outline text-sm">取消</button>
-            </div>
+            <h1 style={{ fontFamily:'Inter, sans-serif', fontSize:'clamp(2rem, 4vw, 2.8rem)', fontWeight:800, color:'#1d1d1f', letterSpacing:'-0.04em', lineHeight:1.05, marginBottom:10 }}>
+              旅行日记
+            </h1>
+            <p style={{ fontSize:'0.82rem', color:'#aeaeb2', fontFamily:'Inter, sans-serif' }}>
+              {visibleDiaries.length} 篇 · ❤️ {totalLikes} 获赞 · 👁️ {totalViews} 浏览
+            </p>
           </div>
-        </form>
-      )}
+          <button onClick={() => setShowCreate(!showCreate)} style={{
+            display:'flex', alignItems:'center', gap:8,
+            background:'transparent', color:'#1d1d1f',
+            border:'1.5px solid rgba(0,0,0,0.18)',
+            borderRadius:12, padding:'10px 22px', fontSize:'0.88rem',
+            fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif',
+            transition:'all 0.2s ease', flexShrink:0,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(0,0,0,0.04)'; e.currentTarget.style.borderColor='rgba(0,0,0,0.28)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='rgba(0,0,0,0.18)'; }}
+          >
+            ✏️ 写日记
+          </button>
+        </div>
 
-      {/* 搜索 + 排序 */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
-            placeholder="搜索日记标题、内容、地点..."
-            className="input-base flex-1" />
-          <select value={searchMode} onChange={e => setSearchMode(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none shrink-0">
-            <option value="kmp">KMP 精确</option>
-            <option value="fulltext">全文检索</option>
-          </select>
-          <button className="btn-primary text-sm shrink-0">搜索</button>
-          {searchQ && (
-            <button type="button" onClick={() => { setSearchQ(''); loadAll(); }}
-              className="btn-outline text-sm shrink-0">清除</button>
-          )}
-        </form>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-gray-400">排序：</span>
-          {[['likes','最多点赞'],['views','最多浏览'],['createdAt','最新发布']].map(([k,l]) => (
-            <button key={k} onClick={() => setSortBy(k)}
-              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${sortBy===k ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              {l}
-            </button>
-          ))}
+        {/* ── 算法标注 */}
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          fontSize:'0.72rem', color:'#aeaeb2',
+          fontFamily:'SF Mono, Fira Code, monospace', letterSpacing:'0.03em',
+          marginBottom:36,
+        }}>
+          <span style={{ color:'#c7c7cc' }}>KMP 精确匹配</span>
+          <span>·</span>
+          <span style={{ color:'#c7c7cc' }}>倒排索引全文检索</span>
         </div>
-      </div>
 
-      {/* 日记列表 */}
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(4)].map((_,i) => <div key={i} className="card h-36 skeleton" />)}
-        </div>
-      ) : visibleDiaries.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <div className="text-5xl mb-3">📖</div>
-          <p>暂无日记{searchQ ? `（"${searchQ}" 无匹配结果）` : ''}</p>
-          {searchQ && <button onClick={() => { setSearchQ(''); loadAll(); }} className="btn-outline text-sm mt-4">查看全部日记</button>}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {visibleDiaries.map((d, i) => (
-            <div key={d.id} style={{ animation:`itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i,6)*60}ms both` }}>
-              <DiaryCard diary={d} currentUser={user} />
+        {/* ── 发布日记表单（白底，无盒子，用细线分隔）*/}
+        {showCreate && (
+          <div style={{ borderTop:'1px solid rgba(0,0,0,0.12)', borderBottom:'1px solid rgba(0,0,0,0.08)', padding:'36px 0', marginBottom:48 }}>
+            <div style={{ fontSize:'0.68rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aeaeb2', marginBottom:24, fontFamily:'Inter, sans-serif' }}>
+              New Entry
             </div>
-          ))}
+            <form onSubmit={handleSubmit}>
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <input value={form.title} onChange={e => setForm({...form, title:e.target.value})}
+                  placeholder="日记标题 *" required style={inputStyle} />
+                <input value={form.spotName} onChange={e => setForm({...form, spotName:e.target.value})}
+                  placeholder="旅游地点（选填）" style={inputStyle} />
+                <div>
+                  <textarea value={form.content}
+                    onChange={e => { setForm(f=>({...f, content:e.target.value})); if(aiDraft) setAiDraft(''); }}
+                    placeholder="写下几个关键词、路线、感受，例如：傍晚去了沙河校园，风很舒服... *"
+                    required rows={5}
+                    style={{ ...inputStyle, resize:'none', lineHeight:1.7 }} />
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:10 }}>
+                    <button type="button" onClick={handleGenerateDraft} disabled={generating} style={{
+                      padding:'7px 16px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+                      border:'1px solid rgba(0,0,0,0.15)', background:'#fff', color:'#1d1d1f',
+                      cursor: generating ? 'not-allowed' : 'pointer', fontFamily:'Inter, sans-serif',
+                      opacity: generating ? 0.5 : 1, transition:'opacity 0.2s',
+                    }}>
+                      {generating ? '正在润色...' : 'AI 润色正文'}
+                    </button>
+                    <span style={{ fontSize:'0.75rem', color:'#c7c7cc', fontFamily:'Inter, sans-serif' }}>根据标题、地点、心情自动润色</span>
+                  </div>
+                  {aiDraft && (
+                    <div style={{ marginTop:14, padding:'18px 20px', borderLeft:'3px solid #f97316', background:'rgba(249,115,22,0.03)' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                        <span style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#f97316', fontFamily:'Inter, sans-serif' }}>润色结果</span>
+                        <button type="button" onClick={() => setAiDraft('')} style={{ fontSize:'0.75rem', color:'#aeaeb2', background:'none', border:'none', cursor:'pointer' }}>保留原文</button>
+                      </div>
+                      <p style={{ fontSize:'0.85rem', color:'#6e6e73', lineHeight:1.75, whiteSpace:'pre-wrap' }}>{aiDraft}</p>
+                      <div style={{ display:'flex', gap:10, marginTop:14 }}>
+                        <button type="button" onClick={handleUseAiDraft} style={{
+                          padding:'7px 16px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+                          background:'linear-gradient(135deg, #f59e0b, #f97316)', color:'#fff',
+                          border:'none', cursor:'pointer', fontFamily:'Inter, sans-serif',
+                        }}>使用润色结果</button>
+                        <button type="button" onClick={handleGenerateDraft} disabled={generating} style={{
+                          padding:'7px 16px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+                          border:'1px solid rgba(0,0,0,0.15)', background:'#fff', color:'#1d1d1f',
+                          cursor: generating ? 'not-allowed' : 'pointer', fontFamily:'Inter, sans-serif',
+                        }}>{generating ? '正在润色...' : '重新润色'}</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 图片上传 */}
+                <div>
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImageSelect} />
+                  <button type="button" onClick={() => fileRef.current?.click()} style={{
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%',
+                    padding:'10px', borderRadius:10, fontSize:'0.82rem', fontFamily:'Inter, sans-serif',
+                    border:'1px dashed rgba(0,0,0,0.15)', background:'transparent', color:'#aeaeb2',
+                    cursor:'pointer', transition:'all 0.2s ease',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,0,0,0.3)'; e.currentTarget.style.color='#1d1d1f'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(0,0,0,0.15)'; e.currentTarget.style.color='#aeaeb2'; }}
+                  >
+                    📷 {imgPreview ? '重新选择封面图' : '添加封面图（选填）'}
+                  </button>
+                  {imgPreview && (
+                    <div style={{ position:'relative', marginTop:10 }}>
+                      <img src={imgPreview} alt="预览" style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:10 }} />
+                      <button type="button" onClick={() => { setImgPreview(''); setForm(f=>({...f,coverImage:''})); }} style={{
+                        position:'absolute', top:8, right:8, width:24, height:24,
+                        background:'rgba(0,0,0,0.5)', color:'#fff', border:'none',
+                        borderRadius:'50%', fontSize:'0.7rem', cursor:'pointer',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 元数据行 */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:10 }}>
+                  <input value={form.tags} onChange={e => setForm({...form,tags:e.target.value})}
+                    placeholder="标签（逗号分隔）" style={inputStyle} />
+                  <select value={form.weather} onChange={e => setForm({...form,weather:e.target.value})} style={inputStyle}>
+                    {['晴','多云','阴','雨','雪'].map(w => <option key={w}>{w}</option>)}
+                  </select>
+                  <select value={form.mood} onChange={e => setForm({...form,mood:e.target.value})} style={inputStyle}>
+                    {['愉悦','激动','满足','宁静','震撼','感动'].map(m => <option key={m}>{m}</option>)}
+                  </select>
+                  <select value={form.rating} onChange={e => setForm({...form,rating:+e.target.value})} style={inputStyle}>
+                    {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} 星</option>)}
+                  </select>
+                </div>
+
+                <div style={{ display:'flex', gap:10, paddingTop:4 }}>
+                  <button type="submit" disabled={submitting} style={{
+                    padding:'10px 24px', borderRadius:10, fontSize:'0.88rem', fontWeight:600,
+                    background:'linear-gradient(135deg, #f59e0b, #f97316)', color:'#fff', border:'none',
+                    cursor: submitting ? 'not-allowed' : 'pointer', fontFamily:'Inter, sans-serif',
+                    opacity: submitting ? 0.6 : 1, transition:'opacity 0.2s',
+                    boxShadow:'0 2px 12px rgba(249,115,22,0.3)',
+                  }}>
+                    {submitting ? '发布中...' : '发布日记'}
+                  </button>
+                  <button type="button" onClick={() => { setShowCreate(false); setImgPreview(''); setAiDraft(''); }} style={{
+                    padding:'10px 24px', borderRadius:10, fontSize:'0.88rem', fontWeight:600,
+                    background:'transparent', color:'#aeaeb2', border:'1px solid rgba(0,0,0,0.12)',
+                    cursor:'pointer', fontFamily:'Inter, sans-serif',
+                  }}>取消</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ── 搜索 + 排序 */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:12, alignItems:'center', marginBottom:32 }}>
+          <form onSubmit={handleSearch} style={{ display:'flex', gap:8, flex:'1 1 300px' }}>
+            <div style={{
+              flex:1, display:'flex', alignItems:'center', gap:10,
+              border:'1px solid rgba(0,0,0,0.12)', borderRadius:10, padding:'0 14px',
+              background:'#fff',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0, opacity:0.3 }}>
+                <circle cx="11" cy="11" r="7" stroke="#000" strokeWidth="2.2"/>
+                <path d="M16.5 16.5L21 21" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
+              <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                placeholder="搜索标题、内容、地点..."
+                style={{ flex:1, border:'none', outline:'none', fontSize:'0.88rem', color:'#1d1d1f', padding:'10px 0', background:'transparent', fontFamily:'Inter, sans-serif' }} />
+            </div>
+            <select value={searchMode} onChange={e => setSearchMode(e.target.value)} style={{
+              border:'1px solid rgba(0,0,0,0.12)', borderRadius:10, padding:'0 12px',
+              fontSize:'0.78rem', color:'#1d1d1f', background:'#fff', outline:'none',
+              fontFamily:'Inter, sans-serif', flexShrink:0,
+            }}>
+              <option value="kmp">KMP 精确</option>
+              <option value="fulltext">全文检索</option>
+            </select>
+            <button style={{
+              padding:'0 18px', background:'linear-gradient(135deg, #f59e0b, #f97316)',
+              color:'#fff', border:'none', borderRadius:10, fontSize:'0.82rem',
+              fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif', flexShrink:0,
+              boxShadow:'0 2px 10px rgba(249,115,22,0.3)',
+            }}>搜索</button>
+            {searchQ && (
+              <button type="button" onClick={() => { setSearchQ(''); loadAll(); }} style={{
+                padding:'0 14px', background:'transparent', color:'#aeaeb2',
+                border:'1px solid rgba(0,0,0,0.1)', borderRadius:10, fontSize:'0.82rem',
+                cursor:'pointer', fontFamily:'Inter, sans-serif', flexShrink:0,
+              transition:'all 0.2s ease',
+              }}>清除</button>
+            )}
+          </form>
+
+          {/* 排序 tab */}
+          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+            <span style={{ fontSize:'0.72rem', color:'#c7c7cc', fontFamily:'Inter, sans-serif' }}>排序</span>
+            {[['likes','最多点赞'],['views','最多浏览'],['createdAt','最新发布']].map(([k,l]) => (
+              <button key={k} onClick={() => setSortBy(k)} style={{
+                padding:'5px 12px', borderRadius:8, fontSize:'0.75rem', fontWeight:500,
+                cursor:'pointer', fontFamily:'Inter, sans-serif',
+                border: sortBy===k ? '1px solid rgba(249,115,22,0.35)' : '1px solid rgba(0,0,0,0.08)',
+                background: sortBy===k ? 'rgba(249,115,22,0.08)' : '#fff',
+                color: sortBy===k ? '#f97316' : '#86868b',
+                transition:'all 0.2s ease',
+              }}>{l}</button>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* ── 日记列表 */}
+        {loading ? (
+          <div style={{ borderTop:'1px solid rgba(0,0,0,0.08)' }}>
+            {[...Array(4)].map((_,i) => (
+              <div key={i} style={{ padding:'32px 0', borderBottom:'1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ height:16, background:'rgba(0,0,0,0.06)', borderRadius:6, marginBottom:12, width:'60%', animation:'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height:12, background:'rgba(0,0,0,0.04)', borderRadius:6, width:'40%', animation:'pulse 1.5s ease-in-out infinite' }} />
+              </div>
+            ))}
+          </div>
+        ) : visibleDiaries.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'80px 0', color:'#aeaeb2' }}>
+            <div style={{ fontSize:'3rem', marginBottom:16 }}>📖</div>
+            <p style={{ fontSize:'0.9rem', fontFamily:'Inter, sans-serif' }}>
+              {searchQ ? `"${searchQ}" 无匹配结果` : '暂无日记，来写第一篇吧'}
+            </p>
+            {searchQ && (
+              <button onClick={() => { setSearchQ(''); loadAll(); }} style={{
+                marginTop:16, padding:'8px 20px', borderRadius:10, fontSize:'0.82rem',
+                border:'1px solid rgba(0,0,0,0.12)', background:'#fff', color:'#6e6e73',
+                cursor:'pointer', fontFamily:'Inter, sans-serif',
+              }}>查看全部日记</button>
+            )}
+          </div>
+        ) : (
+          <div style={{ borderTop:'1px solid rgba(0,0,0,0.08)' }}>
+            {visibleDiaries.map((d, i) => (
+              <div key={d.id} style={{ animation:`itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i,6)*60}ms both` }}>
+                <DiaryRow diary={d} index={i} currentUser={user} />
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
