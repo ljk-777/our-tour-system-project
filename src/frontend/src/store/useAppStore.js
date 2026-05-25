@@ -7,8 +7,9 @@ export const useAppStore = create((set) => ({
   selectedTraveler:  null,
   aiRoute:           null,
   aiPlaying:         false,
-  searchMarker:      null,   // 搜索结果地标 { title, lat, lng, description }
-  searchMode:        false,  // 搜索模式：隐藏其他地标
+  searchMarker:      null,
+  searchMode:        false,
+  focusedCity:       null,   // 沉浸式聚焦的城市 marker，触发地球转向动画
 
   setSelectedMarker:   (m) => set({ selectedMarker: m }),
   setActiveTab:        (t) => set({ activeTab: t }),
@@ -18,4 +19,5 @@ export const useAppStore = create((set) => ({
   setAiPlaying:        (v) => set({ aiPlaying: v }),
   setSearchMarker:     (m) => set({ searchMarker: m, searchMode: !!m }),
   clearSearch:         ()  => set({ searchMarker: null, searchMode: false }),
+  setFocusedCity:      (c) => set({ focusedCity: c }),
 }));

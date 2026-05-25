@@ -531,7 +531,7 @@ function GlobeSearch() {
 
 /* ── 主 Overlay（原有内容完整保留）──────────────────── */
 export default function GlobeOverlay() {
-  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker } = useAppStore();
+  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity } = useAppStore();
 
   return (
     <div className="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between">
@@ -575,7 +575,7 @@ export default function GlobeOverlay() {
                     <h2 className="text-2xl font-bold text-white tracking-tight">{selectedMarker.title}</h2>
                     <p className="text-sm text-white/50 mt-0.5">{selectedMarker.subtitle}</p>
                   </div>
-                  <button onClick={() => setSelectedMarker(null)}
+                  <button onClick={() => { setSelectedMarker(null); setFocusedCity(null); }}
                     className="p-2 rounded-full bg-white/5 hover:bg-white/12 text-white/50 hover:text-white transition-colors">
                     <X className="w-4 h-4" />
                   </button>

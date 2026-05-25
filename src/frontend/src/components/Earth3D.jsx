@@ -301,6 +301,13 @@ const Earth = ({ radius = 5 }) => {
   const setAiPlaying     = useAppStore(s => s.setAiPlaying);
   const searchMarker     = useAppStore(s => s.searchMarker);
   const searchMode       = useAppStore(s => s.searchMode);
+  const focusedCity      = useAppStore(s => s.focusedCity);
+
+  // 转速 ref（平滑减速/加速）
+  const rotSpeedRef   = useRef(0.0003);
+  // 聚焦目标角度 ref（避免每帧重算）
+  const targetRotRef  = useRef(null);
+  const prevFocusRef  = useRef(null);
 
   const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
@@ -311,7 +318,44 @@ const Earth = ({ radius = 5 }) => {
 
 
   useFrame(() => {
-    if (groupRef.current) groupRef.current.rotation.y += 0.0003;
+    if (!groupRef.current) return;
+
+    // ── 当 focusedCity 变化时，计算最近等效目标角度 ──
+    if (focusedCity !== prevFocusRef.current) {
+      prevFocusRef.current = focusedCity;
+      if (focusedCity) {
+        // 目标旋转角：让城市经度对准 +Z 方向（摄像机方向）
+        const raw = -Math.PI / 2 - (focusedCity.lng * Math.PI / 180);
+        const cur = groupRef.current.rotation.y;
+        // 找最短路径（避免绕远路）
+        const diff = raw - cur;
+        const normDiff = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
+        targetRotRef.current = cur + normDiff;
+      } else {
+        targetRotRef.current = null;
+      }
+    }
+
+    if (focusedCity && targetRotRef.current !== null) {
+      // 阶段①：先减速到几乎停止
+      rotSpeedRef.current = THREE.MathUtils.lerp(rotSpeedRef.current, 0, 0.06);
+      groupRef.current.rotation.y += rotSpeedRef.current;
+
+      // 阶段②：速度够低后，开始平滑转向目标城市
+      if (Math.abs(rotSpeedRef.current) < 0.000015) {
+        rotSpeedRef.current = 0;
+        groupRef.current.rotation.y = THREE.MathUtils.lerp(
+          groupRef.current.rotation.y,
+          targetRotRef.current,
+          0.028,
+        );
+      }
+    } else {
+      // 无聚焦城市：恢复匀速自转
+      rotSpeedRef.current = THREE.MathUtils.lerp(rotSpeedRef.current, 0.0003, 0.03);
+      groupRef.current.rotation.y += rotSpeedRef.current;
+    }
+
     if (cloudRef.current) cloudRef.current.rotation.y += 0.00046;
   });
 
@@ -364,7 +408,8 @@ const Earth = ({ radius = 5 }) => {
 
 /* ── 地标点（脉冲动画）───────────────────────────────────── */
 const Marker = ({ marker, radius }) => {
-  const { setSelectedMarker } = useAppStore();
+  const { setSelectedMarker, setFocusedCity, focusedCity } = useAppStore();
+  const isFocused = focusedCity?.id === marker.id;
   const position = useMemo(() => latLngToVector3(marker.lat, marker.lng, radius), [marker, radius]);
   const [hovered, setHovered] = useState(false);
   const pulseRef = useRef(null);
@@ -385,14 +430,18 @@ const Marker = ({ marker, radius }) => {
       <mesh
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
-        onClick={e => { e.stopPropagation(); setSelectedMarker(marker); }}
+        onClick={e => {
+          e.stopPropagation();
+          setSelectedMarker(marker);
+          setFocusedCity(focusedCity?.id === marker.id ? null : marker);
+        }}
       >
-        <sphereGeometry args={[0.038, 10, 10]} />
-        <meshBasicMaterial color={hovered ? '#fde68a' : '#f97316'} />
+        <sphereGeometry args={[isFocused ? 0.055 : 0.038, 10, 10]} />
+        <meshBasicMaterial color={isFocused ? '#fde68a' : hovered ? '#fde68a' : '#f97316'} />
       </mesh>
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.075, 10, 10]} />
-        <meshBasicMaterial color="#f97316" transparent opacity={0.28}
+        <sphereGeometry args={[isFocused ? 0.14 : 0.075, 10, 10]} />
+        <meshBasicMaterial color={isFocused ? '#fde68a' : '#f97316'} transparent opacity={0.28}
           blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
