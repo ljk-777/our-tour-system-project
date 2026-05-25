@@ -352,8 +352,8 @@ export default function Diary() {
   };
 
   return (
-    <div style={{ background:'#fff', minHeight:'100vh' }}>
-      <div style={{ maxWidth:860, margin:'0 auto', padding:'56px 32px' }}>
+    <div className="glass-bg">
+      <div style={{ maxWidth:860, margin:'0 auto', padding:'56px 32px', position:'relative', zIndex:1 }}>
 
         {/* ── 页头 */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:48 }}>

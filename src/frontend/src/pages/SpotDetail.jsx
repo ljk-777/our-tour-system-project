@@ -146,7 +146,7 @@ export default function SpotDetail() {
   const typeLabel = TYPE_LABELS[spot.type] || spot.type;
 
   return (
-    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
+    <div className="glass-bg">
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
         <Link to="/" className="hover:text-blue-600">首页</Link>

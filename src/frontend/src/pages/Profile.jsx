@@ -19,9 +19,12 @@ function UserCard({ user, selected, onClick }) {
   const lvl = LEVEL_CONFIG[user.level] || LEVEL_CONFIG['旅行新手'];
   return (
     <button onClick={onClick}
-      className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border ${
-        selected ? 'bg-blue-50 border-blue-200 shadow-sm' : 'border-transparent hover:bg-gray-50 hover:border-gray-100'
-      }`}>
+      className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all"
+      style={selected
+        ? { background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)', boxShadow: '0 2px 8px rgba(249,115,22,0.1)' }
+        : { border: '1px solid transparent', background: 'transparent' }}
+      onMouseEnter={e => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.45)'; }}
+      onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent'; }}>
       <div className="relative shrink-0">
         <span className="text-3xl w-12 h-12 flex items-center justify-center bg-gray-100 rounded-xl">{user.avatar}</span>
         <span className="absolute -bottom-1 -right-1 text-xs">{lvl.icon}</span>
@@ -49,7 +52,7 @@ function StatBar({ label, value, max, color }) {
         <span className="text-gray-600">{label}</span>
         <span className="font-semibold text-gray-800">{value}</span>
       </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -93,6 +96,7 @@ export default function Profile() {
   const joinDays = selected ? Math.floor((Date.now() - new Date(selected.joinDate)) / 86400000) : 0;
 
   return (
+    <div className="glass-bg">
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="section-title">旅行者社区</h1>
@@ -103,7 +107,7 @@ export default function Profile() {
         {/* 左侧：用户列表 */}
         <div className="space-y-4">
           {/* 排行榜 Top 3 */}
-          <div className="card p-4">
+          <div className="glass-cardp-4">
             <div className="text-xs font-semibold text-gray-500 mb-3 flex items-center gap-1">
               🏆 探访排行榜
             </div>
@@ -122,7 +126,7 @@ export default function Profile() {
           </div>
 
           {/* 全部用户 */}
-          <div className="card p-3">
+          <div className="glass-cardp-3">
             <div className="text-xs font-semibold text-gray-500 mb-2 px-1">所有旅行者</div>
             <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
               {users.map(u => (
@@ -136,7 +140,7 @@ export default function Profile() {
         {selected && (
           <div className="md:col-span-2 space-y-4">
             {/* 个人卡片 */}
-            <div className="card overflow-hidden">
+            <div className="glass-cardoverflow-hidden">
               {/* Banner */}
               <div className="h-20 bg-gradient-to-r from-blue-500 to-indigo-600" />
               <div className="px-6 pb-6">
@@ -160,9 +164,9 @@ export default function Profile() {
                     { icon: '📅', value: joinDays,              label: '旅行天' },
                     { icon: '❤️', value: diaries.reduce((s, d) => s + (d.likes || 0), 0), label: '获赞' },
                   ].map(s => (
-                    <div key={s.label} className="text-center bg-gray-50 rounded-xl py-3">
+                    <div key={s.label} className="text-center rounded-xl py-3" style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.75)' }}>
                       <div className="text-lg">{s.icon}</div>
-                      <div className="text-lg font-bold text-blue-600 leading-tight">{s.value}</div>
+                      <div className="text-lg font-bold leading-tight" style={{ color: '#f97316' }}>{s.value}</div>
                       <div className="text-xs text-gray-400">{s.label}</div>
                     </div>
                   ))}
@@ -171,13 +175,14 @@ export default function Profile() {
             </div>
 
             {/* Tab 切换 */}
-            <div className="card overflow-hidden">
+            <div className="glass-cardoverflow-hidden">
               <div className="flex border-b border-gray-100">
                 {[['overview','数据概览'],['diaries','TA的日记']].map(([k, l]) => (
                   <button key={k} onClick={() => setTab(k)}
                     className={`px-5 py-3 text-sm font-medium transition-colors ${
-                      tab === k ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
-                    }`}>{l}
+                      tab === k ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    style={tab === k ? { color: '#f97316', borderColor: '#f97316' } : {}}>{l}
                     {k === 'diaries' && diaries.length > 0 && (
                       <span className="ml-1.5 bg-blue-100 text-blue-600 text-xs px-1.5 py-0.5 rounded-full">{diaries.length}</span>
                     )}
@@ -208,9 +213,10 @@ export default function Profile() {
                           { icon: '✍️', label: '勤奋写手', desc: '写了20+篇日记',                  unlocked: selected.totalDiaries >= 20 },
                           { icon: '🏙️', label: '城市漫游',  desc: '来自'+selected.city,            unlocked: true },
                         ].map(a => (
-                          <div key={a.label} className={`rounded-xl p-3 text-center border transition-all ${
-                            a.unlocked ? 'border-blue-100 bg-blue-50' : 'border-gray-100 bg-gray-50 opacity-40 grayscale'
-                          }`}>
+                          <div key={a.label} className="rounded-xl p-3 text-center transition-all"
+                            style={a.unlocked
+                              ? { background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }
+                              : { background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', opacity: 0.4, filter: 'grayscale(1)' }}>
                             <div className="text-2xl mb-1">{a.icon}</div>
                             <div className="text-xs font-semibold text-gray-800">{a.label}</div>
                             <div className="text-xs text-gray-400 mt-0.5">{a.desc}</div>
@@ -219,7 +225,7 @@ export default function Profile() {
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                    <div className="rounded-xl p-4 text-sm" style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.75)' }}>
                       <div className="font-medium text-gray-700 mb-2">基本资料</div>
                       <div className="space-y-1.5 text-gray-600">
                         <div className="flex gap-2"><span className="text-gray-400 w-16 shrink-0">邮箱</span><span>{selected.email}</span></div>
@@ -240,7 +246,7 @@ export default function Profile() {
                     ) : (
                       <div className="space-y-3">
                         {diaries.map(d => (
-                          <div key={d.id} className="border border-gray-100 rounded-xl p-4 hover:border-blue-100 transition-colors">
+                          <div key={d.id} className="glass-card p-4" style={{ borderRadius: 14 }}>
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <h4 className="font-semibold text-gray-900 text-sm">{d.title}</h4>
                               <div className="text-yellow-500 text-xs shrink-0">{'⭐'.repeat(d.rating || 5)}</div>
@@ -271,6 +277,7 @@ export default function Profile() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

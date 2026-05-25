@@ -56,7 +56,7 @@ export default function Plaza() {
   };
 
   return (
-    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
+    <div className="glass-bg">
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 页头 */}
       <div className="flex items-center justify-between mb-6">

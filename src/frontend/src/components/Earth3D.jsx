@@ -299,6 +299,20 @@ const Earth = ({ radius = 5 }) => {
   const aiRoute          = useAppStore(s => s.aiRoute);
   const aiPlaying        = useAppStore(s => s.aiPlaying);
   const setAiPlaying     = useAppStore(s => s.setAiPlaying);
+  const searchMarker     = useAppStore(s => s.searchMarker);
+  const searchMode       = useAppStore(s => s.searchMode);
+  const focusedCity      = useAppStore(s => s.focusedCity);
+
+  // Animation state machine (no stale closures, time-based)
+  const animRef = useRef({
+    phase: 'cruise',   // 'cruise' | 'brake' | 'seek' | 'lock'
+    speed: 0.0003,
+    seekFrom: 0,
+    seekTo: 0,
+    seekT: 0,
+    seekDur: 2.4,
+  });
+  const prevFocusRef = useRef(null);
 
   const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
@@ -308,8 +322,59 @@ const Earth = ({ radius = 5 }) => {
   ]);
 
 
-  useFrame(() => {
-    if (groupRef.current) groupRef.current.rotation.y += 0.0003;
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+
+    const fc = useAppStore.getState().focusedCity;
+    const dt = Math.min(delta, 0.05);
+    const anim = animRef.current;
+
+    if (fc !== prevFocusRef.current) {
+      prevFocusRef.current = fc;
+      if (fc) {
+        anim.phase = 'brake';
+      } else {
+        anim.speed = Math.max(anim.speed, 0.00008);
+        anim.phase = 'cruise';
+      }
+    }
+
+    if (anim.phase === 'cruise') {
+      anim.speed += (0.0003 - anim.speed) * (1 - Math.pow(0.96, dt * 60));
+      groupRef.current.rotation.y += anim.speed * dt * 60;
+
+    } else if (anim.phase === 'brake') {
+      anim.speed *= Math.pow(0.86, dt * 60);
+      groupRef.current.rotation.y += anim.speed * dt * 60;
+
+      if (anim.speed < 0.000004) {
+        const cur = groupRef.current.rotation.y;
+        const pos = latLngToVector3(fc.lat, fc.lng, 1);
+        // Target: bring city's azimuth to match the camera's current azimuth.
+        // camAzimuth - cityLocalAngle gives the Y rotation that faces city to camera.
+        const cam = state.camera;
+        const camAz   = Math.atan2(cam.position.x, cam.position.z);
+        const cityAz  = Math.atan2(pos.x, pos.z);
+        const rawY    = camAz - cityAz;
+        const diff    = rawY - cur;
+        const norm    = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
+        anim.seekFrom = cur;
+        anim.seekTo   = cur + norm;
+        anim.seekT    = 0;
+        anim.phase    = 'seek';
+      }
+
+    } else if (anim.phase === 'seek') {
+      anim.seekT = Math.min(anim.seekT + dt / anim.seekDur, 1);
+      const e = 1 - Math.pow(1 - anim.seekT, 5);   // ease-out-quint
+      groupRef.current.rotation.y = anim.seekFrom + (anim.seekTo - anim.seekFrom) * e;
+      if (anim.seekT >= 1) {
+        anim.phase = 'lock';
+        anim.speed = 0;
+      }
+    }
+    // 'lock': earth holds perfectly still, only clouds drift
+
     if (cloudRef.current) cloudRef.current.rotation.y += 0.00046;
   });
 
@@ -342,9 +407,10 @@ const Earth = ({ radius = 5 }) => {
 
 
 
-      {/* 有旅行者选中时隐藏默认地标，只显示其足迹 */}
-      {!selectedTraveler && GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
-      {GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
+      {/* 搜索模式：只显示搜索结果地标；旅行者模式：显示足迹；默认：全部地标 */}
+      {!selectedTraveler && !searchMode && GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
+      {!searchMode && GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
+      {searchMode && searchMarker && <SearchResultMarker marker={searchMarker} radius={radius} />}
 
       {/* 旅行者足迹点 & AI航线 — 在旋转组内，随地球一起转 */}
       <TravelerDots traveler={selectedTraveler} radius={radius} />
@@ -361,7 +427,8 @@ const Earth = ({ radius = 5 }) => {
 
 /* ── 地标点（脉冲动画）───────────────────────────────────── */
 const Marker = ({ marker, radius }) => {
-  const { setSelectedMarker } = useAppStore();
+  const { setSelectedMarker, setFocusedCity, focusedCity } = useAppStore();
+  const isFocused = focusedCity?.id === marker.id;
   const position = useMemo(() => latLngToVector3(marker.lat, marker.lng, radius), [marker, radius]);
   const [hovered, setHovered] = useState(false);
   const pulseRef = useRef(null);
@@ -382,14 +449,78 @@ const Marker = ({ marker, radius }) => {
       <mesh
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
-        onClick={e => { e.stopPropagation(); setSelectedMarker(marker); }}
+        onClick={e => {
+          e.stopPropagation();
+          setSelectedMarker(marker);
+          setFocusedCity(focusedCity?.id === marker.id ? null : marker);
+        }}
       >
-        <sphereGeometry args={[0.038, 10, 10]} />
-        <meshBasicMaterial color={hovered ? '#fde68a' : '#f97316'} />
+        <sphereGeometry args={[isFocused ? 0.055 : 0.038, 10, 10]} />
+        <meshBasicMaterial color={isFocused ? '#fde68a' : hovered ? '#fde68a' : '#f97316'} />
       </mesh>
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.075, 10, 10]} />
-        <meshBasicMaterial color="#f97316" transparent opacity={0.28}
+        <sphereGeometry args={[isFocused ? 0.14 : 0.075, 10, 10]} />
+        <meshBasicMaterial color={isFocused ? '#fde68a' : '#f97316'} transparent opacity={0.28}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+};
+
+/* ── 搜索结果地标（大脉冲，蓝白色）────────────────────────── */
+const SearchResultMarker = ({ marker, radius }) => {
+  const { setSelectedMarker } = useAppStore();
+  const position = useMemo(() => latLngToVector3(marker.lat, marker.lng, radius), [marker, radius]);
+  const ring1 = useRef(null);
+  const ring2 = useRef(null);
+  const ring3 = useRef(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (ring1.current) {
+      const s = 1 + ((t * 1.2) % 1) * 2.5;
+      ring1.current.scale.setScalar(s);
+      ring1.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2) % 1) * 0.7);
+    }
+    if (ring2.current) {
+      const s2 = 1 + ((t * 1.2 + 0.33) % 1) * 2.5;
+      ring2.current.scale.setScalar(s2);
+      ring2.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2 + 0.33) % 1) * 0.7);
+    }
+    if (ring3.current) {
+      const s3 = 1 + ((t * 1.2 + 0.66) % 1) * 2.5;
+      ring3.current.scale.setScalar(s3);
+      ring3.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2 + 0.66) % 1) * 0.7);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* 核心亮点 */}
+      <mesh onClick={e => { e.stopPropagation(); setSelectedMarker(marker); }}>
+        <sphereGeometry args={[0.06, 14, 14]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      {/* 橙色光晕核 */}
+      <mesh>
+        <sphereGeometry args={[0.045, 12, 12]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.9}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* 三个错相脉冲环 */}
+      <mesh ref={ring1}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.7}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring2}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#fbbf24" transparent opacity={0.5}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring3}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#fff7ed" transparent opacity={0.35}
           blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
