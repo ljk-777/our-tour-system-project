@@ -303,11 +303,16 @@ const Earth = ({ radius = 5 }) => {
   const searchMode       = useAppStore(s => s.searchMode);
   const focusedCity      = useAppStore(s => s.focusedCity);
 
-  // 转速 ref（平滑减速/加速）
-  const rotSpeedRef   = useRef(0.0003);
-  // 聚焦目标角度 ref（避免每帧重算）
-  const targetRotRef  = useRef(null);
-  const prevFocusRef  = useRef(null);
+  // Animation state machine (no stale closures, time-based)
+  const animRef = useRef({
+    phase: 'cruise',   // 'cruise' | 'brake' | 'seek' | 'lock'
+    speed: 0.0003,
+    seekFrom: 0,
+    seekTo: 0,
+    seekT: 0,
+    seekDur: 2.4,
+  });
+  const prevFocusRef = useRef(null);
 
   const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
@@ -317,44 +322,64 @@ const Earth = ({ radius = 5 }) => {
   ]);
 
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!groupRef.current) return;
 
-    // ── 当 focusedCity 变化时，计算最近等效目标角度 ──
-    if (focusedCity !== prevFocusRef.current) {
-      prevFocusRef.current = focusedCity;
-      if (focusedCity) {
-        // 目标旋转角：让城市经度对准 +Z 方向（摄像机方向）
-        const raw = -Math.PI / 2 - (focusedCity.lng * Math.PI / 180);
-        const cur = groupRef.current.rotation.y;
-        // 找最短路径（避免绕远路）
-        const diff = raw - cur;
-        const normDiff = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
-        targetRotRef.current = cur + normDiff;
+    // Always read fresh state — avoids stale React closure
+    const fc = useAppStore.getState().focusedCity;
+    const dt = Math.min(delta, 0.05);  // cap to avoid spiral on tab restore
+    const anim = animRef.current;
+
+    // Detect focusedCity change → transition phase
+    if (fc !== prevFocusRef.current) {
+      prevFocusRef.current = fc;
+      if (fc) {
+        anim.phase = 'brake';
       } else {
-        targetRotRef.current = null;
+        // Resume cruise from wherever we stopped
+        anim.speed = Math.max(anim.speed, 0.00008);
+        anim.phase = 'cruise';
       }
     }
 
-    if (focusedCity && targetRotRef.current !== null) {
-      // 阶段①：先减速到几乎停止
-      rotSpeedRef.current = THREE.MathUtils.lerp(rotSpeedRef.current, 0, 0.06);
-      groupRef.current.rotation.y += rotSpeedRef.current;
+    if (anim.phase === 'cruise') {
+      // Smooth ramp back to cruise speed (frame-rate independent)
+      anim.speed += (0.0003 - anim.speed) * (1 - Math.pow(0.96, dt * 60));
+      groupRef.current.rotation.y += anim.speed * dt * 60;
 
-      // 阶段②：速度够低后，开始平滑转向目标城市
-      if (Math.abs(rotSpeedRef.current) < 0.000015) {
-        rotSpeedRef.current = 0;
-        groupRef.current.rotation.y = THREE.MathUtils.lerp(
-          groupRef.current.rotation.y,
-          targetRotRef.current,
-          0.028,
-        );
+    } else if (anim.phase === 'brake') {
+      // Exponential deceleration — feels like a flywheel winding down
+      anim.speed *= Math.pow(0.86, dt * 60);
+      groupRef.current.rotation.y += anim.speed * dt * 60;
+
+      if (anim.speed < 0.000004) {
+        // Braking done. Compute target from the POST-brake rotation
+        // so the city lands precisely facing the camera (+Z axis).
+        const cur = groupRef.current.rotation.y;
+        const pos = latLngToVector3(fc.lat, fc.lng, 1);
+        // Rotation needed to maximise pos·Z (facing camera): atan2(-x, z)
+        const raw  = Math.atan2(-pos.x, pos.z);
+        const diff = raw - cur;
+        // Shortest-arc normalisation (always rotate ≤ 180°)
+        const norm = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
+        anim.seekFrom = cur;
+        anim.seekTo   = cur + norm;
+        anim.seekT    = 0;
+        anim.phase    = 'seek';
       }
-    } else {
-      // 无聚焦城市：恢复匀速自转
-      rotSpeedRef.current = THREE.MathUtils.lerp(rotSpeedRef.current, 0.0003, 0.03);
-      groupRef.current.rotation.y += rotSpeedRef.current;
+
+    } else if (anim.phase === 'seek') {
+      // Time-based ease-out-quint (1-(1-t)^5) — cinematic deceleration
+      anim.seekT = Math.min(anim.seekT + dt / anim.seekDur, 1);
+      const e = 1 - Math.pow(1 - anim.seekT, 5);
+      groupRef.current.rotation.y = anim.seekFrom + (anim.seekTo - anim.seekFrom) * e;
+      if (anim.seekT >= 1) {
+        anim.phase = 'lock';
+        anim.speed = 0;
+      }
+
     }
+    // 'lock': earth stays still, only clouds drift
 
     if (cloudRef.current) cloudRef.current.rotation.y += 0.00046;
   });
