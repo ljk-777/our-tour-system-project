@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import BrandIcon from './BrandIcon.jsx';
 
@@ -14,14 +14,129 @@ const NAV_LINKS = [
   { to: '/globe',   label: '🌍 星球' },
 ];
 
+const DROPDOWN_ITEMS = [
+  { icon: '🗺️', label: '我的主页',   to: '/profile',  desc: '查看旅行足迹与成就' },
+  { icon: '📝', label: '旅行日记',   to: '/diary',    desc: '记录与浏览旅行故事' },
+  { icon: '🏔️', label: '发现景点',   to: '/spots',    desc: '探索全国热门景区' },
+  { icon: '🛣️', label: '规划路线',   to: '/route',    desc: 'Dijkstra智能路径规划' },
+  { icon: '🍜', label: '美食推荐',   to: '/foods',    desc: '当地特色美食导航' },
+  { icon: '🌍', label: '3D 星球',    to: '/globe',    desc: '互动地球探索模式' },
+  { icon: '🏙️', label: '旅行广场',   to: '/plaza',    desc: '社区动态与精选内容' },
+];
+
+const LEVEL_COLOR = {
+  '旅行新手':  '#86868b',
+  '旅行达人':  '#0071e3',
+  '资深旅行者':'#9333ea',
+  '探险家':    '#f97316',
+  '美食家':    '#ef4444',
+  '文化学者':  '#d97706',
+  '尊享会员':  '#eab308',
+  '超级管理员':'#6b7280',
+};
+
+function UserDropdown({ user, transparent, onClose, onLogout }) {
+  const lvlColor = LEVEL_COLOR[user.level] || '#f97316';
+  return (
+    <div style={{
+      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+      width: 270, borderRadius: 18, overflow: 'hidden', zIndex: 200,
+      background: 'rgba(255,255,255,0.82)',
+      backdropFilter: 'blur(40px) saturate(2)',
+      WebkitBackdropFilter: 'blur(40px) saturate(2)',
+      border: '1px solid rgba(255,255,255,0.9)',
+      boxShadow: '0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.9) inset',
+    }}>
+      {/* 用户信息头 */}
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(249,115,22,0.08)', border: '2px solid rgba(249,115,22,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0 }}>
+            {user.avatar?.startsWith('data:') ? (
+              <img src={user.avatar} alt="avatar" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover' }} />
+            ) : user.avatar}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1d1d1f', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em', truncate: true, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.nickname}
+            </div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: lvlColor, marginTop: 2, fontFamily: 'Inter, sans-serif' }}>
+              @{user.username} · {user.level}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#aeaeb2', marginTop: 1, fontFamily: 'Inter, sans-serif' }}>
+              {user.city || '旅行中'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 菜单项 */}
+      <div style={{ padding: '6px 8px' }}>
+        {DROPDOWN_ITEMS.map((item, i) => (
+          <Link key={item.to} to={item.to} onClick={onClose}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px', borderRadius: 10, textDecoration: 'none',
+              transition: 'background 0.15s ease',
+              marginBottom: i < DROPDOWN_ITEMS.length - 1 ? 1 : 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.07)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(249,115,22,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+              {item.icon}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>{item.label}</div>
+              <div style={{ fontSize: '0.68rem', color: '#aeaeb2', fontFamily: 'Inter, sans-serif', marginTop: 1 }}>{item.desc}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* 退出按钮 */}
+      <div style={{ padding: '6px 8px 10px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+        <button onClick={onLogout}
+          style={{
+            width: '100%', padding: '9px 10px', borderRadius: 10,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+            transition: 'background 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,59,48,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+            🚪
+          </span>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#ff3b30', fontFamily: 'Inter, sans-serif' }}>退出登录</div>
+            <div style={{ fontSize: '0.68rem', color: '#aeaeb2', fontFamily: 'Inter, sans-serif', marginTop: 1 }}>结束当前旅行会话</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Navbar() {
-  const { pathname }            = useLocation();
-  const navigate                = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const { pathname }              = useLocation();
+  const navigate                  = useNavigate();
+  const [menuOpen, setMenuOpen]   = useState(false);
+  const [scrolled, setScrolled]   = useState(false);
+  const [dropOpen, setDropOpen]   = useState(false);
+  const dropRef                   = useRef(null);
   const { user, isGuest, isLoggedIn, logout } = useAuth();
 
-  const handleLogout = () => { logout(); navigate('/auth'); };
+  const handleLogout = () => { setDropOpen(false); logout(); navigate('/auth'); };
+
+  /* 点击外部关闭下拉 */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   /* 滚动监听 */
   useEffect(() => {
@@ -91,30 +206,44 @@ export default function Navbar() {
           {/* ── 右侧用户区 ── */}
           <div className="flex items-center gap-2 shrink-0">
             {isLoggedIn ? (
-              <>
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              /* 头像 + 下拉菜单 */
+              <div ref={dropRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setDropOpen(v => !v)}
                   style={{
-                    background: transparent ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.62)',
-                    border: '1px solid ' + (transparent ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.82)'),
-                    backdropFilter: 'blur(10px)', borderRadius: '0.75rem',
-                    transition: 'all 0.4s ease',
-                  }}>
-                  {user.avatar?.startsWith('data:') ? (
-                    <img src={user.avatar} alt="avatar" className="w-6 h-6 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <span className="text-base shrink-0">{user.avatar}</span>
-                  )}
-                  <span className="text-xs font-medium max-w-[80px] truncate" style={{ color: logoColor, transition: 'color 0.4s ease' }}>
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '5px 10px 5px 6px', borderRadius: 14, cursor: 'pointer',
+                    background: dropOpen
+                      ? (transparent ? 'rgba(255,255,255,0.25)' : 'rgba(249,115,22,0.08)')
+                      : (transparent ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.62)'),
+                    border: '1px solid ' + (transparent ? 'rgba(255,255,255,0.25)' : (dropOpen ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.82)')),
+                    backdropFilter: 'blur(10px)', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { if (!dropOpen) { e.currentTarget.style.background = transparent ? 'rgba(255,255,255,0.2)' : 'rgba(249,115,22,0.06)'; } }}
+                  onMouseLeave={e => { if (!dropOpen) { e.currentTarget.style.background = transparent ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.62)'; } }}
+                >
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(249,115,22,0.12)', border: '1.5px solid rgba(249,115,22,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+                    {user.avatar?.startsWith('data:') ? (
+                      <img src={user.avatar} alt="avatar" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover' }} />
+                    ) : user.avatar}
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: logoColor, maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.4s ease' }}>
                     {user.nickname}
                   </span>
-                </div>
-                <button onClick={handleLogout} title="退出登录"
-                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150"
-                  style={{ color: textColor }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = transparent ? 'rgba(255,59,48,0.2)' : '#fff1f0'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = textColor; e.currentTarget.style.background = 'transparent'; }}
-                >退出</button>
-              </>
+                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0, transform: dropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', color: transparent ? 'rgba(255,255,255,0.5)' : '#86868b' }}>
+                    <path d="M1 3L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                  </svg>
+                </button>
+
+                {dropOpen && (
+                  <UserDropdown
+                    user={user}
+                    transparent={transparent}
+                    onClose={() => setDropOpen(false)}
+                    onLogout={handleLogout}
+                  />
+                )}
+              </div>
             ) : isGuest ? (
               <>
                 <span className="hidden sm:inline text-xs px-3 py-1.5 rounded-lg font-medium"
