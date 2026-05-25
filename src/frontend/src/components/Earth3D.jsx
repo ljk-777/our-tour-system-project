@@ -307,8 +307,8 @@ const Earth = ({ radius = 5 }) => {
   const animRef = useRef({
     phase: 'cruise',   // 'cruise' | 'brake' | 'seek' | 'lock'
     speed: 0.0003,
-    seekFromY: 0, seekToY: 0,   // Y rotation: longitude centering
-    seekFromX: 0, seekToX: 0,   // X rotation: latitude centering (city to screen center)
+    seekFrom: 0,
+    seekTo: 0,
     seekT: 0,
     seekDur: 2.4,
   });
@@ -322,21 +322,13 @@ const Earth = ({ radius = 5 }) => {
   ]);
 
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    // YXZ Euler order: Y rotation first (longitude), X rotation second (latitude).
-    // This lets us independently control azimuth and vertical centering.
-    if (groupRef.current.rotation.order !== 'YXZ') {
-      groupRef.current.rotation.order = 'YXZ';
-    }
-
-    // Always read fresh state — avoids stale React closure
     const fc = useAppStore.getState().focusedCity;
     const dt = Math.min(delta, 0.05);
     const anim = animRef.current;
 
-    // Detect focusedCity change → transition phase
     if (fc !== prevFocusRef.current) {
       prevFocusRef.current = fc;
       if (fc) {
@@ -350,42 +342,32 @@ const Earth = ({ radius = 5 }) => {
     if (anim.phase === 'cruise') {
       anim.speed += (0.0003 - anim.speed) * (1 - Math.pow(0.96, dt * 60));
       groupRef.current.rotation.y += anim.speed * dt * 60;
-      // Smoothly restore X tilt back to 0 (poles vertical again)
-      groupRef.current.rotation.x += (0 - groupRef.current.rotation.x) * (1 - Math.pow(0.95, dt * 60));
 
     } else if (anim.phase === 'brake') {
       anim.speed *= Math.pow(0.86, dt * 60);
       groupRef.current.rotation.y += anim.speed * dt * 60;
 
       if (anim.speed < 0.000004) {
-        // Braking done — compute both Y and X targets from post-brake rotation.
-        const curY = groupRef.current.rotation.y;
-        const curX = groupRef.current.rotation.x;
-        const pos  = latLngToVector3(fc.lat, fc.lng, 1);
-
-        // Y: bring city to face the camera (+Z axis) — atan2(-x,z)
-        const rawY = Math.atan2(-pos.x, pos.z);
-        const diffY = rawY - curY;
-        const normY = diffY - Math.round(diffY / (2 * Math.PI)) * 2 * Math.PI;
-
-        // X: with YXZ order, Rx is applied after Ry. After Ry the city sits at
-        // (0, sin(lat), cos(lat)); rotating X by lat_rad brings it to (0, 0, 1) —
-        // exactly at screen centre regardless of latitude.
-        const targetX = fc.lat * Math.PI / 180;
-
-        anim.seekFromY = curY;
-        anim.seekToY   = curY + normY;
-        anim.seekFromX = curX;
-        anim.seekToX   = targetX;
-        anim.seekT     = 0;
-        anim.phase     = 'seek';
+        const cur = groupRef.current.rotation.y;
+        const pos = latLngToVector3(fc.lat, fc.lng, 1);
+        // Target: bring city's azimuth to match the camera's current azimuth.
+        // camAzimuth - cityLocalAngle gives the Y rotation that faces city to camera.
+        const cam = state.camera;
+        const camAz   = Math.atan2(cam.position.x, cam.position.z);
+        const cityAz  = Math.atan2(pos.x, pos.z);
+        const rawY    = camAz - cityAz;
+        const diff    = rawY - cur;
+        const norm    = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
+        anim.seekFrom = cur;
+        anim.seekTo   = cur + norm;
+        anim.seekT    = 0;
+        anim.phase    = 'seek';
       }
 
     } else if (anim.phase === 'seek') {
       anim.seekT = Math.min(anim.seekT + dt / anim.seekDur, 1);
       const e = 1 - Math.pow(1 - anim.seekT, 5);   // ease-out-quint
-      groupRef.current.rotation.y = anim.seekFromY + (anim.seekToY - anim.seekFromY) * e;
-      groupRef.current.rotation.x = anim.seekFromX + (anim.seekToX - anim.seekFromX) * e;
+      groupRef.current.rotation.y = anim.seekFrom + (anim.seekTo - anim.seekFrom) * e;
       if (anim.seekT >= 1) {
         anim.phase = 'lock';
         anim.speed = 0;
