@@ -299,6 +299,8 @@ const Earth = ({ radius = 5 }) => {
   const aiRoute          = useAppStore(s => s.aiRoute);
   const aiPlaying        = useAppStore(s => s.aiPlaying);
   const setAiPlaying     = useAppStore(s => s.setAiPlaying);
+  const searchMarker     = useAppStore(s => s.searchMarker);
+  const searchMode       = useAppStore(s => s.searchMode);
 
   const [colorMap, normalMap, specularMap, cloudsMap] = useTexture([
     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
@@ -342,9 +344,10 @@ const Earth = ({ radius = 5 }) => {
 
 
 
-      {/* 有旅行者选中时隐藏默认地标，只显示其足迹 */}
-      {!selectedTraveler && GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
-      {GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
+      {/* 搜索模式：只显示搜索结果地标；旅行者模式：显示足迹；默认：全部地标 */}
+      {!selectedTraveler && !searchMode && GLOBE_MARKERS.map(m => <Marker key={m.id} marker={m} radius={radius} />)}
+      {!searchMode && GLOBE_ROUTES.map(r => <RoutePath key={r.id} route={r} radius={radius} />)}
+      {searchMode && searchMarker && <SearchResultMarker marker={searchMarker} radius={radius} />}
 
       {/* 旅行者足迹点 & AI航线 — 在旋转组内，随地球一起转 */}
       <TravelerDots traveler={selectedTraveler} radius={radius} />
@@ -390,6 +393,66 @@ const Marker = ({ marker, radius }) => {
       <mesh ref={pulseRef}>
         <sphereGeometry args={[0.075, 10, 10]} />
         <meshBasicMaterial color="#f97316" transparent opacity={0.28}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+};
+
+/* ── 搜索结果地标（大脉冲，蓝白色）────────────────────────── */
+const SearchResultMarker = ({ marker, radius }) => {
+  const { setSelectedMarker } = useAppStore();
+  const position = useMemo(() => latLngToVector3(marker.lat, marker.lng, radius), [marker, radius]);
+  const ring1 = useRef(null);
+  const ring2 = useRef(null);
+  const ring3 = useRef(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (ring1.current) {
+      const s = 1 + ((t * 1.2) % 1) * 2.5;
+      ring1.current.scale.setScalar(s);
+      ring1.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2) % 1) * 0.7);
+    }
+    if (ring2.current) {
+      const s2 = 1 + ((t * 1.2 + 0.33) % 1) * 2.5;
+      ring2.current.scale.setScalar(s2);
+      ring2.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2 + 0.33) % 1) * 0.7);
+    }
+    if (ring3.current) {
+      const s3 = 1 + ((t * 1.2 + 0.66) % 1) * 2.5;
+      ring3.current.scale.setScalar(s3);
+      ring3.current.material.opacity = Math.max(0, 0.7 - ((t * 1.2 + 0.66) % 1) * 0.7);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* 核心亮点 */}
+      <mesh onClick={e => { e.stopPropagation(); setSelectedMarker(marker); }}>
+        <sphereGeometry args={[0.06, 14, 14]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      {/* 橙色光晕核 */}
+      <mesh>
+        <sphereGeometry args={[0.045, 12, 12]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.9}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* 三个错相脉冲环 */}
+      <mesh ref={ring1}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.7}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring2}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#fbbf24" transparent opacity={0.5}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring3}>
+        <sphereGeometry args={[0.10, 12, 12]} />
+        <meshBasicMaterial color="#fff7ed" transparent opacity={0.35}
           blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>

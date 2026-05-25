@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Map, Compass, BookOpen, Navigation, X, Calendar, Sparkles, Users } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Link } from 'react-router-dom';
-import { TOP_TRAVELERS, CITY_COORDS } from '@/data/globeData';
+import { TOP_TRAVELERS, CITY_COORDS, GLOBE_MARKERS } from '@/data/globeData';
 
 const TABS = [
   { id: 'explore',    icon: Compass,    label: '探索' },
@@ -331,6 +331,204 @@ function AiPlannerPanel() {
   );
 }
 
+/* ── 景区搜索 + DeepSeek 旅游资料 ────────────────────── */
+function GlobeSearch() {
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [aiText, setAiText] = useState('');
+  const [open, setOpen] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const { setSearchMarker, clearSearch, searchMarker } = useAppStore();
+  const inputRef = useRef(null);
+
+  const resolveCoords = useCallback((name) => {
+    const trimmed = name.trim();
+    // 1. 精确匹配 GLOBE_MARKERS
+    const m = GLOBE_MARKERS.find(g => g.title === trimmed || g.subtitle?.includes(trimmed));
+    if (m) return { lat: m.lat, lng: m.lng, found: true, desc: m.description };
+    // 2. 模糊匹配 GLOBE_MARKERS
+    const fuzzy = GLOBE_MARKERS.find(g => g.title.includes(trimmed) || trimmed.includes(g.title));
+    if (fuzzy) return { lat: fuzzy.lat, lng: fuzzy.lng, found: true, desc: fuzzy.description };
+    // 3. CITY_COORDS 精确匹配
+    const cc = CITY_COORDS[trimmed];
+    if (cc) return { ...cc, found: true, desc: null };
+    // 4. CITY_COORDS 模糊匹配
+    const key = Object.keys(CITY_COORDS).find(k => k.includes(trimmed) || trimmed.includes(k));
+    if (key) return { ...CITY_COORDS[key], found: true, desc: null };
+    return { found: false };
+  }, []);
+
+  const handleSearch = async (e) => {
+    e?.preventDefault();
+    const name = q.trim();
+    if (!name) return;
+
+    const coords = resolveCoords(name);
+    if (!coords.found) {
+      setNotFound(true);
+      setOpen(true);
+      setAiText('');
+      clearSearch();
+      return;
+    }
+
+    setNotFound(false);
+    setOpen(true);
+    setAiText('');
+    setSearchMarker({ title: name, lat: coords.lat, lng: coords.lng, description: coords.desc || '' });
+
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${DS_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          stream: false,
+          messages: [{
+            role: 'user',
+            content: `请介绍「${name}」的旅游信息，包含：
+1. 🌟 景点特色与亮点（2-3句）
+2. 🕐 最佳游览时间
+3. 🚌 交通方式
+4. 🍜 特色美食（2-3种）
+5. 💡 实用攻略（门票/注意事项）
+格式简洁，加emoji，总字数约250字。`,
+          }],
+        }),
+      });
+      const data = await res.json();
+      setAiText(data.choices?.[0]?.message?.content || '信息获取失败，请重试');
+    } catch {
+      setAiText('网络错误，请检查连接后重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setQ('');
+    setAiText('');
+    setNotFound(false);
+    clearSearch();
+  };
+
+  return (
+    <div style={{ position: 'relative', pointerEvents: 'auto' }}>
+      {/* 搜索框 */}
+      <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        <div style={{ position: 'relative', width: 260 }}>
+          <Search style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
+          <input
+            ref={inputRef}
+            type="text"
+            value={q}
+            onChange={e => { setQ(e.target.value); if (!e.target.value) handleClose(); }}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            placeholder="搜索中国景区..."
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(14px)',
+              border: `1px solid ${open && !notFound ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: 24, padding: '11px 40px 11px 38px',
+              color: '#fff', fontSize: '0.84rem', outline: 'none',
+              fontFamily: 'Inter, sans-serif',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={e => e.target.style.borderColor = 'rgba(249,115,22,0.5)'}
+            onBlur={e => { if (!open) e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+          />
+          {(q || open) && (
+            <button type="button" onClick={handleClose}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 2 }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+        <button type="submit"
+          style={{
+            marginLeft: 8, padding: '10px 16px', borderRadius: 20,
+            background: 'linear-gradient(135deg,#f59e0b,#f97316)',
+            border: 'none', color: '#fff', fontSize: '0.78rem', fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+          }}>
+          搜索
+        </button>
+      </form>
+
+      {/* 结果面板 */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+              width: 320, maxHeight: '70vh', overflowY: 'auto',
+              ...glassStyle,
+              background: 'rgba(6,13,31,0.88)',
+              padding: 16, zIndex: 50,
+            }}
+          >
+            {notFound ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
+                <div>未找到「{q}」的坐标数据</div>
+                <div style={{ marginTop: 4, fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>请尝试其他景区或城市名称</div>
+              </div>
+            ) : (
+              <>
+                {/* 景点标题 */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block', boxShadow: '0 0 6px #f97316' }} />
+                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', fontFamily: 'Inter, sans-serif' }}>{q}</span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: 2, fontFamily: 'Inter, sans-serif', marginLeft: 15 }}>
+                      已在地球上标记 · 其他地标已隐藏
+                    </div>
+                  </div>
+                  <button onClick={handleClose}
+                    style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8, padding: '4px 6px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
+                    <X size={12} />
+                  </button>
+                </div>
+
+                {/* AI 旅游资料 */}
+                <div style={{
+                  background: 'rgba(249,115,22,0.06)', borderRadius: 12,
+                  border: '1px solid rgba(249,115,22,0.2)', padding: '12px 14px',
+                  fontSize: '0.75rem', lineHeight: 1.8,
+                  color: 'rgba(255,255,255,0.82)', fontFamily: 'Inter, sans-serif',
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {loading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.4)' }}>
+                      <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(249,115,22,0.3)', borderTopColor: '#f97316', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                      AI 正在获取旅游资料...
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8, color: '#fbbf24', fontWeight: 600 }}>
+                        <Sparkles size={11} /> DeepSeek 旅游资料
+                      </div>
+                      {aiText}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ── 主 Overlay（原有内容完整保留）──────────────────── */
 export default function GlobeOverlay() {
   const { activeTab, setActiveTab, selectedMarker, setSelectedMarker } = useAppStore();
@@ -352,13 +550,7 @@ export default function GlobeOverlay() {
           <span className="text-base font-semibold tracking-wide text-white/90">迹刻 Globe</span>
         </Link>
 
-        <div className="relative group w-64">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-hover:text-white/70 transition-colors" />
-          <input type="text" placeholder="搜索中国景区..."
-            className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-full
-              py-3 pl-11 pr-4 text-sm text-white placeholder-white/35
-              focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all" />
-        </div>
+        <GlobeSearch />
       </header>
 
       {/* ── 原有：中部景点卡片 + 导航栏 ── */}

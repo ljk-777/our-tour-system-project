@@ -94,7 +94,7 @@ export default function Spots() {
   };
 
   return (
-    <div style={{ background: 'linear-gradient(145deg, #f8f9ff 0%, #f3f6ff 50%, #fdf9f5 100%)', minHeight: '100vh' }}>
+    <div className="glass-bg">
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="section-title">发现景点与高校</h1>
       <p className="section-sub">
