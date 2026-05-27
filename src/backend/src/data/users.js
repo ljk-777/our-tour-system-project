@@ -10,7 +10,7 @@ const users = [
   { id:8, username:'budget_zhou', nickname:'穷游周八', avatar:'💰', email:'zhou@tour.com', city:'武汉', level:'旅行达人', totalDiaries:25, totalSpots:60, joinDate:'2023-07-01', bio:'背包穷游，用最少的钱看最美的风景' },
   { id:9, username:'luxury_wu', nickname:'豪华游吴九', avatar:'✈️', email:'wu@tour.com', city:'北京', level:'尊享会员', totalDiaries:9, totalSpots:20, joinDate:'2024-01-20', bio:'享受生活，追求品质旅行体验' },
   { id:10, username:'solo_zheng', nickname:'独行侠郑十', avatar:'🎒', email:'zheng@tour.com', city:'成都', level:'探险家', totalDiaries:30, totalSpots:80, joinDate:'2023-05-15', bio:'一个人也可以走遍天下，solo旅行爱好者' },
-  { id:11, name:'admin', nickname:'系统管理员', avatar:'⚙️', email:'admin@tour.com', city:'北京', level:'超级管理员', totalDiaries:0, totalSpots:0, joinDate:'2023-01-01', bio:'系统维护与管理' },
+  { id:11, username:'admin', nickname:'系统管理员', avatar:'⚙️', email:'admin@tour.com', city:'北京', level:'超级管理员', totalDiaries:0, totalSpots:0, joinDate:'2023-01-01', bio:'系统维护与管理' },
 ];
 
 module.exports = { users };

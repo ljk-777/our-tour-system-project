@@ -395,7 +395,7 @@ export default function MapWorkspace() {
       if (preset) {
         setPresetId('shahe');
         setImageUrl(preset.image);
-        setImageSize(preset.size);
+        setImageSize(shaheData.imageSize || preset.size);
       }
       setNodes(shaheData.nodes);
       setEdges(shaheData.edges);
@@ -425,6 +425,7 @@ export default function MapWorkspace() {
 
   const handleCopyJson = () => {
     navigator.clipboard?.writeText(exportJson);
+    alert('已复制到剪贴板');
   };
 
   const handleImportJson = useCallback((e) => {
@@ -501,6 +502,7 @@ export default function MapWorkspace() {
   }, [presetId, imageUrl, imageSize, nodes, edges]);
 
   const clearAll = () => {
+    if (!confirm('确定要清空所有节点和边吗？此操作不可撤销。')) return;
     setNodes([]);
     setEdges([]);
     setEdgeSource(null);
@@ -742,7 +744,7 @@ export default function MapWorkspace() {
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <svg
               ref={svgRef}
-              className={`block h-auto w-full select-none touch-action-none ${isPanning ? 'cursor-grabbing' : tool === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
+              className={`block h-auto w-full select-none touch-none ${isPanning || nodeDragRef.current ? 'cursor-grabbing' : tool === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
               viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -786,7 +788,7 @@ export default function MapWorkspace() {
 
                 {/* Edge creation preview line */}
                 {tool === 'add-edge' && edgeSource && (
-                  <EdgePreviewLine edgeSource={edgeSource} svgRef={svgRef} />
+                  <EdgePreviewLine edgeSource={edgeSource} svgRef={svgRef} panState={panState} />
                 )}
 
                 {/* Route polyline */}
@@ -830,10 +832,10 @@ export default function MapWorkspace() {
                       {isBuilding ? (
                         <>
                           <rect
-                            x={node.x - 6} y={node.y - 6}
-                            width={12} height={12}
+                            x={node.x - (isSelected ? 10 : 6)} y={node.y - (isSelected ? 10 : 6)}
+                            width={isSelected ? 20 : 12} height={isSelected ? 20 : 12}
                             rx={2}
-                            fill={isSelected ? '#f97316' : inRoute ? '#2563eb' : '#f97316'}
+                            fill={isSelected ? '#c2410c' : inRoute ? '#2563eb' : '#f97316'}
                             stroke={isSelected || inRoute ? '#ffffff' : '#ffffff'}
                             strokeWidth={2}
                             opacity={0.85}
@@ -910,7 +912,7 @@ function ToolBtn({ active, onClick, children }) {
 
 /* ── Edge preview line (follows mouse) ── */
 
-function EdgePreviewLine({ edgeSource, svgRef }) {
+function EdgePreviewLine({ edgeSource, svgRef, panState }) {
   const [mousePos, setMousePos] = useState(null);
 
   useEffect(() => {
@@ -921,7 +923,11 @@ function EdgePreviewLine({ edgeSource, svgRef }) {
       pt.x = e.clientX;
       pt.y = e.clientY;
       const ct = pt.matrixTransform(svg.getScreenCTM().inverse());
-      setMousePos({ x: ct.x, y: ct.y });
+      // Convert SVG viewBox coords to map coords (account for pan/zoom)
+      setMousePos({
+        x: (ct.x - panState.dx) / panState.zoom,
+        y: (ct.y - panState.dy) / panState.zoom,
+      });
     };
     svg.addEventListener('mousemove', handler);
     return () => svg.removeEventListener('mousemove', handler);

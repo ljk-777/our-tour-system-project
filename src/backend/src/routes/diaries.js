@@ -4,6 +4,9 @@ const diaryRepo = require('../repositories/diaryRepository');
 const { searchInItems } = require('../algorithms/kmp');
 const { FullTextIndex } = require('../algorithms/trie');
 const { generateDiaryDraft } = require('../services/diaryAiService');
+const { auth, requireAuth } = require('../middleware/auth');
+
+router.use(auth);
 
 async function buildDiaryIndex() {
   const allDiaries = await diaryRepo.getAll();
@@ -91,39 +94,19 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', requireAuth, async (req, res, next) => {
   try {
     const {
-      userId,
-      userName,
-      userAvatar,
-      title,
-      content,
-      spotId,
-      spotName,
-      coverImage,
-      tags,
-      rating,
-      visitDate,
-      weather,
-      mood,
+      userName, userAvatar, title, content, spotId, spotName,
+      coverImage, tags, rating, visitDate, weather, mood,
     } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: '标题和内容不能为空' });
 
     const diary = await diaryRepo.create({
-      userId,
-      userName,
+      userId: req.user.id,  // ← FROM AUTH, NOT FROM BODY
+      userName: userName || '旅行者',
       userAvatar,
-      title,
-      content,
-      spotId,
-      spotName,
-      coverImage,
-      tags,
-      rating,
-      visitDate,
-      weather,
-      mood,
+      title, content, spotId, spotName, coverImage, tags, rating, visitDate, weather, mood,
     });
 
     res.json({ success: true, data: diary, message: '日记发布成功' });
@@ -132,9 +115,9 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.post('/:id/like', async (req, res, next) => {
+router.post('/:id/like', requireAuth, async (req, res, next) => {
   try {
-    const diary = await diaryRepo.like(req.params.id);
+    const diary = await diaryRepo.like(req.user.id, req.params.id);
     if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
     res.json({ success: true, likes: diary.likes });
   } catch (error) {
@@ -142,12 +125,26 @@ router.post('/:id/like', async (req, res, next) => {
   }
 });
 
-router.post('/:id/comment', async (req, res, next) => {
+router.post('/:id/unlike', requireAuth, async (req, res, next) => {
   try {
-    const { userId, userName, content } = req.body;
+    const diary = await diaryRepo.unlike(req.user.id, req.params.id);
+    if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
+    res.json({ success: true, likes: diary.likes });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/:id/comment', requireAuth, async (req, res, next) => {
+  try {
+    const { content } = req.body;
     if (!content) return res.status(400).json({ success: false, message: '评论不能为空' });
 
-    const diary = await diaryRepo.addComment(req.params.id, { userId, userName, content });
+    const diary = await diaryRepo.addComment(req.params.id, {
+      userId: req.user.id,  // ← FROM AUTH
+      userName: req.body.userName || '旅行者',
+      content,
+    });
     if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
     res.json({ success: true, data: diary });
   } catch (error) {

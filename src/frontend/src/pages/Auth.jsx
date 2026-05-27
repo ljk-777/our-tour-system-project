@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate }      from 'react-router-dom';
+import { useNavigate, useLocation }      from 'react-router-dom';
 import { useAuth }          from '../hooks/useAuth.js';
 import BrandIcon            from '../components/BrandIcon.jsx';
 
@@ -167,16 +167,22 @@ function AvatarPicker({ value, onChange }) {
 export default function Auth() {
   const { login, register, enterAsGuest, isLoggedIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  /* 已登录则跳转首页 */
+  /* 已登录则跳转（优先返回之前页面） */
   useEffect(() => {
-    if (isLoggedIn) navigate('/', { replace: true });
-  }, [isLoggedIn, navigate]);
+    if (isLoggedIn) {
+      const params = new URLSearchParams(location.search);
+      const redirect = params.get('redirect') || '/';
+      navigate(redirect, { replace: true });
+    }
+  }, [isLoggedIn, navigate, location]);
 
   /* 表单状态 */
   const [tab,        setTab]        = useState('login');
   const [username,   setUsername]   = useState('');
   const [password,   setPassword]   = useState('');
+  const [nickname,   setNickname]   = useState('');
   const [avatar,     setAvatar]     = useState('🧭');
   const [focusField, setFocusField] = useState('none');
   const [loading,    setLoading]    = useState(false);
@@ -198,7 +204,7 @@ export default function Auth() {
     try {
       const res = tab === 'login'
         ? await login(username.trim())
-        : await register(username.trim(), avatar);
+        : await register(username.trim(), avatar, nickname.trim());
       if (res?.id) {
         setSuccess(true);
         // isLoggedIn 变为 true → useEffect 负责导航
@@ -211,7 +217,7 @@ export default function Auth() {
     } finally {
       setLoading(false);
     }
-  }, [tab, username, avatar, login, register]);
+  }, [tab, username, nickname, avatar, login, register]);
 
   /* 背景图轮播（与首页相同，交叉淡入）*/
   const BG_IMAGES = [
@@ -357,6 +363,9 @@ export default function Auth() {
           {/* 表单 */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
+              ...(tab === 'register'
+                ? [{ id: 'nickname', label: 'Nickname', type: 'text', val: nickname, setter: e => { setNickname(e.target.value); clearMsg(); }, ph: '输入昵称（显示用）', ac: 'off' }]
+                : []),
               { id: 'username', label: 'Traveler ID', type: 'text',     val: username, setter: e => { setUsername(e.target.value); clearMsg(); }, ph: '输入用户名', ac: 'username' },
               { id: 'password', label: 'Password',    type: 'password', val: password, setter: e => setPassword(e.target.value),                 ph: '任意输入（演示模式）', ac: 'current-password' },
             ].map(({ id, label, type, val, setter, ph, ac }) => (

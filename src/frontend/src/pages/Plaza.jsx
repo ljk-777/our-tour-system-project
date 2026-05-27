@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, likeDiary, getSpots } from '../api/index.js';
+import { getDiaries, likeDiary, unlikeDiary, getSpots, getUsers } from '../api/index.js';
 import { AuthGuard, useRequireAuth } from '../components/AuthGuard.jsx';
-import { PERMISSIONS } from '../context/AuthContext.jsx';
+import { PERMISSIONS, useAuth } from '../context/AuthContext.jsx';
 
 const MOODS = { 愉悦:'😊', 激动:'🤩', 满足:'😌', 宁静:'😇', 震撼:'😲', 感动:'🥺' };
 const WEATHERS = { 晴:'☀️', 多云:'⛅', 阴:'☁️', 雨:'🌧️', 雪:'❄️' };
@@ -16,6 +16,7 @@ const TABS = [
 const TRENDING_TAGS = ['北京','历史','成都','美食','徒步','穷游','自然','西藏','古城','摄影'];
 
 export default function Plaza() {
+  const { user, likedDiaryIds } = useAuth();
   const requireAuth = useRequireAuth();
   const [activeTab, setActiveTab] = useState('hot');
   const [posts, setPosts] = useState([]);
@@ -24,6 +25,14 @@ export default function Plaza() {
   const [showPost, setShowPost] = useState(false);
   const [form, setForm] = useState({ title: '', content: '', spotName: '', weather: '晴', mood: '愉悦' });
   const [submitting, setSubmitting] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
+  // Sync likedPosts with auth context
+  useEffect(() => {
+    setLikedPosts(likedDiaryIds || new Set());
+  }, [likedDiaryIds]);
 
   useEffect(() => {
     const sortBy = activeTab === 'hot' ? 'likes' : 'createdAt';
@@ -31,15 +40,26 @@ export default function Plaza() {
     Promise.all([
       getDiaries({ sortBy, order: 'desc', limit: 12 }),
       getSpots({ type: 'scenic', limit: 6 }),
-    ]).then(([r1, r2]) => {
+      getUsers(),
+    ]).then(([r1, r2, r3]) => {
       setPosts(r1.data.data || []);
       setFeaturedSpots(r2.data.data || []);
+      setLeaderboard(r3.data.data || []);
     }).finally(() => setLoading(false));
   }, [activeTab]);
 
   const handleLike = async (id) => {
-    await likeDiary(id);
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: p.likes + 1 } : p));
+    if (likedPosts.has(id)) {
+      // Unlike
+      setLikedPosts(prev => { const next = new Set(prev); next.delete(id); return next; });
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: Math.max(0, (p.likes || 0) - 1) } : p));
+      try { await unlikeDiary(id); } catch {}
+    } else {
+      // Like
+      setLikedPosts(prev => new Set(prev).add(id));
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: (p.likes || 0) + 1 } : p));
+      try { await likeDiary(id); } catch {}
+    }
   };
 
   const handlePost = async (e) => {
@@ -48,10 +68,12 @@ export default function Plaza() {
     setSubmitting(true);
     try {
       const { createDiary } = await import('../api/index.js');
-      const res = await createDiary({ ...form, userId: 1, userName: '我', userAvatar: '🧭', tags: [] });
+      const res = await createDiary({ ...form, userId: user?.id, userName: user?.nickname || user?.username || '旅行者', userAvatar: user?.avatar || '🧭', tags: [] });
       setPosts(prev => [res.data.data, ...prev]);
       setShowPost(false);
       setForm({ title: '', content: '', spotName: '', weather: '晴', mood: '愉悦' });
+    } catch {
+      alert('发布失败，请稍后重试');
     } finally { setSubmitting(false); }
   };
 
@@ -64,6 +86,11 @@ export default function Plaza() {
           <h1 className="text-2xl font-bold text-gray-900">旅行动态广场</h1>
           <p className="text-gray-500 text-sm mt-0.5">分享你的旅途故事，发现有趣的旅行者</p>
         </div>
+        <div className="flex items-center gap-2">
+        <button onClick={() => setShowLeaderboard(!showLeaderboard)}
+          className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+          🏆 旅行者排行
+        </button>
         <AuthGuard permission={PERMISSIONS.PUBLISH_POST}
           fallback={
             <button onClick={() => requireAuth(PERMISSIONS.PUBLISH_POST, () => {})}
@@ -75,15 +102,40 @@ export default function Plaza() {
             ✏️ 发动态
           </button>
         </AuthGuard>
+        </div>
       </div>
+
+      {/* 排行榜 */}
+      {showLeaderboard && leaderboard.length > 0 && (
+        <div className="glass-card p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-800">🏆 旅行者排行榜</h3>
+            <button onClick={() => setShowLeaderboard(false)} className="text-gray-400 hover:text-gray-600 transition-colors text-sm">✕</button>
+          </div>
+          <div className="space-y-1">
+            {[...leaderboard].sort((a, b) => (b.totalSpots || 0) - (a.totalSpots || 0)).map((u, i) => (
+              <div key={u.id} className="flex items-center gap-2 py-1.5">
+                <span className="text-sm font-bold w-5 text-center">
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+                </span>
+                <Link to={`/profile/${u.id}`} className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-70 transition-opacity">
+                  <span className="text-lg">{u.avatar}</span>
+                  <span className="text-sm font-medium text-gray-800 truncate">{u.nickname}</span>
+                </Link>
+                <span className="text-xs font-bold text-blue-600">{u.totalSpots} 景 · {u.totalDiaries} 篇</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 发布框 */}
       {showPost && (
         <form onSubmit={handlePost} className="glass-card p-5 mb-6 animate-slide-up border-2 border-blue-100">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">🧭</span>
+            <span className="text-3xl">{user?.avatar || '🧭'}</span>
             <div>
-              <div className="font-semibold text-gray-900">我</div>
+              <div className="font-semibold text-gray-900">{user?.nickname || user?.username || '旅行者'}</div>
               <div className="text-xs text-gray-400">正在分享旅行动态</div>
             </div>
           </div>
@@ -180,13 +232,15 @@ export default function Plaza() {
                 >
                   {/* 用户信息 */}
                   <div className="flex items-center gap-3 mb-3">
-                    <span data-av className="text-2xl w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-100 to-teal-100 rounded-full"
-                      style={{ transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}>
-                      {post.userAvatar}
-                    </span>
+                    <Link to={`/profile/${post.userId}`} className="hover:opacity-70 transition-opacity">
+                      <span data-av className="text-2xl w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-100 to-teal-100 rounded-full"
+                        style={{ transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                        {post.userAvatar}
+                      </span>
+                    </Link>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-gray-900">{post.userName}</span>
+                        <Link to={`/profile/${post.userId}`} className="font-semibold text-sm text-gray-900 hover:text-blue-600 transition-colors">{post.userName}</Link>
                         {post.spotName && (
                           <span className="text-xs text-gray-400">📍 {post.spotName}</span>
                         )}
@@ -221,7 +275,7 @@ export default function Plaza() {
                   <div className="flex items-center gap-4 pt-3 border-t border-gray-50">
                     <button onClick={() => requireAuth(PERMISSIONS.LIKE, () => handleLike(post.id))}
                       className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors text-sm">
-                      <span>❤️</span>
+                      <span>{likedPosts.has(post.id) ? '❤️' : '🤍'}</span>
                       <span>{post.likes || 0}</span>
                     </button>
                     <span className="flex items-center gap-1.5 text-gray-400 text-sm">

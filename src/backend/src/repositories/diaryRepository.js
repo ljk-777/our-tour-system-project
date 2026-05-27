@@ -214,18 +214,70 @@ async function remove(id) {
   return result.rowCount > 0;
 }
 
-async function like(id) {
-  const result = await query(
-    `
-      UPDATE diaries
-      SET likes_count = likes_count + 1, updated_at = NOW()
-      WHERE id = $1
-      RETURNING id
-    `,
-    [Number(id)]
-  );
+async function like(userId, diaryId) {
+  const result = await query('SELECT id FROM diaries WHERE id = $1', [Number(diaryId)]);
   if (result.rowCount === 0) return null;
-  return findById(id);
+
+  try {
+    // Check if already liked
+    const existing = await query(
+      'SELECT 1 FROM user_likes WHERE user_id = $1 AND diary_id = $2',
+      [Number(userId), Number(diaryId)]
+    );
+
+    if (existing.rowCount === 0) {
+      await query(
+        'INSERT INTO user_likes (user_id, diary_id) VALUES ($1, $2)',
+        [Number(userId), Number(diaryId)]
+      );
+      await query(
+        `UPDATE diaries SET likes_count = likes_count + 1, updated_at = NOW() WHERE id = $1`,
+        [Number(diaryId)]
+      );
+    }
+  } catch (e) {
+    // Graceful error handling — FK violation, concurrent request race, etc.
+    return findById(diaryId);
+  }
+
+  return findById(diaryId);
+}
+
+async function unlike(userId, diaryId) {
+  const result = await query('SELECT id FROM diaries WHERE id = $1', [Number(diaryId)]);
+  if (result.rowCount === 0) return null;
+
+  try {
+    // Check if a like record exists
+    const existing = await query(
+      'SELECT 1 FROM user_likes WHERE user_id = $1 AND diary_id = $2',
+      [Number(userId), Number(diaryId)]
+    );
+
+    if (existing.rowCount > 0) {
+      await query(
+        'DELETE FROM user_likes WHERE user_id = $1 AND diary_id = $2',
+        [Number(userId), Number(diaryId)]
+      );
+      await query(
+        `UPDATE diaries SET likes_count = GREATEST(likes_count - 1, 0), updated_at = NOW() WHERE id = $1`,
+        [Number(diaryId)]
+      );
+    }
+  } catch (e) {
+    // Graceful error handling — FK violation, concurrent request race, etc.
+    return findById(diaryId);
+  }
+
+  return findById(diaryId);
+}
+
+async function getLikedDiaryIds(userId) {
+  const { rows } = await query(
+    'SELECT diary_id FROM user_likes WHERE user_id = $1',
+    [Number(userId)]
+  );
+  return rows.map(r => Number(r.diary_id));
 }
 
 async function addComment(id, comment) {
@@ -251,5 +303,7 @@ module.exports = {
   update,
   delete: remove,
   like,
+  unlike,
+  getLikedDiaryIds,
   addComment,
 };

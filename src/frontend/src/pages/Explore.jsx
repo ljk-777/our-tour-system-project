@@ -187,20 +187,21 @@ export default function Explore() {
             </div>
             <div className="space-y-3">
               {hotDiaries.map(d => (
-                <Link
+                <div
                   key={d.id}
-                  to="/diary"
-                  className="block hover:bg-white/8 rounded-xl p-2 transition-colors group"
+                  className="block rounded-xl p-2 transition-colors group hover:bg-white/8"
                 >
-                  <div className="flex items-center gap-1.5 mb-1">
+                  <Link to={`/profile/${d.userId}`} className="flex items-center gap-1.5 mb-1 hover:opacity-60 transition-opacity">
                     <span className="text-sm">{d.userAvatar}</span>
                     <span className="text-white/40 text-[10px] truncate">{d.userName}</span>
-                  </div>
-                  <div className="text-white/70 text-xs font-medium line-clamp-1 group-hover:text-white">
-                    {d.title}
-                  </div>
-                  <div className="text-white/25 text-[10px] mt-0.5">❤️ {d.likes} · {d.spotName}</div>
-                </Link>
+                  </Link>
+                  <Link to="/diary" className="block">
+                    <div className="text-white/70 text-xs font-medium line-clamp-1 group-hover:text-white">
+                      {d.title}
+                    </div>
+                    <div className="text-white/25 text-[10px] mt-0.5">❤️ {d.likes} · {d.spotName}</div>
+                  </Link>
+                </div>
               ))}
             </div>
             <Link to="/diary" className="block text-center text-purple-400/50 hover:text-purple-400/80 text-[10px] mt-3 transition-colors">

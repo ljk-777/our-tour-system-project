@@ -29,13 +29,13 @@ export default function Admin() {
     try {
       let result;
       if (type === 'users') result = await getUsers();
-      else if (type === 'diaries') result = await getDiaries({ limit: 1000 });
-      else if (type === 'spots') result = await getSpots({ limit: 1000 });
+      else if (type === 'diaries') result = await getDiaries();
+      else if (type === 'spots') result = await getSpots();
       const fetchedData = result?.data?.data || [];
       setData(prev => ({ ...prev, [type]: fetchedData }));
       setLastRefresh(new Date());
     } catch (err) {
-      setError(prev => ({ ...prev, [type]: err.message || '加载失败' }));
+      setError(prev => ({ ...prev, [type]: err?.message || '加载失败' }));
     } finally {
       setLoading(prev => ({ ...prev, [type]: false }));
     }
@@ -48,10 +48,6 @@ export default function Admin() {
     setTypeFilter('');
     setSortField(null);
   }, [activeTab]);
-
-  useEffect(() => {
-    fetchData('users');
-  }, []);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -94,9 +90,9 @@ export default function Admin() {
           return (
             item.title?.toLowerCase().includes(query) ||
             item.content?.toLowerCase().includes(query) ||
-            item.user_name?.toLowerCase().includes(query) ||
+            item.userName?.toLowerCase().includes(query) ||
             String(item.id).includes(query) ||
-            String(item.user_id).includes(query)
+            String(item.userId).includes(query)
           );
         } else if (activeTab === 'spots') {
           return (
@@ -154,11 +150,11 @@ export default function Admin() {
     const items = data[activeTab] || [];
     const today = new Date().toISOString().split('T')[0];
     if (activeTab === 'users') {
-      const todayNew = items.filter(u => u.created_at?.startsWith(today)).length;
+      const todayNew = items.filter(u => u.createdAt?.startsWith(today)).length;
       return { total: items.length, todayNew, label: '用户' };
     } else if (activeTab === 'diaries') {
-      const todayNew = items.filter(d => d.created_at?.startsWith(today)).length;
-      const totalLikes = items.reduce((s, d) => s + (d.likes_count || 0), 0);
+      const todayNew = items.filter(d => d.createdAt?.startsWith(today)).length;
+      const totalLikes = items.reduce((s, d) => s + (d.likes || 0), 0);
       return { total: items.length, todayNew, totalLikes, label: '日记' };
     } else if (activeTab === 'spots') {
       const avgRating = items.length > 0
@@ -193,17 +189,17 @@ export default function Admin() {
     if (activeTab === 'users') {
       csv = 'ID,用户名,昵称,邮箱,注册日期\n' +
         items.map(u =>
-          `${u.id},"${u.username || ''}","${u.nickname || ''}","${u.email || ''}","${formatDate(u.created_at)}"`
+          `${u.id},"${u.username || ''}","${u.nickname || ''}","${u.email || ''}","${formatDate(u.createdAt)}"`
         ).join('\n');
     } else if (activeTab === 'diaries') {
       csv = 'ID,用户ID,用户名,标题,点赞,创建日期\n' +
         items.map(d =>
-          `${d.id},${d.user_id || ''},"${d.user_name || ''}","${(d.title || '').replace(/"/g,'""')}",${d.likes_count || 0},"${formatDate(d.created_at)}"`
+          `${d.id},${d.userId || ''},"${d.userName || ''}","${(d.title || '').replace(/"/g,'""')}",${d.likes || 0},"${formatDate(d.createdAt)}"`
         ).join('\n');
     } else if (activeTab === 'spots') {
-      csv = 'ID,名称,城市,类型,评分,地址\n' +
+      csv = 'ID,名称,城市,类型,评分\n' +
         items.map(s =>
-          `${s.id},"${s.name || ''}","${s.city || ''}","${s.type || ''}",${s.rating || 0},"${(s.address || '').replace(/"/g,'""')}"`
+          `${s.id},"${s.name || ''}","${s.city || ''}","${s.type || ''}",${s.rating || 0}`
         ).join('\n');
     }
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -334,18 +330,18 @@ export default function Admin() {
                   <SortTh field="username">用户名</SortTh>
                   <SortTh field="nickname">昵称</SortTh>
                   <SortTh field="email">邮箱</SortTh>
-                  <SortTh field="created_at">注册日期</SortTh>
+                  <SortTh field="createdAt">注册日期</SortTh>
                 </>
               )}
               {type === 'diaries' && (
                 <>
                   <SortTh field="id" className="w-16">ID</SortTh>
-                  <SortTh field="user_id" className="w-20">用户ID</SortTh>
-                  <SortTh field="user_name">用户名</SortTh>
+                  <SortTh field="userId" className="w-20">用户ID</SortTh>
+                  <SortTh field="userName">用户名</SortTh>
                   <SortTh field="title">标题</SortTh>
                   <th className="px-4 py-3 text-gray-600 font-medium">内容预览</th>
-                  <SortTh field="likes_count" className="w-20">点赞</SortTh>
-                  <SortTh field="created_at">创建日期</SortTh>
+                  <SortTh field="likes" className="w-20">点赞</SortTh>
+                  <SortTh field="createdAt">创建日期</SortTh>
                 </>
               )}
               {type === 'spots' && (
@@ -355,7 +351,6 @@ export default function Admin() {
                   <SortTh field="city">城市</SortTh>
                   <SortTh field="type">类型</SortTh>
                   <SortTh field="rating" className="w-24">评分</SortTh>
-                  <SortTh field="address">地址</SortTh>
                 </>
               )}
             </tr>
@@ -372,24 +367,24 @@ export default function Admin() {
                     <td className="px-4 py-3 text-gray-900 font-medium">{item.username}</td>
                     <td className="px-4 py-3 text-gray-700">{item.nickname || '-'}</td>
                     <td className="px-4 py-3 text-gray-500">{item.email || '-'}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(item.created_at)}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(item.createdAt)}</td>
                   </>
                 )}
                 {type === 'diaries' && (
                   <>
                     <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.id}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 font-mono text-xs rounded">{item.user_id}</span>
+                      <span className="inline-flex items-center px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 font-mono text-xs rounded">{item.userId}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{item.user_name || '-'}</td>
+                    <td className="px-4 py-3 text-gray-700">{item.userName || '-'}</td>
                     <td className="px-4 py-3 text-gray-900 font-medium max-w-xs truncate">{item.title}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-sm truncate text-xs">{item.content || '-'}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 text-red-500 font-mono text-xs">
-                        <Heart size={12} fill="#ef4444" /> {item.likes_count || 0}
+                        <Heart size={12} fill="#ef4444" /> {item.likes || 0}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(item.created_at)}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(item.createdAt)}</td>
                   </>
                 )}
                 {type === 'spots' && (
@@ -406,7 +401,6 @@ export default function Admin() {
                         <span className="text-gray-500 text-xs font-mono">{item.rating || 0}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 max-w-xs truncate text-xs">{item.address || '-'}</td>
                   </>
                 )}
               </tr>

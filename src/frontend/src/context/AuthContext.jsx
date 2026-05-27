@@ -15,8 +15,9 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { login as apiLogin, register as apiRegister } from '../api/index.js';
+import { likeDiary, getMyLikedDiaryIds } from '../api/index.js';
 
 const AUTH_KEY  = 'tour_auth_user';
 const GUEST_KEY = 'tour_guest_mode';
@@ -66,10 +67,22 @@ export const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(loadUser);
   const [isGuest, setIsGuest] = useState(loadGuest);
+  const [likedDiaryIds, setLikedDiaryIds] = useState(new Set());
 
   // 角色: 'user' | 'guest' | 'none'
   const role      = user ? 'user' : (isGuest ? 'guest' : 'none');
   const isLoggedIn = !!user;
+
+  // Fetch liked diary IDs when user logs in or page loads with auth
+  useEffect(() => {
+    if (!user) {
+      setLikedDiaryIds(new Set());
+      return;
+    }
+    getMyLikedDiaryIds()
+      .then(res => setLikedDiaryIds(new Set(res.data?.data || [])))
+      .catch(() => setLikedDiaryIds(new Set()));
+  }, [user]);
 
   /** 判断当前身份是否拥有某项权限 */
   const can = useCallback((permission) => {
@@ -86,12 +99,30 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(GUEST_KEY);
     setUser(payload);
     setIsGuest(false);
+
+    // Migrate localStorage likedDiaries to backend
+    try {
+      const likedIds = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
+      if (likedIds.length > 0) {
+        // Migrate each liked diary to the backend before proceeding
+        await Promise.allSettled(likedIds.map(id => likeDiary(id).catch(() => {})));
+        localStorage.removeItem('likedDiaries');
+      }
+    } catch (e) { /* ignore migration errors */ }
+
+    // After migration, refresh liked IDs from backend
+    try {
+      const res = await getMyLikedDiaryIds();
+      setLikedDiaryIds(new Set(res.data?.data || []));
+    } catch (e) { /* ignore */ }
+
     return payload;
   }, []);
 
   /** 注册：调用 API，自动登录（avatar 可为 emoji 字符串或 base64 图片）*/
-  const register = useCallback(async (username, avatar) => {
-    const res = await apiRegister({ username, nickname: username, avatar: avatar || '🧭' });
+  const register = useCallback(async (username, avatar, displayName) => {
+    const nick = displayName || username;
+    const res = await apiRegister({ username, nickname: nick, avatar: avatar || '🧭' });
     // 若 avatar 为 base64 图片，后端内存存储字符串可能很大；
     // 同时在 localStorage 里保存，保证前端始终能读到
     const payload = trimUser({ ...res.data.data, avatar: avatar || res.data.data?.avatar || '🧭' });
@@ -116,7 +147,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(GUEST_KEY);
     setUser(null);
     setIsGuest(false);
+    setLikedDiaryIds(new Set());
   }, []);
+
+  /** Refresh liked diary IDs from backend */
+  const refreshLikedDiaries = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await getMyLikedDiaryIds();
+      setLikedDiaryIds(new Set(res.data?.data || []));
+    } catch (e) { /* ignore */ }
+  }, [user]);
 
   /** 直接注入用户（供外部 demo 模式使用） */
   const setUserDirect = useCallback((userData) => {
@@ -131,6 +172,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, role, isLoggedIn, isGuest,
       can, login, register, enterAsGuest, logout, setUserDirect,
+      likedDiaryIds, refreshLikedDiaries,
       PERMISSIONS,  // 方便子组件直接使用
     }}>
       {children}
@@ -155,5 +197,10 @@ function trimUser(u) {
     avatar:   u.avatar   || '🧭',
     city:     u.city     || '',
     level:    u.level    || '旅行者',
+    email:    u.email    || '',
+    bio:      u.bio      || '',
+    totalDiaries: u.totalDiaries || 0,
+    totalSpots:   u.totalSpots   || 0,
+    joinDate:     u.joinDate     || '',
   };
 }
