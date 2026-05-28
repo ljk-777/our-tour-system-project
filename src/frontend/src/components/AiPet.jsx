@@ -743,12 +743,18 @@ export default function AiPet(){
               </div>
             </div>
             <button onClick={clearHistory} title="清空"
-              style={{marginLeft:'auto',border:'none',background:'rgba(0,0,0,.05)',
-                cursor:'pointer',color:'rgba(0,0,0,.3)',fontSize:11,
-                padding:'3px 7px',borderRadius:8}}>清空</button>
+              style={{marginLeft:'auto',cursor:'pointer',fontSize:11,fontWeight:500,
+                padding:'4px 10px',borderRadius:8,
+                background:'rgba(255,255,255,.78)',color:'#374151',
+                border:'1px solid rgba(0,0,0,.1)',
+                boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>清空</button>
             <button onClick={()=>{setPetState('bubble');setPose('idle');kickIdle();}}
-              style={{border:'none',background:'none',cursor:'pointer',
-                color:'rgba(0,0,0,.3)',fontSize:20,lineHeight:1,padding:'0 4px',borderRadius:6}}>×</button>
+              style={{cursor:'pointer',fontWeight:500,fontSize:18,lineHeight:1,
+                width:28,height:28,borderRadius:8,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                background:'rgba(255,255,255,.78)',color:'#374151',
+                border:'1px solid rgba(0,0,0,.1)',
+                boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>×</button>
           </div>
 
           {/* messages */}
@@ -810,19 +816,21 @@ export default function AiPet(){
 
           {/* quick actions */}
           <div style={{padding:'4px 10px 2px',display:'flex',gap:5,flexWrap:'wrap',flexShrink:0}}>
-            <button onClick={recommendRandom} disabled={busy} style={{
-              fontSize:11,padding:'3px 8px',borderRadius:99,
-              background:'rgba(249,115,22,.1)',color:'#ea580c',
-              border:'1px solid rgba(249,115,22,.22)',cursor:'pointer'}}>🎲 随机推荐</button>
-            <button onClick={()=>imgRef.current?.click()} style={{
-              fontSize:11,padding:'3px 8px',borderRadius:99,
-              background:'rgba(99,102,241,.1)',color:'#4f46e5',
-              border:'1px solid rgba(99,102,241,.22)',cursor:'pointer'}}>📸 上传照片</button>
-            {['去哪玩好？','怎么找美食？','有什么功能？'].map(q=>(
-              <button key={q} onClick={()=>setInput(q)} style={{
-                fontSize:11,padding:'3px 8px',borderRadius:99,
-                background:'rgba(22,163,74,.1)',color:'#15803d',
-                border:'1px solid rgba(22,163,74,.2)',cursor:'pointer'}}>{q}</button>
+            {[
+              {label:'🎲 随机推荐', onClick:recommendRandom, disabled:busy, color:'#c2410c'},
+              {label:'📸 上传照片', onClick:()=>imgRef.current?.click(), color:'#4338ca'},
+              {label:'去哪玩好？',  onClick:()=>setInput('去哪玩好？'),   color:'#15803d'},
+              {label:'怎么找美食？',onClick:()=>setInput('怎么找美食？'), color:'#15803d'},
+              {label:'有什么功能？',onClick:()=>setInput('有什么功能？'), color:'#15803d'},
+            ].map(b=>(
+              <button key={b.label} onClick={b.onClick} disabled={b.disabled} style={{
+                fontSize:11,fontWeight:500,padding:'4px 10px',borderRadius:99,
+                background:'rgba(255,255,255,.78)',color:b.color,
+                border:'1px solid rgba(0,0,0,.1)',cursor:'pointer',
+                boxShadow:'0 1px 4px rgba(0,0,0,.06)',
+                opacity:b.disabled?.6:1}}>
+                {b.label}
+              </button>
             ))}
           </div>
 
