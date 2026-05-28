@@ -325,7 +325,8 @@ export default function AiPet(){
   const poseTimer=useRef(null);
   const curXY=useRef({x:0,y:0});
   const bRef=useRef(bPos);
-  const petEl=useRef(null);  // direct DOM ref for smooth rAF updates
+  const petEl=useRef(null);   // direct DOM ref for smooth rAF updates
+  const doHopRef=useRef(null); // exposed so onPetClick can trigger a hop
 
   useEffect(()=>{petStateRef.current=petState;},[petState]);
   useEffect(()=>{bRef.current=bPos;},[bPos]);
@@ -449,6 +450,7 @@ export default function AiPet(){
       };
       hopAnim.current=requestAnimationFrame(step);
     };
+    doHopRef.current=doHop;   // expose to onPetClick
     hopTimer.current=setTimeout(doHop,1200);
 
     return()=>stopHop();
@@ -489,14 +491,11 @@ export default function AiPet(){
   const onPetClick=(e)=>{
     e.stopPropagation();
     if(petState!=='escaped'||isHopping)return;
-    // cancel current rest, force a new hop immediately
+    // Cancel current rest/pose timers, then trigger a hop immediately
     clearTimeout(hopTimer.current);
-    hopTimer.current=setTimeout(()=>{
-      // trigger hop via the useEffect's doHop — just schedule immediately
-    },0);
-    // Quick visual response
-    setPose('jump');setIsHopping(true);
-    setTimeout(()=>{setIsHopping(false);setPose('idle');},HOP_MS);
+    clearTimeout(poseTimer.current);
+    setShowZzz(false);setShowLeaf(false);
+    doHopRef.current?.();
   };
 
   // ── Image upload ───────────────────────────────────────────────
