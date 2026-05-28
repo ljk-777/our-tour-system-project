@@ -527,8 +527,9 @@ export default function AiPet(){
     setBusy(true);
     try{
       const res=await fetch('/api/spots/topk?k=12');
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const data=await res.json();
-      const pool=data.data||[];
+      const pool=(data.data||[]).filter(s=>s?.name);
       if(pool.length>0){
         const s=pool[Math.floor(Math.random()*pool.length)];
         const intros=[
@@ -543,10 +544,15 @@ export default function AiPet(){
           link:`/spots/${s.id}`,lt:'查看详情',
         }]);
       }else{
-        setMsgs(prev=>[...prev,{role:'assistant',content:'呱！暂时没找到景点，稍后再试 🐸'}]);
+        setMsgs(prev=>[...prev,{role:'assistant',
+          content:'呱！景点数据库是空的，需要先运行后端种子数据 🐸\n可以先问我其他旅游问题！'}]);
       }
-    }catch{
-      setMsgs(prev=>[...prev,{role:'assistant',content:'呱！随机出错了，换个问法吧 🐸'}]);
+    }catch(err){
+      const isNetwork=err.message==='Failed to fetch'||err.name==='TypeError';
+      setMsgs(prev=>[...prev,{role:'assistant',
+        content: isNetwork
+          ? '呱！连不上后端服务 🐸 请先在终端启动后端：\ncd src/backend && npm run dev'
+          : '呱！景点接口出错了，稍后再试吧 🐸'}]);
     }finally{setBusy(false);}
   };
 
