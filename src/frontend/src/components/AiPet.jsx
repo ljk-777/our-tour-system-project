@@ -293,8 +293,8 @@ export default function AiPet(){
   const [isHopping,setIsHopping]=useState(false);
 
   const [bPos,setBPos]=useState(()=>({
-    x:Math.max(10,window.innerWidth-90),
-    y:Math.max(10,window.innerHeight-90),
+    x:window.innerWidth  - BSIZ - 16,
+    y:window.innerHeight - BSIZ - 16,
   }));
   const [pPos,setPPos]=useState({x:0,y:0});
 
