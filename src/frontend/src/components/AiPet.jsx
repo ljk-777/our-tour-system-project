@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const DS_KEY    = 'sk-513c1deb71594e8ca886d853eb4d2262';
 const BSIZ      = 74;   // bubble diameter px
@@ -169,49 +170,95 @@ function LotusLeaf() {
   );
 }
 
-// ── Site FAQ ─────────────────────────────────────────────────────
+// ── Site FAQ — 每条 3 个性格变体，随机抽取 ───────────────────────
 const KB = [
   { kw:['景点','发现','找景点','景区','spots','搜景点'],
-    ans:'「发现景点」支持名称前缀搜索（Trie 算法），还能按城市和类型筛选 🗺️',
-    link:'/spots', lt:'去发现景点' },
+    ans:[
+      '「发现景点」就是我的藏宝图 🗺️ 用 Trie 前缀树算法，打几个字就能找到，还有城市/类型筛选，去挖宝吧！',
+      '蛙！找景点去「发现景点」页面～ 搜索贼快（Trie 算法），筛城市、筛类型都行，宝藏景点等你 🔍',
+      '想找景点？在「发现景点」输入名字就行，算法比导游还快 ⚡ 还能按城市和景区类型过滤！',
+    ], link:'/spots', lt:'去发现景点' },
   { kw:['日记','旅行日记','写日记','游记','攻略'],
-    ans:'「旅行日记」可以 AI 生成草稿，全文搜索用的 KMP 算法，还有点赞评论 ✍️',
-    link:'/diary', lt:'去写日记' },
+    ans:[
+      '旅行不记录等于白去！「旅行日记」有 AI 帮你写草稿，KMP 算法全文搜索，还能点赞被别人发现 ✍️',
+      '蛙！快把旅行记录下来～ 「旅行日记」AI 生成草稿超方便，搜以前的日记也很快，还有点赞评论！📖',
+      '「旅行日记」是你的旅行博客！AI 帮写草稿、关键词全文搜索（KMP 算法），留下每段旅途的足迹 🌿',
+    ], link:'/diary', lt:'去写日记' },
   { kw:['美食','吃','餐厅','推荐美食','食物'],
-    ans:'「美食推荐」用 TopK 堆算法精选评分最高的餐厅，可以按城市筛选 🍜',
-    link:'/foods', lt:'去看美食' },
+    ans:[
+      '蛙！吃货出动！「美食推荐」用 TopK 堆算法精选评分最高的餐厅，按城市筛一筛，准没错 🍜',
+      '「美食推荐」帮你找当地最值得去的餐厅～ TopK 堆算法保证推出来的都是高分精选 🍽️',
+      '饿了？「美食推荐」按城市筛高分餐厅，算法帮你从几百家里挑出最值得吃的 🍜 快去！',
+    ], link:'/foods', lt:'去看美食' },
   { kw:['路线','导航','规划','dijkstra','最短路','怎么走','路径'],
-    ans:'「路线规划」用 Dijkstra 算法算最短路径，支持多景点规划 + 高德地图导航 🧭',
-    link:'/route', lt:'去规划路线' },
+    ans:[
+      '「路线规划」用 Dijkstra 最短路算法，帮你在多个景点间找最优路径，还能一键导航 🧭 效率超高！',
+      '蛙！这就是数据结构的魔法～ 「路线规划」Dijkstra 算法算最短路，多景点也能规划，高德地图直接导 🗺️',
+      '想高效刷景点？「路线规划」帮你算最短路径，连换乘方式都能选，省时省力 🚀',
+    ], link:'/route', lt:'去规划路线' },
   { kw:['地球','3d','星球','globe','旅行者','足迹地图','ai路线'],
-    ans:'「3D 星球」看旅行者足迹和 AI 航线动画，搜城市名会让地球自动旋转过去 🌍',
-    link:'/globe', lt:'去看3D星球' },
+    ans:[
+      '蛙！3D 星球是我最爱的页面 🌍 可以看旅行者足迹、AI 飞机航线，搜城市名地球会自动转过去！',
+      '「3D 星球」超酷的！输入城市名地球会平滑旋转过去，还能看其他旅行者走过的路线 ✈️',
+      '旋转吧地球！「3D 星球」可以搜景点让地球转到对应位置，还有 AI 规划的飞行路线动画 🌏',
+    ], link:'/globe', lt:'去看3D星球' },
   { kw:['收藏','我的收藏','喜欢景点'],
-    ans:'景点详情页右上角点 🤍 收藏，在「个人主页→我的收藏」查看全部 ❤️',
-    link:'/profile', lt:'去个人主页' },
+    ans:[
+      '在景点详情页右上角点 🤍 就能收藏，「个人主页→我的收藏」随时查看，下次出行直接翻 ❤️',
+      '蛙！喜欢的景点要收藏起来！详情页右上角心形按钮点一下，个人主页有专属收藏夹 📌',
+      '看到好景点赶紧收藏！点右上角 🤍，之后在个人主页的「我的收藏」就能找回来 ✅',
+    ], link:'/profile', lt:'去个人主页' },
   { kw:['足迹','旅行足迹','去过','城市统计','省份'],
-    ans:'「个人主页→旅行足迹」自动统计你去过的城市和省份（来自旅行日记数据）🏙️',
-    link:'/profile', lt:'看旅行足迹' },
+    ans:[
+      '「个人主页→旅行足迹」会自动算出你探索过的城市和省份，来自你写的旅行日记 🏙️ 越写越多！',
+      '蛙！你的足迹都被记录下来了～ 个人主页的「旅行足迹」tab，城市/省份数量一目了然 🗺️',
+      '每写一篇日记就多一条足迹记录！「旅行足迹」页面会帮你统计去过几座城、几个省 🌏',
+    ], link:'/profile', lt:'看旅行足迹' },
   { kw:['广场','社区','分享','动态','plaza'],
-    ans:'「旅行广场」是社区分享区，浏览其他旅行者的精选内容 🏖️',
-    link:'/plaza', lt:'去旅行广场' },
+    ans:[
+      '「旅行广场」是旅行者们的聚集地 🏖️ 可以看精选攻略和动态，也许能发现下个目的地的灵感！',
+      '蛙！去旅行广场逛逛吧～ 有很多人分享旅行故事，说不定就看到你想去的地方了 🌊',
+      '「旅行广场」社区分享区，浏览其他旅行者的精选内容，找找旅行灵感 ✨',
+    ], link:'/plaza', lt:'去旅行广场' },
   { kw:['登录','注册','账号','密码'],
-    ans:'点右上角「登录」，输入用户名即可，也可以访客身份浏览大部分内容 🔑',
-    link:'/auth', lt:'去登录' },
+    ans:[
+      '右上角点「登录」，输用户名就行～ 登录后我能认识你、帮你记录旅行、给你个性化推荐 🔑',
+      '蛙！登录才能解锁全部功能哦～ 点右上角「登录」，也可以先用访客身份逛一逛 👀',
+      '登录超简单！右上角输用户名就搞定，不想登录的话访客模式也能浏览大部分内容 🌐',
+    ], link:'/auth', lt:'去登录' },
   { kw:['个人','主页','资料','profile','编辑'],
-    ans:'点右上角头像进入个人主页，可以编辑昵称/城市/签名，还有成就系统 👤',
-    link:'/profile', lt:'去个人主页' },
+    ans:[
+      '右上角头像点进去就是个人主页 👤 能改昵称/城市/签名，还有成就系统和旅行足迹！',
+      '蛙！个人主页藏了好多东西～ 你的旅行足迹、收藏景点、成就徽章都在那里 🏆',
+      '「个人主页」是你的旅行档案馆，编辑资料、看足迹地图、解锁成就，一站搞定 ✨',
+    ], link:'/profile', lt:'去个人主页' },
   { kw:['成就','勋章','徽章'],
-    ans:'成就在「个人主页→数据概览」，探访景点、写日记等都会解锁 🏆',
-    link:'/profile', lt:'看我的成就' },
+    ans:[
+      '成就系统在「个人主页→数据概览」🏆 探访景点、写日记、在站天数都能解锁不同成就，快去挑战！',
+      '蛙！你知道写够 5 篇日记能解锁"日记达人"成就吗 ✍️ 个人主页数据概览里有所有成就！',
+      '成就是对旅行者的认可～ 个人主页里查看你已解锁和未解锁的成就，全部拿下才是真探险家 🌟',
+    ], link:'/profile', lt:'看我的成就' },
   { kw:['算法','kmp','trie','堆','topk','数据结构'],
-    ans:'路线→Dijkstra、推荐→TopK堆、日记搜索→KMP、景点前缀→Trie，均自研 💻',
-    link:null, lt:null },
+    ans:[
+      '迹刻用了四种自研算法：路线→Dijkstra、推荐→TopK堆、日记搜索→KMP、景点前缀→Trie，都是硬核实现 💻',
+      '蛙！这网站藏着不少干货～ Dijkstra 算最短路、TopK 堆选美食、KMP 搜日记、Trie 前缀补全，全自研 ⚙️',
+      '算法控看过来！四大核心算法都在后端：Trie 前缀搜索 / KMP 全文检索 / MinHeap-TopK / Dijkstra 多点路径 🔬',
+    ], link:null, lt:null },
   { kw:['功能','能做什么','有什么','介绍','帮助'],
-    ans:'我可以帮你搜景点、规划路线、写日记、看 3D 地球、发现美食 🐸 问我就行！',
-    link:null, lt:null },
+    ans:[
+      '蛙！迹刻能做的可多了：搜景点、写日记、规划路线、推荐美食、看 3D 地球，还有旅行社区 🌍 问我就行！',
+      '我来导游！迹刻六大功能：🗺️发现景点 / 🍜美食推荐 / 🧭路线规划 / ✍️旅行日记 / 🌍3D星球 / 🏖️旅行广场',
+      '你来对地方了！迹刻是一站式旅游平台，从找景点到规划路线到写日记全包了，遇到问题问我 🐸',
+    ], link:null, lt:null },
 ];
-const matchKB = (t) => KB.find(r => r.kw.some(k => t.toLowerCase().includes(k))) || null;
+
+// 随机抽取一个变体
+const matchKB = (t) => {
+  const hit = KB.find(r => r.kw.some(k => t.toLowerCase().includes(k)));
+  if (!hit) return null;
+  const variants = Array.isArray(hit.ans) ? hit.ans : [hit.ans];
+  return { ...hit, ans: variants[Math.floor(Math.random() * variants.length)] };
+};
 
 // ── iOS 26 Liquid Glass CSS helper ───────────────────────────────
 const glassStyle = (extra = {}) => ({
@@ -235,9 +282,35 @@ const glassStyle = (extra = {}) => ({
   ...extra,
 });
 
+// ── Personalised system prompt ────────────────────────────────────
+const buildSysPrompt = (user) => {
+  let p = '你是"迹刻旅游网"的旅行蛙🐸，性格活泼热情，对旅行充满激情。'
+    + '说话简洁生动，1-3句话，善用旅行比喻，偶尔说"蛙！"表示惊喜或兴奋。'
+    + '熟悉迹刻所有功能。不确定时如实说。';
+  if (user) {
+    const name   = user.nickname || user.username || '探险家';
+    const city   = user.city   || '神秘之地';
+    const level  = user.level  || '旅行新手';
+    const diaries = user.totalDiaries || 0;
+    const spots   = user.totalSpots   || 0;
+    p += `\n\n当前用户：${name}（等级：${level}，来自${city}，已写${diaries}篇日记、探访${spots}处景点）。`
+      + `请根据用户的旅行经历给个性化回答，称呼对方为"${name}"或"探险家"，`
+      + `${diaries === 0 ? '鼓励他写第一篇日记' : diaries < 5 ? '称赞他已开始记录旅行' : '称赞他是资深旅行达人'}。`
+      + `${spots > 20 ? '他是经验丰富的旅行者，可以推荐更小众的景点。' : ''}`;
+  } else {
+    p += '\n称呼用户为"旅行者"或"探险家"，鼓励登录以解锁更多个性化功能。';
+  }
+  return p;
+};
+
+const STORAGE_KEY = 'aipet_chat_msgs';
+const INIT_MSG = { role:'assistant',
+  content:'嗨！我是迹刻旅行蛙 🐸  问旅游问题、网站功能或者上传旅行照片，都可以！' };
+
 // ── Main component ────────────────────────────────────────────────
 export default function AiPet() {
   const navigate = useNavigate();
+  const { user }  = useAuth();
 
   const [petState, setPetState] = useState('bubble'); // 'bubble'|'escaped'|'chatting'
   const [pose,     setPose]     = useState('idle');
@@ -251,11 +324,18 @@ export default function AiPet() {
   }));
   const [pPos, setPPos] = useState({ x: 0, y: 0 });
 
-  const [msgs,  setMsgs]  = useState([{ role:'assistant',
-    content:'嗨！我是迹刻旅行蛙 🐸  有旅游问题或者不知道网站怎么用，都问我！' }]);
+  // Load from localStorage (persist across refreshes)
+  const [msgs,  setMsgs]  = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [INIT_MSG];
+  });
   const [input, setInput] = useState('');
   const [busy,  setBusy]  = useState(false);
-  const endRef = useRef(null);
+  const endRef    = useRef(null);
+  const imgRef    = useRef(null);
 
   const petStateRef = useRef('bubble');
   const isDrag      = useRef(false);
@@ -364,7 +444,11 @@ export default function AiPet() {
     return () => { clearInterval(wanderTimer.current); clearTimeout(poseTimer.current); };
   }, [petState]); // eslint-disable-line
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }); }, [msgs]);
+  // Persist chat to localStorage (trim to last 40 messages to avoid bloat)
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs.slice(-40))); } catch {}
+    endRef.current?.scrollIntoView({ behavior:'smooth' });
+  }, [msgs]);
 
   // ── Bubble drag + tap ────────────────────────────────────────
   const onBubbleDown = (e) => {
@@ -432,6 +516,63 @@ export default function AiPet() {
     }, 420);
   };
 
+  // ── Image upload ─────────────────────────────────────────────
+  const onImgSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target.result;
+      const name = user?.nickname || user?.username || '探险家';
+      const greetings = [
+        `蛙！好漂亮的旅行照片 📸 这是在哪里拍的，${name}？告诉我地点，我帮你查查周边好玩的！`,
+        `哇这张照片太有感觉了！✨ ${name}，这是哪个地方呀？快告诉我，我帮你找找周边景点和攻略！`,
+        `📸 收到旅行照片！看起来风景超棒～ ${name} 这是在哪儿拍的？告诉我我来帮你安排周边行程！`,
+      ];
+      setMsgs(prev => [...prev,
+        { role:'user', content:'📸 分享了一张旅行照片', image:src },
+        { role:'assistant', content: greetings[Math.floor(Math.random()*greetings.length)] },
+      ]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // ── Random spot recommendation ───────────────────────────────
+  const recommendRandom = async () => {
+    setMsgs(prev=>[...prev,{ role:'user', content:'🎲 给我随机推荐一个景点！' }]);
+    setBusy(true);
+    try {
+      const res  = await fetch('/api/spots/topk?k=10&type=scenic');
+      const data = await res.json();
+      const pool = data.data || [];
+      if (pool.length > 0) {
+        const s = pool[Math.floor(Math.random()*pool.length)];
+        const intros = [
+          `蛙！今天就去 ${s.name} 怎么样 🌟 📍${s.city}，评分 ⭐${s.rating}`,
+          `随机命中宝藏！✨ ${s.name}（${s.city}）评分 ${s.rating}，绝对值得一去！`,
+          `🎯 命运之选：${s.name}！📍${s.city}，⭐${s.rating}，${s.entranceFee===0?'还是免费的！':''}`,
+        ];
+        setMsgs(prev=>[...prev,{
+          role:'assistant',
+          content: intros[Math.floor(Math.random()*intros.length)]
+            + (s.description ? '\n' + s.description.slice(0,60) + '...' : ''),
+          link:`/spots/${s.id}`, lt:'查看详情',
+        }]);
+      } else {
+        setMsgs(prev=>[...prev,{ role:'assistant', content:'呱！景点正在加载，稍等再试吧 🐸' }]);
+      }
+    } catch {
+      setMsgs(prev=>[...prev,{ role:'assistant', content:'呱！随机失败了，换个问法试试 🐸' }]);
+    } finally { setBusy(false); }
+  };
+
+  // ── Clear history ────────────────────────────────────────────
+  const clearHistory = () => {
+    setMsgs([INIT_MSG]);
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  };
+
   // ── Chat ──────────────────────────────────────────────────────
   const send = async () => {
     const text = input.trim();
@@ -452,11 +593,11 @@ export default function AiPet() {
         body: JSON.stringify({
           model:'deepseek-chat',
           messages:[
-            { role:'system', content:'你是"迹刻旅游网"的旅行助手小蛙🐸，专注旅游领域。回答简洁友好，1-3句话，可加emoji。不确定时如实说。' },
-            ...msgs.slice(-6).map(m=>({ role:m.role, content:m.content })),
+            { role:'system', content: buildSysPrompt(user) },
+            ...msgs.slice(-8).filter(m=>!m.image).map(m=>({ role:m.role, content:m.content })),
             { role:'user', content:text },
           ],
-          max_tokens:220,
+          max_tokens:240,
         }),
       });
       const data = await res.json();
@@ -575,11 +716,19 @@ export default function AiPet() {
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:20, flexShrink:0 }}>🐸</div>
             <div>
-              <div style={{ fontWeight:700, fontSize:13, color:'#14532d' }}>旅行小蛙</div>
-              <div style={{ fontSize:11, color:'#52796f' }}>随时帮你探索旅途</div>
+              <div style={{ fontWeight:700, fontSize:13, color:'#14532d' }}>
+                旅行小蛙{user ? ` · ${user.nickname||user.username}` : ''}
+              </div>
+              <div style={{ fontSize:11, color:'#52796f' }}>
+                {user ? `${user.level||'旅行新手'} · ${user.city||''}` : '登录后获得个性化回答'}
+              </div>
             </div>
+            <button onClick={clearHistory} title="清空记录"
+              style={{ marginLeft:'auto', border:'none', background:'rgba(0,0,0,.05)',
+                cursor:'pointer', color:'rgba(0,0,0,.35)', fontSize:12,
+                padding:'3px 7px', borderRadius:8 }}>清空</button>
             <button onClick={()=>{ setPetState('bubble'); setPose('idle'); kickIdle(); }}
-              style={{ marginLeft:'auto', border:'none', background:'none',
+              style={{ border:'none', background:'none',
                 cursor:'pointer', color:'rgba(0,0,0,.35)', fontSize:20,
                 lineHeight:1, padding:'0 4px', borderRadius:6 }}>×</button>
           </div>
@@ -609,6 +758,11 @@ export default function AiPet() {
                   border: m.role==='assistant' ? '1px solid rgba(255,255,255,.6)' : 'none',
                   boxShadow:'0 2px 8px rgba(0,0,0,.06)',
                 }}>
+                  {m.image && (
+                    <img src={m.image} alt="旅行照片"
+                      style={{ display:'block', maxWidth:'100%', borderRadius:8,
+                        marginBottom: m.content ? 6 : 0, maxHeight:140, objectFit:'cover' }} />
+                  )}
                   {m.content}
                   {m.link && (
                     <button onClick={()=>{ navigate(m.link); setPetState('bubble'); setPose('idle'); kickIdle(); }}
@@ -642,10 +796,18 @@ export default function AiPet() {
             <div ref={endRef}/>
           </div>
 
-          {/* quick replies */}
-          <div style={{ padding:'4px 10px', display:'flex', gap:5,
+          {/* quick actions */}
+          <div style={{ padding:'4px 10px 2px', display:'flex', gap:5,
             flexWrap:'wrap', flexShrink:0 }}>
-            {['景点在哪搜？','怎么规划路线？','有什么功能？'].map(q=>(
+            <button onClick={recommendRandom} disabled={busy} style={{
+              fontSize:11, padding:'3px 8px', borderRadius:99,
+              background:'rgba(249,115,22,.1)', color:'#ea580c',
+              border:'1px solid rgba(249,115,22,.25)', cursor:'pointer' }}>🎲 随机推荐</button>
+            <button onClick={()=>imgRef.current?.click()} style={{
+              fontSize:11, padding:'3px 8px', borderRadius:99,
+              background:'rgba(99,102,241,.1)', color:'#4f46e5',
+              border:'1px solid rgba(99,102,241,.25)', cursor:'pointer' }}>📸 上传照片</button>
+            {['去哪玩好？','怎么找美食？','有什么功能？'].map(q=>(
               <button key={q} onClick={()=>setInput(q)} style={{
                 fontSize:11, padding:'3px 8px', borderRadius:99,
                 background:'rgba(22,163,74,.1)', color:'#15803d',
@@ -656,7 +818,9 @@ export default function AiPet() {
           {/* input */}
           <div style={{ padding:'8px 10px',
             borderTop:'1px solid rgba(255,255,255,.35)',
-            display:'flex', gap:6, flexShrink:0 }}>
+            display:'flex', gap:6, flexShrink:0, alignItems:'center' }}>
+            <input ref={imgRef} type="file" accept="image/*"
+              onChange={onImgSelect} style={{ display:'none' }}/>
             <input value={input} onChange={e=>setInput(e.target.value)}
               onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()}
               placeholder="问小蛙任何旅游问题..."
