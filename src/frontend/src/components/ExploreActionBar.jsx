@@ -75,13 +75,14 @@ export default function ExploreActionBar({ user, isGuest, onSearch, onLogout }) 
         {/* 用户信息 */}
         {user ? (
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+            <Link to="/profile"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-150"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <span className="text-base">{user.avatar || '🧭'}</span>
               <span className="text-xs hidden sm:block max-w-[80px] truncate" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 {user.nickname || user.username}
               </span>
-            </div>
+            </Link>
             <button onClick={onLogout} title="退出登录"
               className="w-8 h-8 flex items-center justify-center rounded-xl text-sm transition-all duration-150"
               style={{ color: 'rgba(255,255,255,0.28)' }}

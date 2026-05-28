@@ -68,6 +68,7 @@ export default function App() {
           <Route path="/diary"     element={<StandardLayout><Diary /></StandardLayout>} />
           <Route path="/plaza"     element={<StandardLayout><Plaza /></StandardLayout>} />
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
+          <Route path="/profile/:id" element={<StandardLayout><Profile /></StandardLayout>} />
           <Route path="/admin"     element={<StandardLayout><Admin /></StandardLayout>} />
 
           {/* ── 404 ──────────────────────────────────── */}

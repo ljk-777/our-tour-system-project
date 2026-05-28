@@ -145,6 +145,20 @@ const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_diary_comments_diary_id ON diary_comments(diary_id);`,
   `CREATE INDEX IF NOT EXISTS idx_amap_poi_cache_lookup ON amap_poi_cache(keyword, city, types);`,
   `CREATE INDEX IF NOT EXISTS idx_amap_route_cache_lookup ON amap_route_cache(origin, destination, mode);`,
+  `
+    CREATE TABLE IF NOT EXISTS user_likes (
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      diary_id BIGINT NOT NULL REFERENCES diaries(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, diary_id)
+    );
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_user_likes_user_id ON user_likes(user_id);
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_user_likes_diary_id ON user_likes(diary_id);
+  `,
 ];
 
 async function initSchema() {

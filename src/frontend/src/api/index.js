@@ -2,6 +2,18 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: '/api', timeout: 8000 });
 
+// Auth interceptor — attach user identity to every request
+api.interceptors.request.use((config) => {
+  try {
+    const stored = localStorage.getItem('tour_auth_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user?.id) config.headers['x-user-id'] = user.id;
+    }
+  } catch (e) { /* ignore parse errors */ }
+  return config;
+});
+
 // 景点相关
 export const getSpots = (params) => api.get('/spots', { params });
 export const getTopK = (params) => api.get('/spots/topk', { params });
@@ -23,11 +35,13 @@ export const getDiaryById = (id) => api.get(`/diaries/${id}`);
 export const createDiary = (data) => api.post('/diaries', data);
 export const generateDiaryDraft = (data) => api.post('/diaries/generate', data, { timeout: 20000 });
 export const likeDiary    = (id)       => api.post(`/diaries/${id}/like`);
+export const unlikeDiary   = (id)       => api.post(`/diaries/${id}/unlike`);
 export const commentDiary = (id, data) => api.post(`/diaries/${id}/comment`, data);
 
 // 用户相关
 export const getUsers = () => api.get('/users');
 export const getUserById = (id) => api.get(`/users/${id}`);
+export const getMyLikedDiaryIds = () => api.get('/users/me/liked-diaries');
 export const login = (data) => api.post('/users/login', data);
 export const register = (data) => api.post('/users', data);
 

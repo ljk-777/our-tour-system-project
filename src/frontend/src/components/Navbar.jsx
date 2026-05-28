@@ -326,13 +326,13 @@ export default function Navbar() {
           <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             {isLoggedIn ? (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
                   <span className="text-xl">{user.avatar}</span>
                   <div>
                     <div className="text-sm font-medium" style={{ color: '#1d1d1f' }}>{user.nickname}</div>
                     <div className="text-xs" style={{ color: '#86868b' }}>{user.level}</div>
                   </div>
-                </div>
+                </Link>
                 <button onClick={() => { handleLogout(); setMenuOpen(false); }}
                   className="text-xs px-3 py-1.5 rounded-lg font-medium"
                   style={{ color: '#ff3b30', border: '1px solid rgba(255,59,48,0.25)' }}>

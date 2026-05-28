@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, commentDiary } from '../api/index.js';
-import { useAuth } from '../context/AuthContext.jsx';
+import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, unlikeDiary, commentDiary } from '../api/index.js';
+import { PERMISSIONS, useAuth } from '../context/AuthContext.jsx';
+import { useRequireAuth } from '../components/AuthGuard.jsx';
 
 const WEATHER_ICON = { '晴':'☀️','多云':'⛅','阴':'🌥️','雨':'🌧️','雪':'❄️','多云转晴':'🌤️' };
 const MOOD_ICON    = { '愉悦':'😊','激动':'🤩','满足':'😌','宁静':'😶','震撼':'😲','感动':'🥹','自由':'🤸','虔诚':'🙏' };
@@ -36,11 +37,9 @@ function compressImage(file, size = 600) {
 }
 
 /* ── 单条日记行（无卡片，border-bottom 分隔）──────────────── */
-function DiaryRow({ diary, index, currentUser }) {
+function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) {
   const [expanded,     setExpanded]     = useState(false);
-  const [liked,        setLiked]        = useState(() =>
-    JSON.parse(localStorage.getItem('likedDiaries') || '[]').includes(diary.id)
-  );
+  const [liked,        setLiked]        = useState(() => likedDiaryIdsSet?.has(diary.id) || false);
   const [likes,        setLikes]        = useState(diary.likes || 0);
   const [likeAnim,     setLikeAnim]     = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -50,17 +49,28 @@ function DiaryRow({ diary, index, currentUser }) {
   const [commentText,  setCommentText]  = useState('');
   const [submitting,   setSubmitting]   = useState(false);
   const isLong = (diary.content?.length || 0) > 140;
+  const likeTimerRef = useRef(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(likeTimerRef.current);
+  }, []);
+
+  // Sync liked state with backend data when it loads (e.g. after AuthContext fetch)
+  useEffect(() => {
+    setLiked(likedDiaryIdsSet?.has(diary.id) || false);
+  }, [likedDiaryIdsSet, diary.id]);
 
   const handleLike = async () => {
-    const saved = JSON.parse(localStorage.getItem('likedDiaries') || '[]');
     if (liked) {
-      localStorage.setItem('likedDiaries', JSON.stringify(saved.filter(id => id !== diary.id)));
       setLiked(false); setLikes(l => Math.max(0, l - 1));
+      try { await unlikeDiary(diary.id); } catch {}
       return;
     }
-    setLikeAnim(true); setTimeout(() => setLikeAnim(false), 500);
+    clearTimeout(likeTimerRef.current);
+    setLikeAnim(true);
+    likeTimerRef.current = setTimeout(() => setLikeAnim(false), 500);
     setLiked(true); setLikes(l => l + 1);
-    localStorage.setItem('likedDiaries', JSON.stringify([...saved, diary.id]));
     try { await likeDiary(diary.id); } catch {}
   };
 
@@ -70,7 +80,7 @@ function DiaryRow({ diary, index, currentUser }) {
     setSubmitting(true);
     try {
       await commentDiary(diary.id, {
-        userId: currentUser?.id || null,
+        userId: currentUser?.id,
         userName: currentUser?.nickname || currentUser?.username || '匿名旅行者',
         content: commentText.trim(),
       });
@@ -100,8 +110,10 @@ function DiaryRow({ diary, index, currentUser }) {
         <div>
           {/* 作者信息 */}
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-            <span style={{ fontSize:'1.2rem' }}>{diary.userAvatar}</span>
-            <span style={{ fontSize:'0.82rem', fontWeight:600, color:'#1d1d1f', fontFamily:'Inter, sans-serif' }}>{diary.userName}</span>
+            <Link to={`/profile/${diary.userId}`} style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:'1.2rem' }}>{diary.userAvatar}</span>
+              <span style={{ fontSize:'0.82rem', fontWeight:600, color:'#1d1d1f', fontFamily:'Inter, sans-serif' }}>{diary.userName}</span>
+            </Link>
             {diary.spotName && (
               <span style={{ fontSize:'0.75rem', color:'#aeaeb2', fontFamily:'Inter, sans-serif' }}>
                 · 📍 {diary.spotName}
@@ -155,7 +167,7 @@ function DiaryRow({ diary, index, currentUser }) {
 
           {/* 操作栏 */}
           <div style={{ display:'flex', alignItems:'center', gap:20, marginTop:16, paddingTop:14, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
-            <button onClick={handleLike} style={{
+            <button onClick={() => requireAuth(PERMISSIONS.LIKE, handleLike)} style={{
               display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem',
               color: liked ? '#ef4444' : '#aeaeb2', background:'none', border:'none',
               cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:500,
@@ -202,7 +214,7 @@ function DiaryRow({ diary, index, currentUser }) {
                   ))}
                 </div>
               )}
-              <form onSubmit={handleComment} style={{ display:'flex', gap:8 }}>
+              <form onSubmit={(e) => requireAuth(PERMISSIONS.COMMENT, () => handleComment(e))} style={{ display:'flex', gap:8 }}>
                 <input
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
@@ -244,7 +256,8 @@ function DiaryRow({ diary, index, currentUser }) {
 
 /* ── 主页面 ───────────────────────────────────────────── */
 export default function Diary() {
-  const { user } = useAuth();
+  const { user, likedDiaryIds } = useAuth();
+  const requireAuth = useRequireAuth();
   const [diaries,    setDiaries]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [searchQ,    setSearchQ]    = useState('');
@@ -267,6 +280,7 @@ export default function Diary() {
     setLoading(true);
     getDiaries({ sortBy, order:'desc' })
       .then(res => setDiaries(res.data.data || []))
+      .catch(() => setDiaries([]))
       .finally(() => setLoading(false));
   };
 
@@ -277,6 +291,8 @@ export default function Diary() {
     try {
       const res = await searchDiaries({ q:searchQ, mode:searchMode });
       setDiaries(res.data.data || []);
+    } catch {
+      setDiaries([]);
     } finally { setLoading(false); }
   };
 
@@ -321,7 +337,7 @@ export default function Diary() {
       const tagList = form.tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
       const res = await createDiary({
         ...form, tags: tagList,
-        userId: user?.id || 1,
+        userId: user?.id,
         userName: user?.nickname || user?.username || '旅行者',
         userAvatar: user?.avatar || '🧭',
         visitDate: formatLocalDate(),
@@ -336,6 +352,8 @@ export default function Diary() {
       setForm({ title:'', content:'', spotName:'', tags:'', weather:'晴', mood:'愉悦', rating:5, coverImage:'' });
       setAiDraft('');
       setImgPreview('');
+    } catch {
+      alert('发布失败，请稍后重试');
     } finally { setSubmitting(false); }
   };
 
@@ -368,7 +386,7 @@ export default function Diary() {
               {visibleDiaries.length} 篇 · ❤️ {totalLikes} 获赞 · 👁️ {totalViews} 浏览
             </p>
           </div>
-          <button onClick={() => setShowCreate(!showCreate)} style={{
+          <button onClick={() => requireAuth(PERMISSIONS.PUBLISH_DIARY, () => setShowCreate(!showCreate))} style={{
             display:'flex', alignItems:'center', gap:8,
             background:'transparent', color:'#1d1d1f',
             border:'1.5px solid rgba(0,0,0,0.18)',
@@ -594,7 +612,7 @@ export default function Diary() {
           <div style={{ borderTop:'1px solid rgba(0,0,0,0.08)' }}>
             {visibleDiaries.map((d, i) => (
               <div key={d.id} style={{ animation:`itemSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) ${Math.min(i,6)*60}ms both` }}>
-                <DiaryRow diary={d} index={i} currentUser={user} />
+                <DiaryRow diary={d} index={i} currentUser={user} likedDiaryIdsSet={likedDiaryIds} requireAuth={requireAuth} />
               </div>
             ))}
           </div>

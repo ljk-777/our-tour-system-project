@@ -16,6 +16,8 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+const { auth } = require('./middleware/auth');
+app.use(auth);
 
 app.use('/api/spots', spotsRouter);
 app.use('/api/routes', routesRouter);

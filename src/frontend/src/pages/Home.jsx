@@ -638,8 +638,10 @@ export default function Home() {
                 <div>
                   {/* 作者行 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: '1rem' }}>{diary.userAvatar}</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>{diary.userName}</span>
+                    <Link to={`/profile/${diary.userId}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+                      <span style={{ fontSize: '1rem' }}>{diary.userAvatar}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>{diary.userName}</span>
+                    </Link>
                     {diary.spotName && <span style={{ fontSize: '0.75rem', color: '#aeaeb2' }}>· 📍 {diary.spotName}</span>}
                   </div>
                   {/* 标题 */}

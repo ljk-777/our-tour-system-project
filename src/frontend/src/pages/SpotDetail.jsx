@@ -324,8 +324,10 @@ export default function SpotDetail() {
                   {diaries.map((diary) => (
                     <div key={diary.id} className="glass-card rounded-xl p-4 transition-all" style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{diary.userAvatar}</span>
-                        <span className="text-sm font-medium text-gray-900">{diary.userName}</span>
+                        <Link to={`/profile/${diary.userId}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                          <span className="text-lg">{diary.userAvatar}</span>
+                          <span className="text-sm font-medium text-gray-900">{diary.userName}</span>
+                        </Link>
                         <span className="text-xs text-gray-400">{diary.visitDate}</span>
                         {diary.weather && <span className="text-xs text-gray-400">{diary.weather}</span>}
                       </div>
