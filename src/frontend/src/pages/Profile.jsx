@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api, { getUserById, getDiaries } from '../api/index.js';
+import api, { getUserById, getDiaries, getUserFavorites, getUserFootprint } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useFavorites } from '../context/FavoritesContext.jsx';
 
 const LEVEL_CONFIG = {
   '旅行新手':    { color: 'bg-gray-100 text-gray-600',   icon: '🌱', rank: 1 },
@@ -26,14 +27,24 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ nickname: '', city: '', bio: '' });
   const [saving, setSaving] = useState(false);
+  const [favorites, setFavorites] = useState([]);
+  const [footprint, setFootprint] = useState(null);   // { cities, stats }
+  const { toggle: toggleFav, isFavorited } = useFavorites();
 
   const targetUserId = urlUserId || user?.id;
 
   useEffect(() => {
     if (!targetUserId) { setLoading(false); return; }
     Promise.all([
-      getUserById(targetUserId).then(r => { const p = r.data.data; setProfile(p); if (String(targetUserId) === String(user?.id)) setEditForm({ nickname: p.nickname || '', city: p.city || '', bio: p.bio || '' }); }),
+      getUserById(targetUserId).then(r => {
+        const p = r.data.data;
+        setProfile(p);
+        if (String(targetUserId) === String(user?.id))
+          setEditForm({ nickname: p.nickname || '', city: p.city || '', bio: p.bio || '' });
+      }),
       getDiaries({ userId: targetUserId }).then(r => setDiaries(r.data.data || [])),
+      getUserFavorites(targetUserId).then(r => setFavorites(r.data.data || [])),
+      getUserFootprint(targetUserId).then(r => setFootprint(r.data.data || null)),
     ]).catch(() => { setProfile(null); }).finally(() => setLoading(false));
   }, [targetUserId, user?.id]);
 
@@ -160,13 +171,19 @@ export default function Profile() {
 
       {/* Tab 切换 */}
       <div className="glass-card overflow-hidden">
-        <div className="flex border-b border-gray-100">
-          {[['overview','数据概览'],['diaries','我的日记'],['info','基本资料']].map(([k, l]) => (
+        <div className="flex border-b border-gray-100 overflow-x-auto">
+          {[
+            ['overview', '数据概览', null],
+            ['footprint', '旅行足迹', footprint?.stats?.totalCities || null],
+            ['favorites', '我的收藏', favorites.length || null],
+            ['diaries',  '我的日记', diaries.length || null],
+            ['info',     '基本资料', null],
+          ].map(([k, l, badge]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-5 py-3 text-sm font-medium transition-colors ${tab === k ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${tab === k ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'}`}
               style={tab === k ? { color: '#f97316', borderColor: '#f97316' } : {}}>{l}
-              {k === 'diaries' && diaries.length > 0 && (
-                <span className="ml-1.5 bg-blue-100 text-blue-600 text-xs px-1.5 py-0.5 rounded-full">{diaries.length}</span>
+              {badge > 0 && (
+                <span className="ml-1.5 bg-orange-100 text-orange-600 text-xs px-1.5 py-0.5 rounded-full">{badge}</span>
               )}
             </button>
           ))}
@@ -198,6 +215,96 @@ export default function Profile() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === 'footprint' && (
+            <div>
+              {/* 统计数字 */}
+              <div className="grid grid-cols-4 gap-3 mb-5">
+                {[
+                  { icon: '🏙️', value: footprint?.stats?.totalCities     || 0, label: '城市' },
+                  { icon: '🗺️', value: footprint?.stats?.totalProvinces  || 0, label: '省份' },
+                  { icon: '📍', value: footprint?.stats?.totalSpots       || 0, label: '景点' },
+                  { icon: '📝', value: footprint?.stats?.totalDiaries     || 0, label: '日记' },
+                ].map(s => (
+                  <div key={s.label} className="text-center rounded-xl py-3"
+                    style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)' }}>
+                    <div className="text-xl">{s.icon}</div>
+                    <div className="text-lg font-bold leading-tight" style={{ color: '#f97316' }}>{s.value}</div>
+                    <div className="text-xs text-gray-400">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              {/* 足迹城市列表 */}
+              {(!footprint?.cities || footprint.cities.length === 0) ? (
+                <div className="text-center py-10 text-gray-400">
+                  <div className="text-4xl mb-2">🌍</div>
+                  <p className="text-sm">还没有旅行记录，快去写第一篇日记吧！</p>
+                  <Link to="/diary" className="inline-block mt-3 text-sm text-orange-500 hover:underline">去写日记 →</Link>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-xs text-gray-400 mb-3">按访问次数排序，数据来自旅行日记</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {footprint.cities.map((c, i) => (
+                      <div key={c.city} className="rounded-xl p-3 flex items-center gap-3 transition-all"
+                        style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                          style={{ background: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : 'rgba(249,115,22,0.12)', color: i < 3 ? '#fff' : '#f97316' }}>
+                          {i < 3 ? ['🥇','🥈','🥉'][i] : i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm text-gray-800 truncate">{c.city}</div>
+                          <div className="text-xs text-gray-400 truncate">{c.province}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-sm font-bold" style={{ color: '#f97316' }}>{c.visitCount}</div>
+                          <div className="text-xs text-gray-400">次</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'favorites' && (
+            <div>
+              {favorites.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">
+                  <div className="text-4xl mb-2">🤍</div>
+                  <p className="text-sm">还没有收藏景点</p>
+                  <Link to="/spots" className="inline-block mt-3 text-sm text-orange-500 hover:underline">去发现景点 →</Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {favorites.map(s => (
+                    <div key={s.id} className="glass-card p-4 flex items-center gap-4" style={{ borderRadius: 14 }}>
+                      {/* 图片 or 占位 */}
+                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-2xl">
+                        {s.imageUrl
+                          ? <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                          : '📍'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/spots/${s.id}`} className="font-semibold text-gray-900 text-sm hover:text-orange-500 transition-colors block truncate">{s.name}</Link>
+                        <div className="text-xs text-gray-400 mt-0.5">📍 {s.city} · {s.type}</div>
+                        {s.rating > 0 && <div className="text-xs text-amber-500 mt-0.5">{'★'.repeat(Math.round(s.rating))} {s.rating}</div>}
+                        {s.description && <p className="text-xs text-gray-500 mt-1 line-clamp-1">{s.description}</p>}
+                      </div>
+                      <button
+                        onClick={() => { toggleFav(s.id); setFavorites(prev => prev.filter(f => f.id !== s.id)); }}
+                        title="取消收藏"
+                        className="flex-shrink-0 text-lg hover:scale-110 transition-transform"
+                      >
+                        ❤️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const userRepo = require('../repositories/userRepository');
+const userRepo  = require('../repositories/userRepository');
 const diaryRepo = require('../repositories/diaryRepository');
+const favRepo   = require('../repositories/favoritesRepository');
+const { query } = require('../db');
 const { auth, requireAuth } = require('../middleware/auth');
 
 router.get('/', async (req, res, next) => {
@@ -18,6 +20,73 @@ router.get('/me/liked-diaries', async (req, res, next) => {
     if (!req.user) return res.status(401).json({ success: false, message: '请先登录' });
     const ids = await diaryRepo.getLikedDiaryIds(req.user.id);
     res.json({ success: true, data: ids });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 获取当前登录用户的收藏景点 ID 列表（用于前端批量判断收藏状态）
+router.get('/me/favorite-ids', requireAuth, async (req, res, next) => {
+  try {
+    const ids = await favRepo.getUserFavoriteIds(req.user.id);
+    res.json({ success: true, data: ids });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 获取指定用户的收藏景点列表（含景点详情）
+router.get('/:id/favorites', async (req, res, next) => {
+  try {
+    const favorites = await favRepo.getUserFavorites(req.params.id);
+    res.json({ success: true, data: favorites });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 获取指定用户的足迹数据（从日记关联的景点推导城市）
+router.get('/:id/footprint', async (req, res, next) => {
+  try {
+    const userId = Number(req.params.id);
+    const { rows: cityRows } = await query(
+      `SELECT s.city, s.province,
+              COUNT(DISTINCT d.id)      AS visit_count,
+              COUNT(DISTINCT d.spot_id) AS spot_count
+       FROM diaries d
+       JOIN spots s ON s.id = d.spot_id
+       WHERE d.user_id = $1 AND s.city IS NOT NULL
+       GROUP BY s.city, s.province
+       ORDER BY visit_count DESC`,
+      [userId]
+    );
+    const { rows: statRows } = await query(
+      `SELECT COUNT(DISTINCT d.id)       AS total_diaries,
+              COUNT(DISTINCT d.spot_id)  AS total_spots,
+              COUNT(DISTINCT s.city)     AS total_cities,
+              COUNT(DISTINCT s.province) AS total_provinces
+       FROM diaries d
+       LEFT JOIN spots s ON s.id = d.spot_id
+       WHERE d.user_id = $1`,
+      [userId]
+    );
+    res.json({
+      success: true,
+      data: {
+        cities: cityRows.map(r => ({
+          city:       r.city,
+          province:   r.province,
+          visitCount: Number(r.visit_count),
+          spotCount:  Number(r.spot_count),
+        })),
+        stats: {
+          totalDiaries:   Number(statRows[0]?.total_diaries   || 0),
+          totalSpots:     Number(statRows[0]?.total_spots      || 0),
+          totalCities:    Number(statRows[0]?.total_cities     || 0),
+          totalProvinces: Number(statRows[0]?.total_provinces  || 0),
+        },
+      },
+    });
   } catch (error) {
     next(error);
   }

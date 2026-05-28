@@ -159,6 +159,16 @@ const schemaStatements = [
   `
     CREATE INDEX IF NOT EXISTS idx_user_likes_diary_id ON user_likes(diary_id);
   `,
+  `
+    CREATE TABLE IF NOT EXISTS user_favorites (
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      spot_id BIGINT NOT NULL REFERENCES spots(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, spot_id)
+    );
+  `,
+  `CREATE INDEX IF NOT EXISTS idx_user_favorites_user_id ON user_favorites(user_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_user_favorites_spot_id ON user_favorites(spot_id);`,
 ];
 
 async function initSchema() {

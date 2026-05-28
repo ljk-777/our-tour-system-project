@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getSpotById, nearbySearch, getDiaries, amapReverseGeocode, amapWeather, amapPoiSearch } from '../api/index.js';
+import { useFavorites } from '../context/FavoritesContext.jsx';
 import AmapMap from '../components/AmapMap.jsx';
 
 const TYPE_LABELS = {
@@ -58,6 +59,7 @@ const CITY_BG = {
 export default function SpotDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isFavorited, toggle: toggleFav } = useFavorites();
   const [spot, setSpot] = useState(null);
   const [nearby, setNearby] = useState([]);
   const [diaries, setDiaries] = useState([]);
@@ -169,11 +171,30 @@ export default function SpotDetail() {
                   <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{typeLabel}</span>
                 </p>
               </div>
-              {spot.rating && (
-                <div className="bg-yellow-400 text-yellow-900 font-bold px-3 py-1.5 rounded-xl text-sm">
-                  ★ {spot.rating}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {spot.rating && (
+                  <div className="bg-yellow-400 text-yellow-900 font-bold px-3 py-1.5 rounded-xl text-sm">
+                    ★ {spot.rating}
+                  </div>
+                )}
+                <button
+                  onClick={() => toggleFav(spot.id)}
+                  title={isFavorited(spot.id) ? '取消收藏' : '收藏景点'}
+                  style={{
+                    background: isFavorited(spot.id) ? 'rgba(249,115,22,0.9)' : 'rgba(255,255,255,0.25)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255,255,255,0.4)',
+                    borderRadius: 12,
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    fontSize: '1.1rem',
+                    lineHeight: 1,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {isFavorited(spot.id) ? '❤️' : '🤍'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
