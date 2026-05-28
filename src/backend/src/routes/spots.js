@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const spotRepo = require('../repositories/spotRepository');
+const favRepo  = require('../repositories/favoritesRepository');
 const { topK } = require('../algorithms/heap');
 const { Trie, FullTextIndex } = require('../algorithms/trie');
+const { requireAuth } = require('../middleware/auth');
 
 async function buildSpotIndexes() {
   const allSpots = await spotRepo.getAll();
@@ -104,6 +106,25 @@ router.get('/:id', async (req, res, next) => {
     const spot = await spotRepo.findById(req.params.id);
     if (!spot) return res.status(404).json({ success: false, message: '景点不存在' });
     res.json({ success: true, data: spot });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ── 收藏功能 ──────────────────────────────────────────────
+router.post('/:id/favorite', requireAuth, async (req, res, next) => {
+  try {
+    await favRepo.addFavorite(req.user.id, req.params.id);
+    res.json({ success: true, message: '已收藏' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:id/favorite', requireAuth, async (req, res, next) => {
+  try {
+    await favRepo.removeFavorite(req.user.id, req.params.id);
+    res.json({ success: true, message: '已取消收藏' });
   } catch (error) {
     next(error);
   }

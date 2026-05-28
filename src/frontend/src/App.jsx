@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider }  from './context/AuthContext.jsx';
+import { AuthProvider }      from './context/AuthContext.jsx';
+import { FavoritesProvider } from './context/FavoritesContext.jsx';
 import { getStoredUser, isGuestMode } from './hooks/useAuth.js';
+import AiPet from './components/AiPet.jsx';
 
 // 布局
 import Navbar  from './components/Navbar.jsx';
@@ -49,6 +51,7 @@ function StandardLayout({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <FavoritesProvider>
       <BrowserRouter>
         <Routes>
           {/* ── 认证入口（全屏，无 Navbar）──────────────── */}
@@ -74,7 +77,9 @@ export default function App() {
           {/* ── 404 ──────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      <AiPet />
       </BrowserRouter>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

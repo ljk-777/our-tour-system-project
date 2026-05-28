@@ -45,6 +45,13 @@ export const getMyLikedDiaryIds = () => api.get('/users/me/liked-diaries');
 export const login = (data) => api.post('/users/login', data);
 export const register = (data) => api.post('/users', data);
 
+// 收藏相关
+export const addFavorite        = (spotId) => api.post(`/spots/${spotId}/favorite`);
+export const removeFavorite     = (spotId) => api.delete(`/spots/${spotId}/favorite`);
+export const getMyFavoriteIds   = ()       => api.get('/users/me/favorite-ids');
+export const getUserFavorites   = (userId) => api.get(`/users/${userId}/favorites`);
+export const getUserFootprint   = (userId) => api.get(`/users/${userId}/footprint`);
+
 // 高德地图服务
 export const amapGeocode = (params) => api.get('/amap/geocode', { params });
 export const amapReverseGeocode = (params) => api.get('/amap/regeo', { params });
