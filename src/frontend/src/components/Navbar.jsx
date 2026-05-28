@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/spots',   label: '发现'   },
   { to: '/foods',   label: '美食'   },
   { to: '/route',   label: '路线'   },
+  { to: '/groups',  label: '群组'   },
   { to: '/diary',   label: '日记'   },
   { to: '/plaza',   label: '广场'   },
   { to: '/profile', label: '旅行者' },

@@ -60,4 +60,15 @@ export const amapPoiSearch = (params) => api.get('/amap/poi/search', { params })
 export const amapRoute = (params) => api.get('/amap/route', { params });
 export const amapWeather = (params) => api.get('/amap/weather', { params });
 
+// 群组相关
+export const createGroup = (data) => api.post('/groups', data);
+export const joinGroup = (data) => api.post('/groups/join', data);
+export const getGroups = () => api.get('/groups');
+export const getGroup = (id) => api.get(`/groups/${id}`);
+export const deleteGroup = (id) => api.delete(`/groups/${id}`);
+export const getTrip = (id) => api.get(`/groups/${id}/trips`);
+export const saveTrip = (id, data) => api.post(`/groups/${id}/trips`, data);
+export const getMessages = (id, params) => api.get(`/groups/${id}/messages`, { params });
+export const sendMessage = (id, data) => api.post(`/groups/${id}/messages`, data);
+
 export default api;

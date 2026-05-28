@@ -169,6 +169,57 @@ const schemaStatements = [
   `,
   `CREATE INDEX IF NOT EXISTS idx_user_favorites_user_id ON user_favorites(user_id);`,
   `CREATE INDEX IF NOT EXISTS idx_user_favorites_spot_id ON user_favorites(spot_id);`,
+  `
+    CREATE TABLE IF NOT EXISTS groups (
+      id BIGSERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      code VARCHAR(6) NOT NULL UNIQUE,
+      creator_id BIGINT NOT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS group_members (
+      group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role VARCHAR(20) NOT NULL DEFAULT 'member',
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (group_id, user_id)
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS group_trips (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      title VARCHAR(200),
+      departure VARCHAR(100),
+      destination VARCHAR(100) NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      budget NUMERIC(12,2),
+      notes TEXT,
+      daily_plan JSONB NOT NULL DEFAULT '[]',
+      created_by BIGINT REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      sender_id BIGINT REFERENCES users(id),
+      type VARCHAR(20) NOT NULL DEFAULT 'text',
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `CREATE INDEX IF NOT EXISTS idx_groups_code ON groups(code);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_messages_group_created ON group_messages(group_id, created_at DESC);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_trips_group_id ON group_trips(group_id);`,
 ];
 
 async function initSchema() {
