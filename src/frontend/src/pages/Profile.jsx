@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getUserById, getDiaries } from '../api/index.js';
+import api, { getUserById, getDiaries } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const LEVEL_CONFIG = {
@@ -37,19 +37,22 @@ export default function Profile() {
     ]).catch(() => { setProfile(null); }).finally(() => setLoading(false));
   }, [targetUserId, user?.id]);
 
+  const [saveMsg, setSaveMsg] = useState('');
+
   const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
+    setSaveMsg('');
     try {
-      const { default: api } = await import('../api/index.js');
       const res = await api.put(`/users/${profile.id}`, editForm);
       if (res.data.success) {
         setProfile(prev => ({ ...prev, ...editForm }));
         setEditing(false);
-        alert('保存成功');
+        setSaveMsg('ok');
+        setTimeout(() => setSaveMsg(''), 3000);
       }
     } catch (err) {
-      alert(err?.response?.data?.message || '保存失败');
+      setSaveMsg(err?.response?.data?.message || '保存失败，请重试');
     } finally { setSaving(false); }
   };
 
@@ -59,7 +62,7 @@ export default function Profile() {
       <div className="text-center">
         <div className="text-6xl mb-4">👤</div>
         <p className="text-gray-500 font-medium mb-4">请先登录以查看个人主页</p>
-        <Link to="/auth" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"> 去登录 </Link>
+        <Link to="/auth" className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors" style={{ background: 'linear-gradient(135deg,#f59e0b,#f97316)' }}> 去登录 </Link>
       </div>
     </div>
   );
@@ -73,14 +76,15 @@ export default function Profile() {
   );
 
   const lvl = LEVEL_CONFIG[profile.level] || LEVEL_CONFIG['旅行新手'];
-  const joinDays = Math.floor((Date.now() - new Date(profile.joinDate)) / 86400000);
+  const joinTs = profile.joinDate ? new Date(profile.joinDate).getTime() : null;
+  const joinDays = joinTs && !isNaN(joinTs) ? Math.floor((Date.now() - joinTs) / 86400000) : 0;
 
   return (
     <div className="glass-bg">
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* 个人卡片 */}
       <div className="glass-card overflow-hidden mb-6">
-        <div className="h-24 bg-gradient-to-r from-blue-500 to-indigo-600" />
+        <div className="h-24 bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500" />
         <div className="px-6 pb-6">
           <div className="flex items-end justify-between -mt-10 mb-3">
             <div className="w-20 h-20 bg-white rounded-2xl shadow-md flex items-center justify-center text-5xl border-2 border-white relative">
@@ -90,7 +94,10 @@ export default function Profile() {
               <span className={`text-sm px-3 py-1 rounded-full font-medium ${lvl.color}`}>{lvl.icon} {profile.level}</span>
               {isViewingOwnProfile && (
                 <button onClick={() => setEditing(!editing)}
-                  className="text-sm px-3 py-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+                  className="text-sm px-3 py-1 rounded-full border transition-colors"
+                  style={editing
+                    ? { borderColor: '#f97316', color: '#f97316', background: 'rgba(249,115,22,0.06)' }
+                    : { borderColor: '#d1d5db', color: '#6b7280' }}>
                   {editing ? '取消' : '编辑资料'}
                 </button>
               )}
@@ -138,10 +145,15 @@ export default function Profile() {
               <textarea value={editForm.bio} onChange={e => setEditForm(f => ({...f, bio: e.target.value}))} rows={3}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
-            <button onClick={handleSave} disabled={saving}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
-              {saving ? '保存中...' : '保存'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={handleSave} disabled={saving}
+                className="text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#f59e0b,#f97316)' }}>
+                {saving ? '保存中...' : '保存'}
+              </button>
+              {saveMsg === 'ok' && <span className="text-sm text-green-600 font-medium">✓ 保存成功</span>}
+              {saveMsg && saveMsg !== 'ok' && <span className="text-sm text-red-500">{saveMsg}</span>}
+            </div>
           </div>
         </div>
       )}
