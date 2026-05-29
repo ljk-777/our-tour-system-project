@@ -1,9 +1,36 @@
 # 项目功能总览
 
-更新时间：2026-05-24  
+更新时间：2026-05-28  
 当前代码基准：`main` 分支，已同步到远端最新版本
 
 本文档用于记录项目当前已经实现的功能、关键文件位置和后续维护方式。后续每次新增或修改功能时，建议同步更新本文档，方便团队总览项目状态。
+
+## 更新记录
+
+### 2026-05-28 大规模功能更新
+
+- **新增 群组功能**：完整的群组旅行规划系统，包含群组创建、成员管理、群行程规划、群消息
+- **新增 Auth 中间件**：`requireAuth` 中间件保护所有写接口，`x-user-id` 请求头鉴权
+- **新增 `user_likes` 表**：按用户独立跟踪点赞状态，支持取消点赞
+- **新增 `user_favorites` 表**：用户收藏功能
+- **新增 `groups` 系列表**：`groups`、`group_members`、`group_trips`、`group_messages`
+- **新增 `/api/groups` 路由**：完整的群组 CRUD 与群消息 API
+- **Profile 页面重构**：显示当前登录用户信息，支持编辑昵称/城市/简介，`/profile/:id` 查看他人
+- **用户头像可点击**：全站用户头像点击跳转个人中心
+- **Plaza 广场新增**：🏆 旅行者排行榜，用户头像/昵称可点击跳转，修复发帖人显示为昵称
+- **Admin 管理页升级**：表头点击排序，类型/标签筛选下拉框，CSV 导出 UTF-8 BOM，`lucide-react` 图标代替 emoji
+- **MapWorkspace 增强**：节点双击改名、节点拖拽移动、右键删除边、JSON 多格式导入导出、清空确认对话框、沙河/西土城数据自动加载
+- **Like 系统修复**：`unlikeDiary` API，`AuthContext` 中 `likedDiaryIds` 自动获取，点赞状态跨刷新保持
+- **登录重定向修复**：登录后通过 `?redirect=` 返回原页面
+- **注册表单新增昵称字段**
+- **Auth 守卫**：点赞/评论/发布按钮受登录状态保护
+
+### 2026-05-27 群组功能开发
+
+- **数据库**：新建 `groups`、`group_members`、`group_trips`、`group_messages` 四张表
+- **后端**：完整群组 CRUD API，群消息发送与获取
+- **前端**：群组列表页面、群组详情页面、群行程规划页面
+- **Auth 中间件**：实现 `requireAuth` 中间件，保护所有写操作端点
 
 ## 1. 项目定位
 
@@ -124,6 +151,7 @@
 页面文件：
 
 - `src/frontend/src/pages/Diary.jsx`
+- `src/frontend/src/utils/likeSync.js`
 
 已实现功能：
 
@@ -132,12 +160,14 @@
 - 日记排序
 - 发布日记
 - 上传/压缩封面图片
-- 点赞
+- 点赞/取消点赞
 - 评论
 - 标签展示
 - 日期格式化
 - AI 日记润色/生成草稿
 - 生成结果可预览、替换、重新生成
+- `likedDiaryIds` 状态自动获取，点赞状态跨刷新保持
+- 点赞/评论/发布按钮受登录状态保护（Auth 守卫）
 
 后端支持：
 
@@ -145,6 +175,7 @@
 - `/api/diaries/search`
 - `/api/diaries/generate`
 - `/api/diaries/:id/like`
+- `/api/diaries/:id/unlike`
 - `/api/diaries/:id/comment`
 
 ### 2.7 广场
@@ -158,6 +189,9 @@
 - 旅行内容社区化展示
 - 玻璃卡片风格视觉重设计
 - 与日记、用户数据联动展示
+- 🏆 旅行者排行榜（Leaderboard）
+- 用户头像/昵称可点击跳转个人中心
+- 发帖人名称显示修复（'我' → 真实昵称）
 
 ### 2.8 个人中心
 
@@ -167,15 +201,18 @@
 
 已实现功能：
 
-- 用户列表/用户详情展示
-- 用户基础资料展示
+- 当前登录用户个人资料展示（使用 `useAuth`）
+- 查看他人用户资料（`/profile/:id` 路由）
+- 编辑个人资料（昵称/城市/简介）
 - 用户日记展示
 - 用户统计信息展示
+- 全站用户头像可点击跳转个人中心
 
 数据来源：
 
 - `/api/users`
 - `/api/users/:id`
+- `AuthContext`
 
 ### 2.9 登录与注册
 
@@ -188,11 +225,13 @@
 已实现功能：
 
 - 登录
-- 注册
+- 注册（新增昵称字段）
 - 访客模式
 - 头像选择/图片压缩
 - 登录状态本地保存
 - 受保护路由基础能力
+- 登录后重定向回原页面（`?redirect=` 参数）
+- `likedDiaryIds` 状态管理，点赞数据自动获取
 
 说明：
 
@@ -209,11 +248,13 @@
 
 - 用户、日记、景点数据总览
 - 搜索
-- 筛选
-- 排序
+- 筛选（类型/标签下拉筛选框）
+- 排序（表头点击排序）
 - 分页
 - 统计信息
-- CSV 导出
+- 上次刷新时间显示
+- CSV 导出（UTF-8 BOM，正确处理中文）
+- `lucide-react` 图标（代替原来 emoji）
 - 数据刷新
 
 ### 2.11 3D 地球页面
@@ -247,16 +288,36 @@
 
 已实现功能：
 
-- 沙河校区/西土城校区地图数据加载
+- 沙河校区/西土城校区地图数据加载（页面打开时自动加载沙河数据）
 - 地图底图展示
 - 节点添加
 - 边添加
-- 节点拖拽
+- 节点拖拽移动
+- 节点双击重命名
+- 右键点击删除边
 - 路网编辑
 - 路径预览
 - 基于节点和边的校园导航
-- JSON 数据导入/导出
+- JSON 数据导入/导出（支持多种格式）
+- 清空确认对话框
 - 建筑与道路检测辅助工具
+
+### 2.13 群组功能
+
+页面文件：
+
+- `src/frontend/src/pages/Groups.jsx`
+- `src/frontend/src/pages/GroupDetail.jsx`
+- `src/frontend/src/pages/GroupTrip.jsx`
+
+已实现功能：
+
+- 群组创建
+- 群组列表展示
+- 群组详情查看
+- 群成员管理（加入/退出）
+- 群行程规划
+- 群消息发送与查看
 
 ## 3. 后端接口功能
 
@@ -271,7 +332,14 @@
 - `/api/diaries`
 - `/api/users`
 - `/api/amap`
+- `/api/groups`
 - `/api/health`
+
+安全中间件：
+
+- `src/backend/src/middleware/auth.js`
+- `requireAuth` 保护所有写操作端点
+- 基于 `x-user-id` 请求头的鉴权模式
 
 ### 3.1 景点接口
 
@@ -401,6 +469,34 @@
 - 高德响应解析与错误提示友好化
 - POI、路线、天气缓存表支持
 
+### 3.6 群组接口
+
+文件：
+
+- `src/backend/src/routes/groups.js`
+- `src/backend/src/repositories/groupRepository.js`
+
+已实现接口：
+
+- `GET /api/groups`
+- `GET /api/groups/:id`
+- `POST /api/groups`
+- `POST /api/groups/:id/members`
+- `DELETE /api/groups/:id/members/:userId`
+- `GET /api/groups/:id/messages`
+- `POST /api/groups/:id/messages`
+- `GET /api/groups/:id/trips`
+- `POST /api/groups/:id/trips`
+
+支持能力：
+
+- 群组 CRUD
+- 群成员管理
+- 群消息系统
+- 群行程规划
+- 群组数据与用户数据联动
+- 受 `requireAuth` 中间件保护
+
 ## 4. 数据库功能
 
 数据库类型：
@@ -424,6 +520,12 @@
 - `diaries`
 - `diary_tags`
 - `diary_comments`
+- `user_likes`
+- `user_favorites`
+- `groups`
+- `group_members`
+- `group_trips`
+- `group_messages`
 - `amap_poi_cache`
 - `amap_route_cache`
 - `amap_weather_cache`
@@ -436,6 +538,9 @@
 - 景点图片路径字段 `image_url`
 - 标签拆表存储
 - 日记评论拆表存储
+- 按用户独立点赞追踪（`user_likes` 表）
+- 用户收藏功能（`user_favorites` 表）
+- 群组系统（`groups`、`group_members`、`group_trips`、`group_messages`）
 - 高德接口结果缓存
 
 常用命令：
@@ -596,7 +701,61 @@ npm.cmd run dev -- --host 0.0.0.0
 - 高德能力依赖 key 和网络，答辩或演示时建议保留本地算法模式作为兜底。
 - 仓库中部分旧文档或旧文件可能存在编码显示异常，后续建议逐步替换为 UTF-8 文档。
 
-## 11. 后续更新记录模板
+## 11. 详细更新记录
+
+### 2026-05-28 大规模功能更新
+
+改动范围：
+
+- 前端：Profile、Plaza、Admin、MapWorkspace、Auth、Diary、新增 Groups 页面
+- 后端：新增 groups 路由、auth 中间件、like/unlike API
+- 数据库：新增 `user_likes`、`user_favorites`、`groups`、`group_members`、`group_trips`、`group_messages`
+- 安全：`requireAuth` 中间件保护所有写端点
+
+新增功能：
+
+- 群组功能（创建、成员管理、行程规划、群消息）
+- Auth 中间件鉴权（`x-user-id` 请求头）
+- Profile 编辑功能（昵称/城市/简介）
+- `unlikeDiary` API
+- Admin 增强（表头排序、筛选下拉框、lucide-react 图标、CSV UTF-8 BOM）
+- MapWorkspace 增强（节点改名、右键删边、多格式导入导出、清空确认）
+- 登录重定向（`?redirect=` 参数）
+- 注册表单新增昵称字段
+
+影响页面：
+
+- Profile、Plaza、Admin、MapWorkspace、Diary、Auth
+- 新增 Groups、GroupDetail、GroupTrip 页面
+
+验证方式：
+
+- 手动测试各页面的新增功能
+- 确认点赞状态跨刷新保持
+- 确认群组 CRUD 正常
+- 确认 Auth 守卫阻止未登录写操作
+
+### 2026-05-27 群组功能开发
+
+改动范围：
+
+- 前端：新增群组相关页面
+- 后端：新增 groups 路由和仓库
+- 数据库：四张新表
+- 安全：requireAuth 中间件
+
+新增功能：
+
+- 群组 CRUD
+- 群成员管理
+- 群消息系统
+- 群行程规划
+
+影响页面：
+
+- 新增 Groups.jsx、GroupDetail.jsx、GroupTrip.jsx
+
+## 12. 后续更新记录模板
 
 每次新增功能时，可以按下面格式追加：
 

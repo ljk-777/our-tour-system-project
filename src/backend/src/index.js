@@ -10,6 +10,7 @@ const routesRouter = require('./routes/routes');
 const diariesRouter = require('./routes/diaries');
 const usersRouter = require('./routes/users');
 const amapRouter = require('./routes/amap');
+const groupsRouter = require('./routes/groups');
 
 const app = express();
 const PORT = 3001;
@@ -24,6 +25,7 @@ app.use('/api/routes', routesRouter);
 app.use('/api/diaries', diariesRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/amap', amapRouter);
+app.use('/api/groups', groupsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '旅游系统后端运行中', version: '1.0.0' });
