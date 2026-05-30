@@ -66,8 +66,16 @@ export const joinGroup = (data) => api.post('/groups/join', data);
 export const getGroups = () => api.get('/groups');
 export const getGroup = (id) => api.get(`/groups/${id}`);
 export const deleteGroup = (id) => api.delete(`/groups/${id}`);
+export const leaveGroup = (id) => api.post(`/groups/${id}/leave`);
+export const removeGroupMember = (id, userId) => api.delete(`/groups/${id}/members/${userId}`);
+export const updateGroupMemberRole = (id, userId, role) => api.patch(`/groups/${id}/members/${userId}/role`, { role });
 export const getTrip = (id) => api.get(`/groups/${id}/trips`);
 export const saveTrip = (id, data) => api.post(`/groups/${id}/trips`, data);
+export const generateGroupTrip = (id, data) => api.post(`/groups/${id}/trips/ai-generate`, data, { timeout: 20000 });
+export const previewGroupRoute = (id, data) => api.post(`/groups/${id}/trips/route-preview`, data, { timeout: 30000 });
+export const getGroupPreferences = (id) => api.get(`/groups/${id}/preferences`);
+export const saveMyGroupPreference = (id, data) => api.post(`/groups/${id}/preferences/me`, data);
+export const getGroupConflictAnalysis = (id) => api.get(`/groups/${id}/conflict-analysis`, { timeout: 20000 });
 export const getMessages = (id, params) => api.get(`/groups/${id}/messages`, { params });
 export const sendMessage = (id, data) => api.post(`/groups/${id}/messages`, data);
 
