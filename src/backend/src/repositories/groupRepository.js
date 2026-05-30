@@ -47,6 +47,24 @@ function mapMessage(row) {
   };
 }
 
+function mapPreference(row) {
+  if (!row) return null;
+  return {
+    groupId: Number(row.group_id),
+    userId: Number(row.user_id),
+    userName: row.nickname || row.username || null,
+    userAvatar: row.avatar || null,
+    budgetLevel: Number(row.budget_level || 3),
+    staminaLevel: Number(row.stamina_level || 3),
+    paceLevel: Number(row.pace_level || 3),
+    photoLevel: Number(row.photo_level || 3),
+    foodPreference: row.food_preference || '',
+    dietaryRestrictions: row.dietary_restrictions || '',
+    notes: row.notes || '',
+    updatedAt: row.updated_at,
+  };
+}
+
 // ── Code generation ──
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -117,6 +135,14 @@ async function remove(id) {
 }
 
 // ── Members ──
+async function getMember(groupId, userId) {
+  const { rows } = await query(
+    'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+    [Number(groupId), Number(userId)]
+  );
+  return rows[0] ? { role: rows[0].role } : null;
+}
+
 async function addMember(groupId, userId) {
   // Check if already a member
   const existing = await query(
@@ -131,6 +157,27 @@ async function addMember(groupId, userId) {
   // Update group timestamp
   await query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [Number(groupId)]);
   return true;
+}
+
+async function removeMember(groupId, userId) {
+  const result = await query(
+    'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
+    [Number(groupId), Number(userId)]
+  );
+  await query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [Number(groupId)]);
+  return result.rowCount > 0;
+}
+
+async function updateMemberRole(groupId, userId, role) {
+  const { rows } = await query(
+    `UPDATE group_members
+     SET role = $1
+     WHERE group_id = $2 AND user_id = $3
+     RETURNING role`,
+    [role, Number(groupId), Number(userId)]
+  );
+  await query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [Number(groupId)]);
+  return rows[0] ? { role: rows[0].role } : null;
 }
 
 async function getMembers(groupId) {
@@ -148,6 +195,14 @@ async function getMembers(groupId) {
     joinedAt: r.joined_at,
     user: { id: Number(r.id), username: r.username, nickname: r.nickname, avatar: r.avatar, city: r.city, level: r.level },
   }));
+}
+
+async function countAdmins(groupId) {
+  const { rows } = await query(
+    "SELECT COUNT(*)::int AS total FROM group_members WHERE group_id = $1 AND role = 'admin'",
+    [Number(groupId)]
+  );
+  return Number(rows[0]?.total || 0);
 }
 
 // ── Trips ──
@@ -180,6 +235,85 @@ async function upsertTrip(groupId, data) {
 async function getTrip(groupId) {
   const { rows } = await query('SELECT * FROM group_trips WHERE group_id = $1', [Number(groupId)]);
   return mapTrip(rows[0]);
+}
+
+// ── Preferences ──
+let preferencesTableReady;
+
+async function ensurePreferencesTable() {
+  if (!preferencesTableReady) {
+    preferencesTableReady = (async () => {
+      await query(`
+        CREATE TABLE IF NOT EXISTS group_preferences (
+          group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          budget_level INTEGER NOT NULL DEFAULT 3,
+          stamina_level INTEGER NOT NULL DEFAULT 3,
+          pace_level INTEGER NOT NULL DEFAULT 3,
+          photo_level INTEGER NOT NULL DEFAULT 3,
+          food_preference VARCHAR(120),
+          dietary_restrictions VARCHAR(120),
+          notes TEXT,
+          updated_at TIMESTAMP DEFAULT NOW(),
+          PRIMARY KEY (group_id, user_id)
+        )
+      `);
+      await query('CREATE INDEX IF NOT EXISTS idx_group_preferences_group_id ON group_preferences(group_id)');
+    })();
+  }
+  return preferencesTableReady;
+}
+
+async function upsertPreference(groupId, userId, data) {
+  await ensurePreferencesTable();
+  const { rows } = await query(
+    `INSERT INTO group_preferences (
+      group_id, user_id, budget_level, stamina_level, pace_level, photo_level,
+      food_preference, dietary_restrictions, notes, updated_at
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
+    ON CONFLICT (group_id, user_id)
+    DO UPDATE SET
+      budget_level = EXCLUDED.budget_level,
+      stamina_level = EXCLUDED.stamina_level,
+      pace_level = EXCLUDED.pace_level,
+      photo_level = EXCLUDED.photo_level,
+      food_preference = EXCLUDED.food_preference,
+      dietary_restrictions = EXCLUDED.dietary_restrictions,
+      notes = EXCLUDED.notes,
+      updated_at = NOW()
+    RETURNING *`,
+    [
+      Number(groupId),
+      Number(userId),
+      clampLevel(data.budgetLevel),
+      clampLevel(data.staminaLevel),
+      clampLevel(data.paceLevel),
+      clampLevel(data.photoLevel),
+      data.foodPreference || null,
+      data.dietaryRestrictions || null,
+      data.notes || null,
+    ]
+  );
+  return mapPreference(rows[0]);
+}
+
+async function getPreferences(groupId) {
+  await ensurePreferencesTable();
+  const { rows } = await query(
+    `SELECT gp.*, u.username, u.nickname, u.avatar
+     FROM group_preferences gp
+     JOIN users u ON u.id = gp.user_id
+     WHERE gp.group_id = $1
+     ORDER BY gp.updated_at DESC`,
+    [Number(groupId)]
+  );
+  return rows.map(mapPreference);
+}
+
+function clampLevel(value) {
+  const num = Number(value || 3);
+  return Math.max(1, Math.min(5, Number.isFinite(num) ? num : 3));
 }
 
 // ── Messages ──
@@ -227,7 +361,8 @@ async function getMessages(groupId, beforeId, limit = 50) {
 
 module.exports = {
   create, findByUserId, findById, findByCode, remove,
-  addMember, getMembers,
+  addMember, getMember, removeMember, updateMemberRole, getMembers, countAdmins,
   upsertTrip, getTrip,
+  upsertPreference, getPreferences,
   addMessage, getMessages,
 };

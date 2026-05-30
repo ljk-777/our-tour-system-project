@@ -215,11 +215,27 @@ const schemaStatements = [
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `,
+  `
+    CREATE TABLE IF NOT EXISTS group_preferences (
+      group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      budget_level INTEGER NOT NULL DEFAULT 3,
+      stamina_level INTEGER NOT NULL DEFAULT 3,
+      pace_level INTEGER NOT NULL DEFAULT 3,
+      photo_level INTEGER NOT NULL DEFAULT 3,
+      food_preference VARCHAR(120),
+      dietary_restrictions VARCHAR(200),
+      notes TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (group_id, user_id)
+    );
+  `,
   `CREATE INDEX IF NOT EXISTS idx_groups_code ON groups(code);`,
   `CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id);`,
   `CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);`,
   `CREATE INDEX IF NOT EXISTS idx_group_messages_group_created ON group_messages(group_id, created_at DESC);`,
   `CREATE INDEX IF NOT EXISTS idx_group_trips_group_id ON group_trips(group_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_preferences_group_id ON group_preferences(group_id);`,
 ];
 
 async function initSchema() {
