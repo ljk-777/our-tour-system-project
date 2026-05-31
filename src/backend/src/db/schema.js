@@ -230,12 +230,37 @@ const schemaStatements = [
       PRIMARY KEY (group_id, user_id)
     );
   `,
+  `
+    CREATE TABLE IF NOT EXISTS group_polls (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      title VARCHAR(200) NOT NULL,
+      options JSONB NOT NULL DEFAULT '[]',
+      status VARCHAR(20) NOT NULL DEFAULT 'open',
+      created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      closes_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS group_poll_votes (
+      poll_id BIGINT NOT NULL REFERENCES group_polls(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      option_index INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (poll_id, user_id)
+    );
+  `,
   `CREATE INDEX IF NOT EXISTS idx_groups_code ON groups(code);`,
   `CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id);`,
   `CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);`,
   `CREATE INDEX IF NOT EXISTS idx_group_messages_group_created ON group_messages(group_id, created_at DESC);`,
   `CREATE INDEX IF NOT EXISTS idx_group_trips_group_id ON group_trips(group_id);`,
   `CREATE INDEX IF NOT EXISTS idx_group_preferences_group_id ON group_preferences(group_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_polls_group_id ON group_polls(group_id, created_at DESC);`,
+  `CREATE INDEX IF NOT EXISTS idx_group_poll_votes_poll_id ON group_poll_votes(poll_id);`,
 ];
 
 async function initSchema() {

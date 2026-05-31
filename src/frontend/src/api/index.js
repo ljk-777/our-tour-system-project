@@ -76,7 +76,12 @@ export const previewGroupRoute = (id, data) => api.post(`/groups/${id}/trips/rou
 export const getGroupPreferences = (id) => api.get(`/groups/${id}/preferences`);
 export const saveMyGroupPreference = (id, data) => api.post(`/groups/${id}/preferences/me`, data);
 export const getGroupConflictAnalysis = (id) => api.get(`/groups/${id}/conflict-analysis`, { timeout: 20000 });
+export const getGroupWeatherAdvisory = (id) => api.get(`/groups/${id}/weather-advisory`);
 export const getMessages = (id, params) => api.get(`/groups/${id}/messages`, { params });
-export const sendMessage = (id, data) => api.post(`/groups/${id}/messages`, data);
+export const sendMessage = (id, data) => api.post(`/groups/${id}/messages`, data, { timeout: 25000 });
+export const applyGroupAiAction = (id, messageId) => api.post(`/groups/${id}/ai-actions/${messageId}/apply`);
+export const getGroupPolls = (id) => api.get(`/groups/${id}/polls`);
+export const createGroupPoll = (id, data) => api.post(`/groups/${id}/polls`, data);
+export const voteGroupPoll = (id, pollId, optionIndex) => api.post(`/groups/${id}/polls/${pollId}/vote`, { optionIndex });
 
 export default api;

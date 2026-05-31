@@ -65,6 +65,28 @@ function mapPreference(row) {
   };
 }
 
+function mapPoll(row) {
+  if (!row) return null;
+  const options = typeof row.options === 'string' ? JSON.parse(row.options) : (row.options || []);
+  const votes = typeof row.votes === 'string' ? JSON.parse(row.votes) : (row.votes || []);
+  const counts = options.map((_, index) => votes.filter((vote) => Number(vote.optionIndex) === index).length);
+  return {
+    id: Number(row.id),
+    groupId: Number(row.group_id),
+    title: row.title,
+    options,
+    status: row.status,
+    createdBy: row.created_by ? Number(row.created_by) : null,
+    creatorName: row.creator_name || null,
+    closesAt: row.closes_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    votes,
+    counts,
+    totalVotes: votes.length,
+  };
+}
+
 // ── Code generation ──
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -335,6 +357,17 @@ async function addMessage(groupId, senderId, type, content) {
   return msg;
 }
 
+async function getMessageById(groupId, messageId) {
+  const { rows } = await query(
+    `SELECT m.*, u.nickname AS sender_name, u.avatar AS sender_avatar
+     FROM group_messages m
+     LEFT JOIN users u ON u.id = m.sender_id
+     WHERE m.group_id = $1 AND m.id = $2`,
+    [Number(groupId), Number(messageId)]
+  );
+  return mapMessage(rows[0]);
+}
+
 async function getMessages(groupId, beforeId, limit = 50) {
   let sql;
   let params;
@@ -359,10 +392,96 @@ async function getMessages(groupId, beforeId, limit = 50) {
   return rows.map(mapMessage).reverse();
 }
 
+// ── Polls ──
+async function createPoll(groupId, userId, data) {
+  const options = normalizePollOptions(data.options);
+  const { rows } = await query(
+    `INSERT INTO group_polls (group_id, title, options, created_by, closes_at)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [Number(groupId), data.title.trim(), JSON.stringify(options), Number(userId), data.closesAt || null]
+  );
+  await query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [Number(groupId)]);
+  return getPollById(groupId, rows[0].id);
+}
+
+async function getPolls(groupId) {
+  const { rows } = await query(
+    `SELECT p.*, u.nickname AS creator_name,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'userId', v.user_id,
+            'optionIndex', v.option_index,
+            'userName', COALESCE(vu.nickname, vu.username),
+            'userAvatar', vu.avatar,
+            'updatedAt', v.updated_at
+          )
+        ) FILTER (WHERE v.user_id IS NOT NULL),
+        '[]'
+      ) AS votes
+     FROM group_polls p
+     LEFT JOIN users u ON u.id = p.created_by
+     LEFT JOIN group_poll_votes v ON v.poll_id = p.id
+     LEFT JOIN users vu ON vu.id = v.user_id
+     WHERE p.group_id = $1
+     GROUP BY p.id, u.nickname
+     ORDER BY p.created_at DESC`,
+    [Number(groupId)]
+  );
+  return rows.map(mapPoll);
+}
+
+async function getPollById(groupId, pollId) {
+  const polls = await getPolls(groupId);
+  return polls.find((poll) => poll.id === Number(pollId)) || null;
+}
+
+async function votePoll(groupId, pollId, userId, optionIndex) {
+  const poll = await getPollById(groupId, pollId);
+  if (!poll) return null;
+  if (poll.status !== 'open') {
+    const error = new Error('投票已结束');
+    error.statusCode = 400;
+    throw error;
+  }
+  const index = Number(optionIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= poll.options.length) {
+    const error = new Error('投票选项无效');
+    error.statusCode = 400;
+    throw error;
+  }
+  await query(
+    `INSERT INTO group_poll_votes (poll_id, user_id, option_index)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (poll_id, user_id)
+     DO UPDATE SET option_index = EXCLUDED.option_index, updated_at = NOW()`,
+    [Number(pollId), Number(userId), index]
+  );
+  await query('UPDATE group_polls SET updated_at = NOW() WHERE id = $1', [Number(pollId)]);
+  await query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [Number(groupId)]);
+  return getPollById(groupId, pollId);
+}
+
+function normalizePollOptions(options) {
+  const list = (Array.isArray(options) ? options : [])
+    .map((option) => `${option || ''}`.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  const unique = [...new Set(list)];
+  if (unique.length < 2) {
+    const error = new Error('投票至少需要 2 个选项');
+    error.statusCode = 400;
+    throw error;
+  }
+  return unique;
+}
+
 module.exports = {
   create, findByUserId, findById, findByCode, remove,
   addMember, getMember, removeMember, updateMemberRole, getMembers, countAdmins,
   upsertTrip, getTrip,
   upsertPreference, getPreferences,
-  addMessage, getMessages,
+  addMessage, getMessageById, getMessages,
+  createPoll, getPolls, getPollById, votePoll,
 };

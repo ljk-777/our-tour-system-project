@@ -140,6 +140,46 @@ function buildConflictPrompt(input) {
   ].join('\n');
 }
 
+function buildGroupChatPrompt(input) {
+  const trip = input.trip || {};
+  const recentMessages = (input.messages || [])
+    .slice(-12)
+    .map((message) => {
+      const speaker = message.type === 'ai'
+        ? 'AI助手'
+        : (message.senderName || (message.type === 'system' ? '系统' : '成员'));
+      return `${speaker}：${trimText(message.content, 180)}`;
+    })
+    .join('\n') || '暂无聊天记录';
+  const preferences = (input.preferences || [])
+    .slice(0, 8)
+    .map((preference) => `${preference.userName || '成员'}：预算${preference.budgetLevel}/体力${preference.staminaLevel}/节奏${preference.paceLevel}/拍照${preference.photoLevel}，饮食${preference.foodPreference || '未填'}，忌口${preference.dietaryRestrictions || '无'}`)
+    .join('\n') || '暂无成员偏好';
+
+  return [
+    '你是群组旅行空间里的 AI 协作助手，名字叫“小迹 AI”。',
+    '请回复用户在群聊中 @ai 的消息，像一个实时旅行中枢助手一样给出简洁、具体、能直接执行的建议。',
+    '要求：',
+    '1. 用中文回复，语气自然友好，不要输出 Markdown 表格。',
+    '2. 回复控制在 80 到 180 个中文字符之间，除非用户明确要求详细方案。',
+    '3. 优先结合当前行程、群成员偏好、天气和最近聊天上下文。',
+    '4. 不要假装已经修改行程或发送通知；如果需要成员确认，请明确说“建议”。',
+    '5. 如果用户只是闲聊，可以轻松回应，但仍尽量和旅行协作相关。',
+    '',
+    `群组：${trimText(input.groupName, 80) || '未命名群组'}`,
+    `当前用户：${trimText(input.senderName, 80) || '成员'}`,
+    `用户消息：${trimText(input.message, 1000)}`,
+    `行程标题：${trimText(trip.title, 80) || '未创建'}`,
+    `出发地：${trimText(trip.departure, 80) || '未填写'}`,
+    `目的地：${trimText(trip.destination, 80) || '未填写'}`,
+    `日期：${trimText(trip.startDate, 30) || '未填'} 至 ${trimText(trip.endDate, 30) || '未填'}`,
+    `行程备注：${trimText(trip.notes, 500) || '无'}`,
+    `天气建议：${trimText(input.weatherSummary, 300) || '暂无'}`,
+    `成员偏好：\n${preferences}`,
+    `最近聊天：\n${recentMessages}`,
+  ].join('\n');
+}
+
 function parseJsonObject(text) {
   const raw = `${text || ''}`.trim();
   try {
@@ -176,8 +216,19 @@ async function analyzeGroupConflictWithAi(input) {
   return parseJsonObject(content);
 }
 
+async function generateGroupChatReply(input) {
+  const config = getConfig();
+  return requestCompletion(
+    config,
+    buildGroupChatPrompt(input),
+    0.55,
+    '你是“小迹 AI”，一个嵌入多人旅行群聊的中文旅行协作助手。回复要短、准、可执行。',
+  );
+}
+
 module.exports = {
   generateDiaryDraft,
   generateGroupTripSuggestion,
   analyzeGroupConflictWithAi,
+  generateGroupChatReply,
 };

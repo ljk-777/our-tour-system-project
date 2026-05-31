@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { AmapMultiRouteMap } from '../components/AmapRouteMap.jsx';
 import {
+  applyGroupAiAction,
+  createGroupPoll,
   deleteGroup,
   generateGroupTrip,
   getGroup,
   getGroupConflictAnalysis,
   getGroupPreferences,
+  getGroupPolls,
+  getGroupWeatherAdvisory,
   getMessages,
   getTrip,
   leaveGroup,
@@ -15,6 +20,7 @@ import {
   saveTrip,
   sendMessage,
   updateGroupMemberRole,
+  voteGroupPoll,
 } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -28,10 +34,12 @@ export default function GroupDetail() {
   const [group, setGroup] = useState(null);
   const [trip, setTrip] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [polls, setPolls] = useState([]);
   const [preferences, setPreferences] = useState([]);
   const [conflict, setConflict] = useState(null);
+  const [weatherAdvisory, setWeatherAdvisory] = useState(null);
   const [routeResult, setRouteResult] = useState(null);
-  const [routeMode, setRouteMode] = useState('walking');
+  const [routeMode, setRouteMode] = useState('smart');
   const [tab, setTab] = useState('itinerary');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -42,20 +50,26 @@ export default function GroupDetail() {
   const chatScrollRef = useRef(null);
 
   const isAdmin = group?.members?.some((m) => m.user.id === user?.id && m.role === 'admin');
+  const myRole = group?.members?.find((m) => m.user.id === user?.id)?.role;
+  const canEditTrip = ['admin', 'editor'].includes(myRole);
   const myPreference = preferences.find((item) => item.userId === user?.id);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
-    const [gRes, tRes, mRes, pRes] = await Promise.all([
+    const [gRes, tRes, mRes, pRes, wRes, pollRes] = await Promise.all([
       getGroup(id).catch(() => ({ data: { data: null } })),
       getTrip(id).catch(() => ({ data: { data: null } })),
       getMessages(id, {}).catch(() => ({ data: { data: [] } })),
       getGroupPreferences(id).catch(() => ({ data: { data: [] } })),
+      getGroupWeatherAdvisory(id).catch(() => ({ data: { data: null } })),
+      getGroupPolls(id).catch(() => ({ data: { data: [] } })),
     ]);
     setGroup(gRes.data?.data || null);
     setTrip(tRes.data?.data || null);
     setMessages(mRes.data?.data || []);
     setPreferences(pRes.data?.data || []);
+    setWeatherAdvisory(wRes.data?.data || null);
+    setPolls(pollRes.data?.data || []);
   }, [id]);
 
   useEffect(() => {
@@ -69,9 +83,17 @@ export default function GroupDetail() {
 
   useEffect(() => {
     if (tab !== 'chat') return;
-    const el = chatScrollRef.current;
-    if (!el) return;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 180) el.scrollTop = el.scrollHeight;
+    const scrollToLatest = () => {
+      const el = chatScrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    scrollToLatest();
+    const frame = requestAnimationFrame(scrollToLatest);
+    const timer = setTimeout(scrollToLatest, 80);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
   }, [messages, tab]);
 
   const openEditor = () => {
@@ -152,6 +174,43 @@ export default function GroupDetail() {
     }
   };
 
+  const handleApplyAiAction = async (messageId) => {
+    setBusy(`aiAction:${messageId}`);
+    try {
+      const res = await applyGroupAiAction(id, messageId);
+      setTrip(res.data?.data || trip);
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || '应用 AI 建议失败');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleCreatePoll = async (payload) => {
+    setBusy('poll');
+    try {
+      await createGroupPoll(id, payload);
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || '创建投票失败');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleVotePoll = async (pollId, optionIndex) => {
+    setBusy(`pollVote:${pollId}`);
+    try {
+      const res = await voteGroupPoll(id, pollId, optionIndex);
+      setPolls((prev) => prev.map((poll) => (poll.id === Number(pollId) ? res.data.data : poll)));
+    } catch (err) {
+      alert(err?.response?.data?.message || '投票失败');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const memberOptions = useMemo(() => group?.members || [], [group]);
 
   if (loading) return <Shell><div className="text-center py-24 text-gray-400">加载中...</div></Shell>;
@@ -201,6 +260,7 @@ export default function GroupDetail() {
           onSave={() => saveCurrentTrip()}
           setEditTrip={setEditTrip}
           trip={trip}
+          weatherAdvisory={weatherAdvisory}
         />
       )}
 
@@ -250,9 +310,14 @@ export default function GroupDetail() {
           chatScrollRef={chatScrollRef}
           messageText={messageText}
           messages={messages}
+          polls={polls}
+          canApplyAiAction={canEditTrip}
+          onApplyAiAction={handleApplyAiAction}
+          onCreatePoll={handleCreatePoll}
+          onSend={handleSend}
+          onVotePoll={handleVotePoll}
           setMessageText={setMessageText}
           user={user}
-          onSend={handleSend}
         />
       )}
 
@@ -275,7 +340,7 @@ export default function GroupDetail() {
   );
 }
 
-function ItineraryTab({ busy, editing, editTrip, memberOptions, onAiTrip, onCancel, onEdit, onSave, setEditTrip, trip }) {
+function ItineraryTab({ busy, editing, editTrip, memberOptions, onAiTrip, onCancel, onEdit, onSave, setEditTrip, trip, weatherAdvisory }) {
   if (editing) {
     return (
       <Panel>
@@ -343,6 +408,7 @@ function ItineraryTab({ busy, editing, editTrip, memberOptions, onAiTrip, onCanc
       </div>
       {!trip ? <p className="text-sm text-gray-400">先创建行程，再用路线、偏好和冲突协调来完善它。</p> : (
         <div className="space-y-2">
+          {weatherAdvisory && <WeatherAdvisoryCard advisory={weatherAdvisory} />}
           {trip.notes && <p className="text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-md px-3 py-2">{trip.notes}</p>}
           {(trip.dailyPlan || []).map((day) => <DayView key={day.day} day={day} />)}
         </div>
@@ -363,6 +429,7 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
         </div>
         <div className="flex items-center gap-2">
           <select value={routeMode} onChange={(e) => setRouteMode(e.target.value)} className="compact-mini w-24">
+            <option value="smart">智能推荐</option>
             <option value="walking">{'\u6b65\u884c'}</option>
             <option value="driving">{'\u9a7e\u8f66'}</option>
             <option value="cycling">{'\u9a91\u884c'}</option>
@@ -374,6 +441,20 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
         {days.map((item, index) => <button key={item.day} onClick={() => setSelectedDay(index)} className={`px-2.5 py-1 rounded-md text-xs border ${selectedDay === index ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200 text-gray-600'}`}>D{item.day}</button>)}
       </div>
+      {routeResult && (
+        <div className="mb-3 overflow-hidden rounded-md border border-blue-100 bg-white/75">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs">
+            <div className="font-semibold text-gray-900">路线地图预览</div>
+            <div className="flex flex-wrap gap-2 text-[11px] text-gray-500">
+              <RouteLegend color="#2563eb" label="步行" dashed />
+              <RouteLegend color="#16a34a" label="骑行" />
+              <RouteLegend color="#f97316" label="驾车" />
+              <RouteLegend color="#7c3aed" label="公交" />
+            </div>
+          </div>
+          <AmapMultiRouteMap waypoints={routeResult.orderSpots || routeResult.pathSpots || []} segments={routeResult.segments || []} height={260} />
+        </div>
+      )}
       <div className="grid md:grid-cols-2 gap-3">
         <div className="border border-gray-100 rounded-md p-2.5">
           <h3 className="text-xs font-semibold mb-1.5">{'\u9014\u7ecf\u70b9'}</h3>
@@ -389,14 +470,20 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
           {!routeResult ? <p className="text-sm text-gray-400">{'\u8fd8\u6ca1\u6709\u751f\u6210\u8def\u7ebf\u3002'}</p> : (
             <div className="space-y-1.5 text-xs">
               <p>{'\u670d\u52a1\uff1a'}{routeResult.algorithm}</p>
-              <p>{'\u65b9\u5f0f\uff1a'}{modeLabel(routeResult.mode)}</p>
+              <p>{'\u65b9\u5f0f\uff1a'}{modeLabel(routeResult.effectiveMode || routeResult.mode)}{routeResult.mode === 'smart' ? '（智能推荐）' : ''}</p>
+              {routeResult.weatherRouteHint && <p className="text-blue-600">天气参考：{routeResult.weatherRouteHint}</p>}
+              {(routeResult.routeAdvice || []).length > 0 && (
+                <div className="rounded-md border border-amber-100 bg-amber-50 px-2.5 py-2 text-amber-700">
+                  {(routeResult.routeAdvice || []).map((item, index) => <p key={index}>{item}</p>)}
+                </div>
+              )}
               <p>{'\u603b\u8ddd\u79bb\uff1a'}{formatDistance(routeResult.totalDistance || routeResult.totalCost)}</p>
               <p>{'\u9884\u8ba1\u7528\u65f6\uff1a'}{formatDuration(routeResult.totalDuration)}</p>
               <p>{'\u9014\u7ecf\u987a\u5e8f\uff1a'}{(routeResult.orderSpots || []).map((s) => s.name || s.id).join(' -> ')}</p>
               {(routeResult.segments || []).map((seg, index) => (
                 <div key={`${seg.from}-${seg.to}-${index}`} className="group-soft-row px-2 py-1.5">
                   <div className="font-medium text-gray-800">{seg.fromName}{' -> '}{seg.toName}</div>
-                  <div className="text-gray-500">{formatDistance(seg.distance)} / {formatDuration(seg.duration)}</div>
+                  <div className="text-gray-500">{modeLabel(seg.mode)} · {formatDistance(seg.distance)} / {formatDuration(seg.duration)}</div>
                   {seg.steps?.[0]?.instruction && <div className="text-gray-400 truncate">{seg.steps[0].instruction}</div>}
                 </div>
               ))}
@@ -407,6 +494,47 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
     </Panel>
   );
 }
+
+function RouteLegend({ color, label, dashed = false }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span
+        className="inline-block h-0.5 w-5 rounded-full"
+        style={{ background: dashed ? `repeating-linear-gradient(90deg, ${color} 0 5px, transparent 5px 8px)` : color }}
+      />
+      {label}
+    </span>
+  );
+}
+
+function WeatherAdvisoryCard({ advisory }) {
+  return (
+    <div className="group-soft-row p-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div className="group-section-title">天气协作提醒</div>
+        <span className="group-chip group-chip-blue">{advisory.summary}</span>
+      </div>
+      <div className="grid md:grid-cols-3 gap-2">
+        <AdviceColumn title="提醒" items={advisory.reminders} />
+        <AdviceColumn title="穿衣" items={advisory.clothing} />
+        <AdviceColumn title="优化" items={advisory.optimizations} />
+      </div>
+      {advisory.weather?.reportTime && <p className="mt-2 text-[11px] text-gray-400">更新时间：{advisory.weather.reportTime}</p>}
+    </div>
+  );
+}
+
+function AdviceColumn({ title, items = [] }) {
+  return (
+    <div className="rounded-md bg-white/75 border border-white/70 p-2">
+      <div className="font-semibold text-gray-800 mb-1">{title}</div>
+      <ul className="space-y-1 text-gray-500">
+        {items.map((item, index) => <li key={index}>{item}</li>)}
+      </ul>
+    </div>
+  );
+}
+
 function PreferenceTab({ busy, current, preferences, onSave }) {
   const [form, setForm] = useState(() => ({
     budgetLevel: current?.budgetLevel || 3,
@@ -524,30 +652,164 @@ function ConflictTab({ busy, conflict, preferences, onAnalyze }) {
   );
 }
 
-function ChatTab({ busy, chatScrollRef, messageText, messages, setMessageText, user, onSend }) {
+function ChatTab({ busy, canApplyAiAction, chatScrollRef, messageText, messages, onApplyAiAction, onCreatePoll, onVotePoll, polls, setMessageText, user, onSend }) {
+  const [showPollForm, setShowPollForm] = useState(false);
+  const [pollTitle, setPollTitle] = useState('');
+  const [pollOptions, setPollOptions] = useState('打车\n公交/地铁\n继续步行');
+  const insertAiMention = () => {
+    setMessageText((prev) => (prev.trim() ? `${prev.trim()} @ai ` : '@ai '));
+  };
+  const pollMap = useMemo(() => new Map((polls || []).map((poll) => [poll.id, poll])), [polls]);
+
+  const submitPoll = async () => {
+    const options = pollOptions.split(/\n|，|,/).map((item) => item.trim()).filter(Boolean);
+    if (!pollTitle.trim()) return alert('请填写投票标题');
+    if (options.length < 2) return alert('至少需要 2 个选项');
+    await onCreatePoll({ title: pollTitle.trim(), options });
+    setPollTitle('');
+    setPollOptions('打车\n公交/地铁\n继续步行');
+    setShowPollForm(false);
+  };
+
   return (
     <Panel className="p-0">
-      <div ref={chatScrollRef} className="h-[340px] overflow-y-auto p-3 space-y-2.5 bg-white/30">
+      <div ref={chatScrollRef} className="h-[58vh] min-h-[430px] max-h-[680px] overflow-y-auto p-3 space-y-2.5 bg-white/30">
         {messages.map((m) => (
           <div key={m.id}>
             {m.type === 'system' ? <div className="text-center text-[11px] text-gray-400 py-1">{m.content}</div> : (
+              m.type === 'ai_action' ? <AiActionCard canApply={canApplyAiAction} message={m} busy={busy} onApply={onApplyAiAction} /> : (
+              m.type === 'poll' ? <PollCard busy={busy} message={m} poll={pollMap.get(readPollId(m.content))} user={user} onVote={onVotePoll} /> : (
               <div className={`flex gap-2 ${m.senderId === user?.id ? 'flex-row-reverse' : ''}`}>
-                <span className="text-lg shrink-0">{m.senderAvatar || '🧑'}</span>
-                <div className={`max-w-[72%] rounded-xl px-3 py-2 text-xs shadow-sm ${m.senderId === user?.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border border-slate-100'}`}>
-                  {m.senderId !== user?.id && <p className="text-xs font-medium mb-1 opacity-70">{m.senderName}</p>}
+                <span className={`shrink-0 grid size-7 place-items-center rounded-full text-xs shadow-sm ${m.type === 'ai' ? 'bg-blue-600 text-white font-bold' : 'bg-white'}`}>
+                  {m.type === 'ai' ? 'AI' : (m.senderAvatar || '🧑')}
+                </span>
+                <div className={`max-w-[72%] rounded-xl px-3 py-2 text-xs shadow-sm ${m.senderId === user?.id ? 'bg-blue-600 text-white' : m.type === 'ai' ? 'bg-blue-50 text-blue-950 border border-blue-100' : 'bg-white text-gray-800 border border-slate-100'}`}>
+                  {m.senderId !== user?.id && <p className="text-xs font-medium mb-1 opacity-70">{m.type === 'ai' ? '小迹 AI' : m.senderName}</p>}
                   <p>{m.content}</p>
                 </div>
               </div>
+              )
+              )
             )}
           </div>
         ))}
       </div>
+      {showPollForm && (
+        <div className="border-t border-white/70 bg-white/80 p-2.5 text-xs">
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+            <input value={pollTitle} onChange={(e) => setPollTitle(e.target.value)} placeholder="投票标题，例如：返程方式怎么选？" className="compact-input" />
+            <textarea value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} rows={3} placeholder="每行一个选项" className="compact-input min-h-[70px]" />
+            <div className="flex gap-2 md:flex-col">
+              <button type="button" onClick={submitPoll} disabled={busy === 'poll'} className="rounded bg-blue-600 px-3 py-1.5 font-medium text-white disabled:opacity-60">{busy === 'poll' ? '创建中' : '创建'}</button>
+              <button type="button" onClick={() => setShowPollForm(false)} className="rounded px-3 py-1.5 text-gray-500 hover:bg-gray-100">取消</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border-t border-white/70 bg-white/70 p-2 flex gap-2">
-        <input value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="输入消息..." maxLength={2000} className="compact-input" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), onSend())} />
-        <button onClick={onSend} disabled={busy === 'message' || !messageText.trim()} className="px-3 py-1.5 rounded bg-blue-600 text-xs font-medium text-white">{busy === 'message' ? '...' : '发送'}</button>
+        <button type="button" onClick={insertAiMention} className="px-2.5 py-1.5 rounded bg-blue-50 text-xs font-semibold text-blue-600 border border-blue-100">@AI</button>
+        <button type="button" onClick={() => setShowPollForm((prev) => !prev)} className="px-2.5 py-1.5 rounded bg-white text-xs font-semibold text-gray-600 border border-slate-100">投票</button>
+        <input value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="输入消息，@ai 可呼叫小迹 AI..." maxLength={2000} className="compact-input" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), onSend())} />
+        <button onClick={onSend} disabled={busy === 'message' || !messageText.trim()} className="px-3 py-1.5 rounded bg-blue-600 text-xs font-medium text-white">{busy === 'message' ? '发送中' : '发送'}</button>
       </div>
     </Panel>
   );
+}
+
+function PollCard({ busy, message, poll, user, onVote }) {
+  if (!poll) return <div className="ml-9 max-w-[78%] rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs text-gray-400">投票已不可用</div>;
+  const myVote = (poll.votes || []).find((vote) => Number(vote.userId) === Number(user?.id));
+  const maxVotes = Math.max(1, ...(poll.counts || [0]));
+  return (
+    <div className="ml-9 max-w-[82%] rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold text-gray-950">投票：{poll.title}</div>
+          <p className="mt-0.5 text-gray-400">{poll.totalVotes || 0} 人已投票{myVote ? `，你选择了「${poll.options[myVote.optionIndex]}」` : ''}</p>
+        </div>
+        <span className="rounded bg-blue-50 px-2 py-1 text-blue-600">{poll.status === 'open' ? '进行中' : '已结束'}</span>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {(poll.options || []).map((option, index) => {
+          const count = poll.counts?.[index] || 0;
+          const selected = Number(myVote?.optionIndex) === index;
+          return (
+            <button
+              key={`${message.id}-${option}`}
+              type="button"
+              onClick={() => onVote(poll.id, index)}
+              disabled={busy === `pollVote:${poll.id}` || poll.status !== 'open'}
+              className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${selected ? 'border-blue-300 bg-blue-50 text-blue-900' : 'border-slate-100 bg-slate-50 text-gray-700 hover:bg-white'}`}
+            >
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">{option}</span>
+                <span>{count} 票</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white">
+                <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.round((count / maxVotes) * 100)}%` }} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function readPollId(content) {
+  try {
+    return Number(JSON.parse(content)?.pollId);
+  } catch {
+    return null;
+  }
+}
+
+function AiActionCard({ busy, canApply, message, onApply }) {
+  const action = parseActionContent(message.content);
+  if (!action) return null;
+  const isBusy = busy === `aiAction:${message.id}`;
+  const detail = formatActionDetail(action);
+  return (
+    <div className="ml-9 max-w-[78%] rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold text-blue-900">{action.title || 'AI 操作建议'}</div>
+          <p className="mt-1 text-gray-500">{action.description || '确认后应用到当前群组行程。'}</p>
+          {detail && <p className="mt-1 rounded bg-blue-50 px-2 py-1 text-blue-700">{detail}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={() => onApply(message.id)}
+          disabled={isBusy || !canApply}
+          title={canApply ? '应用 AI 建议' : '只有管理员或编辑者可以应用'}
+          className="shrink-0 rounded bg-blue-600 px-2.5 py-1.5 font-medium text-white disabled:bg-gray-200 disabled:text-gray-400"
+        >
+          {isBusy ? '应用中' : canApply ? '应用' : '需编辑权限'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatActionDetail(action) {
+  if (action.action === 'insert_rest_activity') {
+    const payload = action.payload || {};
+    return `将修改：D${payload.day || 1} ${payload.time || '12:30'} 新增“${payload.name || '室内休息与补给'}”`;
+  }
+  if (action.action === 'update_transport_activity') {
+    const payload = action.payload || {};
+    return `将修改：匹配“${payload.keyword || '交通'}”活动，交通方式改为${payload.transport || '建议方式'}`;
+  }
+  if (action.action === 'append_trip_note') return '将修改：追加到行程备注';
+  return '';
+}
+
+function parseActionContent(content) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
 }
 
 function MembersTab({ group, isAdmin, onRemove, onRole, user }) {
@@ -618,7 +880,7 @@ function SuggestionList({ title, items }) {
 }
 
 function modeLabel(mode) {
-  return ({ walking: '步行', driving: '驾车', cycling: '骑行', transit: '公交' })[mode] || mode || '步行';
+  return ({ smart: '智能推荐', walking: '步行', driving: '驾车', cycling: '骑行', transit: '公交', mixed: '混合交通' })[mode] || mode || '步行';
 }
 
 function formatDistance(value) {
