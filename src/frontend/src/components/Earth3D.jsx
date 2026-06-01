@@ -402,23 +402,30 @@ const Earth = ({ radius = 5, controlsRef }) => {
     if (anim.camPhase === 'zoomIn') {
       anim.camT = Math.min(anim.camT + dt / anim.camZoomDur, 1);
       const t = anim.camT;
-      // ease-out-back：轻微过冲后回落，有游戏开场感
+
+      // 距离：ease-out-back（轻微过冲）
       const ec = t < 1
         ? 1 + 2.5 * Math.pow(t - 1, 3) + 1.5 * Math.pow(t - 1, 2)
         : 1;
       const dist = anim.camFrom + (anim.camTo - anim.camFrom) * Math.max(0, Math.min(ec, 1.04));
       cam.position.setLength(dist);
-      if (ctrl) ctrl.update();
+
+      // ctrl.target.y 同步动画：ease-in-out-cubic，和缩进同时到位
+      // → 城市投影到竖向 1/3 处，和缩进一体化，无停顿
+      if (ctrl) {
+        const et = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+        ctrl.target.y = 2.0 * et;
+        ctrl.update();
+      }
+
       if (anim.camT >= 1) anim.camPhase = 'locked';
 
     } else if (anim.camPhase === 'locked') {
-      // 锁定距离
+      // 锁定：只维持，不再有任何运动
       const cur = cam.position.length();
       if (Math.abs(cur - anim.camTo) > 0.08) cam.position.setLength(anim.camTo);
-      // 平移 orbit target → 城市投影到竖向 1/3 处（NDC y ≈ -0.31）
-      if (ctrl) {
-        const smooth = 1 - Math.pow(0.88, dt * 60);
-        ctrl.target.y += (2.0 - ctrl.target.y) * smooth;
+      if (ctrl && Math.abs(ctrl.target.y - 2.0) > 0.01) {
+        ctrl.target.y = 2.0;
         ctrl.update();
       }
 
@@ -428,10 +435,9 @@ const Earth = ({ radius = 5, controlsRef }) => {
       cam.position.setLength(
         anim.camReturnFrom + (anim.camReturnTo - anim.camReturnFrom) * eo
       );
+      // ctrl.target.y 同步归零
       if (ctrl) {
-        // 同步还原 orbit target
-        const smooth = 1 - Math.pow(0.88, dt * 60);
-        ctrl.target.y += (0 - ctrl.target.y) * smooth;
+        ctrl.target.y = 2.0 * (1 - eo);
         ctrl.update();
       }
       if (anim.camOutT >= 1) {
