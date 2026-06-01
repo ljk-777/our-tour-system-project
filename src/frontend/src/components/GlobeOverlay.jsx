@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Map, Compass, BookOpen, Navigation, X, Calendar, Sparkles, Users } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
@@ -529,11 +529,232 @@ function GlobeSearch() {
   );
 }
 
-/* ── 主 Overlay（原有内容完整保留）──────────────────── */
-export default function GlobeOverlay() {
-  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity } = useAppStore();
+// ── 流星弹幕消息库 ─────────────────────────────────────────────
+// ── 弹幕数据 ────────────────────────────────────────────────────
+const DANMU_MSGS = [
+  '🌟 这里的风景美到窒息，一定要来！',
+  '📸 随手一拍都是大片，摄影天堂！',
+  '🍜 本地美食绝了，吃了还想吃！',
+  '✨ 来了就不想走，下次还会来！',
+  '🏛️ 历史底蕴深厚，每个角落都有故事',
+  '🌅 日落真的很震撼，不虚此行！',
+  '💯 强烈推荐给所有朋友，必打卡！',
+  '😍 比照片里还要美一百倍！',
+  '🌿 空气绝佳，整个人都治愈了',
+  '⭐ 这辈子一定要来一次的地方',
+  '🎒 第一次来就深深爱上了这里',
+  '🌸 春天来这里，人生圆满了 🌸',
+  '💫 来对了！人生必去地之一',
+  '🏔️ 站在这里心旷神怡，太美了',
+  '👫 情侣打卡圣地，氛围感满分 💑',
+  '🌙 晚上来更有感觉，灯光超美！',
+  '🔥 排再长的队都值得，真的！',
+  '🦋 这里的自然风光让我窒息',
+  '🎨 每个角度都值得驻足，叹为观止',
+  '🌈 雨后来这里，简直是人间仙境',
+  '✈️ 专程飞过来，一点都不后悔！',
+  '💎 隐藏宝藏地，绝对值得一来',
+  '🎠 每次来都有新发现，玩不够！',
+  '🌻 第一次见到如此震撼的风景',
+  '🍃 大自然的鬼斧神工，太壮观了',
+  '🎯 精准推荐！来了就知道值不值',
+  '👏 不愧是必打卡地，名不虚传！',
+  '🌍 快告诉朋友，一定要来这里！',
+  '🎵 连空气都是甜的，超级治愈 🌿',
+  '🏖️ 闭上眼睛还能想起来的美景',
+  '🚀 整个人都被这里震撼到了！',
+  '🌊 景色太治愈，压力全消了',
+  '🎪 比想象中还精彩一百倍！',
+];
+
+const DANMU_COLORS = [
+  '#ffffff','#fbbf24','#f97316','#fb923c',
+  '#fde68a','#fdba74','#fcd34d','#f9a8d4',
+  '#a5f3fc','#86efac',
+];
+
+// hex → rgba 字符串（canvas gradient用）
+const h2r = (hex, a) => {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+
+/* ── Canvas 流星弹幕层（性能优先版 — 零 shadowBlur）──────── */
+function DanmuLayer({ active }) {
+  const canvasRef = useRef(null);
+  const S = useRef({ bullets:[], queue:[], animId:null, spawnId:null });
+
+  const nextMsg = (s) => {
+    if (!s.queue.length) s.queue = [...DANMU_MSGS].sort(() => Math.random() - 0.5);
+    return s.queue.shift();
+  };
+
+  const makeBullet = (canvas, s, opts = {}) => {
+    const W = canvas.width, H = canvas.height;
+    const isMsg = opts.type !== 'star';
+    const color = DANMU_COLORS[Math.floor(Math.random() * DANMU_COLORS.length)];
+    return {
+      x:       opts.startX ?? W + 30,
+      y:       H * 0.03 + Math.random() * H * 0.54,
+      speed:   isMsg ? 85 + Math.random() * 55 : 210 + Math.random() * 160,
+      tailLen: isMsg ? 110 + Math.random() * 55 : 55 + Math.random() * 80,
+      headR:   isMsg ? 2.5 : 1.4 + Math.random(),
+      color, isMsg,
+      text:    isMsg ? nextMsg(s) : '',
+      fontSize:isMsg ? 13 + Math.floor(Math.random() * 4) : 0,
+      alpha:0, dying:false,
+      // 轻量粒子：只存坐标+alpha，不存颜色（复用父级color）
+      pts: [],
+    };
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const s = S.current;
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+
+    if (!active) {
+      s.bullets.forEach(b => { b.dying = true; });
+      if (s.spawnId) { clearInterval(s.spawnId); s.spawnId = null; }
+      return () => window.removeEventListener('resize', resize);
+    }
+
+    // 初始爆发（铺满屏幕）
+    for (let i = 0; i < 16; i++) {
+      s.bullets.push(makeBullet(canvas, s, {
+        type:   i % 3 === 0 ? 'star' : 'msg',
+        startX: canvas.width * 0.05 + Math.random() * canvas.width,
+      }));
+    }
+
+    // 持续生成，max 32 颗
+    s.spawnId = setInterval(() => {
+      const alive = s.bullets.filter(b => !b.dying).length;
+      if (alive < 32) {
+        s.bullets.push(makeBullet(canvas, s));
+        if (Math.random() < 0.4) s.bullets.push(makeBullet(canvas, s, { type: 'star' }));
+      }
+    }, 650);
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    let last = performance.now();
+
+    const tick = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.08);
+      last = now;
+      const CW = canvas.width, CH = canvas.height;
+      ctx.clearRect(0, 0, CW, CH);
+
+      s.bullets = s.bullets.filter(b => !(b.dying && b.alpha <= 0) && b.x > -(b.tailLen + 300));
+
+      s.bullets.forEach(b => {
+        b.x -= b.speed * dt;
+
+        // alpha
+        if (b.dying) {
+          b.alpha = Math.max(0, b.alpha - dt * 2.5);
+        } else {
+          const fi = Math.min((CW - b.x) / 120, 1);
+          const fo = Math.min(Math.max(b.x + b.tailLen, 0) / 140, 1);
+          b.alpha  = Math.min(fi, fo);
+        }
+        if (b.alpha < 0.01) return;
+
+        // 轻量粒子（每帧15%概率，max 6个，用 fillRect 替代 arc）
+        if (!b.dying && Math.random() < 0.15 && b.pts.length < 6) {
+          b.pts.push({
+            x: b.x + b.tailLen * (0.05 + Math.random() * 0.55),
+            y: b.y + (Math.random() - 0.5) * 4,
+            a: 0.65 + Math.random() * 0.25,
+            s: 1 + Math.random() * 1.5,
+          });
+        }
+        b.pts.forEach(p => { p.a -= dt * 3.2; });
+        b.pts = b.pts.filter(p => p.a > 0);
+
+        // ── 绘制（无 shadowBlur，用多层渐变替代发光效果）──────
+
+        // 1. 粗光晕线（彩色，半透明，宽一点）
+        const g1 = ctx.createLinearGradient(b.x, b.y, b.x + b.tailLen, b.y);
+        g1.addColorStop(0,   h2r(b.color, b.alpha * 0.28));
+        g1.addColorStop(0.5, h2r(b.color, b.alpha * 0.08));
+        g1.addColorStop(1,  'rgba(0,0,0,0)');
+        ctx.strokeStyle = g1;
+        ctx.lineWidth   = b.isMsg ? 6 : 4;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.tailLen * 0.6, b.y); ctx.stroke();
+
+        // 2. 细核心线（更亮）
+        const g2 = ctx.createLinearGradient(b.x, b.y, b.x + b.tailLen, b.y);
+        g2.addColorStop(0,   h2r(b.color, b.alpha * 0.92));
+        g2.addColorStop(0.45, h2r(b.color, b.alpha * 0.3));
+        g2.addColorStop(1,  'rgba(0,0,0,0)');
+        ctx.strokeStyle = g2;
+        ctx.lineWidth   = b.isMsg ? 1.6 : 1;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.tailLen, b.y); ctx.stroke();
+
+        // 3. 粒子（无 shadow，fillRect 最快）
+        b.pts.forEach(p => {
+          ctx.globalAlpha = p.a * b.alpha;
+          ctx.fillStyle   = b.color;
+          ctx.fillRect(p.x - p.s * 0.5, p.y - p.s * 0.5, p.s, p.s);
+        });
+
+        // 4. 头部（两圈无阴影 circle，用高 alpha 模拟亮点）
+        ctx.globalAlpha = b.alpha * 0.35;
+        ctx.fillStyle   = b.color;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.headR * 2.8, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = b.alpha * 0.92;
+        ctx.fillStyle   = '#ffffff';
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.headR, 0, Math.PI*2); ctx.fill();
+
+        // 5. 文字
+        if (b.isMsg && b.fontSize > 0) {
+          ctx.globalAlpha = b.alpha;
+          ctx.font        = `500 ${b.fontSize}px "PingFang SC","SF Pro Display",sans-serif`;
+          ctx.fillStyle   = b.color;
+          ctx.fillText(b.text, b.x + b.headR + 7, b.y + b.fontSize * 0.36);
+          // 白色微叠（无 shadow）
+          ctx.globalAlpha = b.alpha * 0.25;
+          ctx.fillStyle   = '#ffffff';
+          ctx.fillText(b.text, b.x + b.headR + 7, b.y + b.fontSize * 0.36);
+        }
+
+        ctx.globalAlpha = 1; // reset
+      });
+
+      s.animId = requestAnimationFrame(tick);
+    };
+    s.animId = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      if (s.animId)  cancelAnimationFrame(s.animId);
+      if (s.spawnId) clearInterval(s.spawnId);
+    };
+  }, [active]); // eslint-disable-line
 
   return (
+    <canvas ref={canvasRef} style={{
+      position:'fixed', inset:0, pointerEvents:'none',
+      zIndex:50, opacity: active ? 1 : 0, transition:'opacity 1.0s ease',
+    }}/>
+  );
+}
+
+/* ── 主 Overlay（原有内容完整保留）──────────────────── */
+export default function GlobeOverlay() {
+  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity, focusedCity } = useAppStore();
+
+  return (
+    <>
+    {/* ── 流星弹幕层（fixed 覆盖全屏，z-index 高于地球）── */}
+    <DanmuLayer active={!!focusedCity} />
+
     <div className="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between">
 
       {/* ── 新增：左侧旅行者排行榜 ── */}
@@ -640,5 +861,6 @@ export default function GlobeOverlay() {
         </div>
       </div>
     </div>
+    </>
   );
 }

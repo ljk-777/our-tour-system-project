@@ -111,16 +111,18 @@
   /* === 基础玻璃层（通用基类） === */
   .glass {
     background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(24px) saturate(2);
-    -webkit-backdrop-filter: blur(24px) saturate(2);
+    backdrop-filter: blur(18px) saturate(1.8);
+    -webkit-backdrop-filter: blur(18px) saturate(1.8);
     border: 1px solid rgba(255, 255, 255, 0.70);
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   /* === 玻璃卡片 — 内容卡片主力 === */
   .glass-card {
     background: rgba(255, 255, 255, 0.42);
-    backdrop-filter: blur(28px) saturate(2.2);
-    -webkit-backdrop-filter: blur(28px) saturate(2.2);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
     border: 1px solid rgba(255, 255, 255, 0.75);
     border-radius: 1.5rem;
     box-shadow:
@@ -128,13 +130,15 @@
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 -0.5px 0 rgba(0, 0, 0, 0.03) inset;
     transition: box-shadow 0.28s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+    will-change: transform;
+    transform: translateZ(0);
   }
   .glass-card:hover {
     background: rgba(255, 255, 255, 0.62);
     box-shadow:
       0 16px 48px rgba(0, 0, 0, 0.10),
       0 1px 0 rgba(255, 255, 255, 1.0) inset;
-    transform: translateY(-4px);
+    transform: translateY(-4px) translateZ(0);
   }
 
   /* === 玻璃面板 — 较大区域容器 === */
