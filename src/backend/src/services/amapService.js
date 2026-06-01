@@ -58,7 +58,10 @@ function parseLocation(location) {
 }
 
 function shouldRefreshRouteCache(cached) {
-  return Boolean(cached && Number(cached.distance || 0) > 0 && Number(cached.duration || 0) <= 0);
+  const distance = Number(cached?.distance || 0);
+  const durationMissing = distance > 0 && Number(cached?.duration || 0) <= 0;
+  const pathMissing = distance > 50 && (!Array.isArray(cached?.polyline) || cached.polyline.length < 2);
+  return Boolean(cached && (durationMissing || pathMissing));
 }
 
 function estimateDurationSeconds(mode, distance) {
@@ -184,6 +187,31 @@ function normalizeRoutePath(rawStep) {
   return segments;
 }
 
+function collectRoutePolyline(items) {
+  const list = Array.isArray(items) ? items : [items];
+  return list.flatMap((item) => {
+    if (!item) return [];
+    if (typeof item === 'string') return normalizeRoutePath(item);
+    if (Array.isArray(item)) {
+      if (item.length === 2 && item.every((value) => Number.isFinite(Number(value)))) {
+        return [[Number(item[0]), Number(item[1])]];
+      }
+      return collectRoutePolyline(item);
+    }
+    return collectRoutePolyline([
+      item.polyline,
+      item.polylines,
+      item.path,
+      item.steps,
+      item.buslines,
+      item.railways,
+      item.walking,
+      item.bus,
+      item.railway,
+    ]);
+  });
+}
+
 async function route({ originLng, originLat, destLng, destLat, mode = 'walking' }) {
   const origin = `${originLng},${originLat}`;
   const destination = `${destLng},${destLat}`;
@@ -197,22 +225,23 @@ async function route({ originLng, originLat, destLng, destLat, mode = 'walking' 
     transit: '/v5/direction/transit/integrated',
   };
   const path = routePathMap[mode] || routePathMap.walking;
-  const payload = await requestAmap(path, { origin, destination });
+  const payload = await requestAmap(path, { origin, destination, show_fields: 'polyline,cost,navi' });
 
   let data;
   if (mode === 'transit') {
     const transit = payload.route?.transits?.[0];
+    const transitSegments = transit?.segments || [];
     data = {
       mode,
       distance: Number(transit?.distance || 0),
       duration: Number(transit?.duration || 0),
       cost: Number(transit?.cost || 0),
-      steps: (transit?.segments || []).map((segment, index) => ({
+      steps: transitSegments.map((segment, index) => ({
         instruction: segment.instruction || `公交换乘段 ${index + 1}`,
-        distance: Number(segment.walking?.distance || 0),
-        duration: Number(segment.walking?.duration || 0),
+        distance: Number(segment.walking?.distance || segment.bus?.buslines?.[0]?.distance || 0),
+        duration: Number(segment.walking?.duration || segment.bus?.buslines?.[0]?.duration || 0),
       })),
-      polyline: [],
+      polyline: collectRoutePolyline(transitSegments),
     };
   } else {
     const pathItem = payload.route?.paths?.[0];
@@ -228,7 +257,7 @@ async function route({ originLng, originLat, destLng, destLat, mode = 'walking' 
       duration,
       strategy: pathItem?.strategy,
       tolls: Number(pathItem?.tolls || 0),
-      polyline: steps.flatMap((step) => normalizeRoutePath(step.polyline)),
+      polyline: collectRoutePolyline([pathItem?.polyline, steps]),
       steps: steps.map((step, index) => ({
         instruction: step.instruction || `导航步骤 ${index + 1}`,
         distance: parseStepDistance(step),
