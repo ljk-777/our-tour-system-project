@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Map, Compass, BookOpen, Navigation, X, Calendar, Sparkles, Users } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
@@ -529,11 +529,160 @@ function GlobeSearch() {
   );
 }
 
-/* ── 主 Overlay（原有内容完整保留）──────────────────── */
-export default function GlobeOverlay() {
-  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity } = useAppStore();
+// ── 流星弹幕消息库 ─────────────────────────────────────────────
+const DANMU_MSGS = [
+  '🌟 这里的风景美到窒息，一定要来！',
+  '📸 随手一拍都是大片，摄影天堂！',
+  '🍜 本地美食绝了，吃了还想吃！',
+  '✨ 来了就不想走，下次还会来！',
+  '🏛️ 历史底蕴深厚，每个角落都有故事',
+  '🌅 日落真的很震撼，不虚此行！',
+  '💯 强烈推荐给所有朋友，必打卡！',
+  '😍 比照片里还要美一百倍！',
+  '🌿 空气绝佳，整个人都治愈了',
+  '⭐ 这辈子一定要来一次的地方',
+  '🎒 第一次来就深深爱上了这里',
+  '🌸 春天来这里，人生圆满了 🌸',
+  '💫 来对了！人生必去地之一',
+  '🏔️ 站在这里心旷神怡，太美了',
+  '👫 情侣打卡圣地，氛围感满分 💑',
+  '🌙 晚上来更有感觉，灯光超美！',
+  '🔥 排再长的队都值得，真的！',
+  '🦋 这里的自然风光让我窒息',
+  '🎨 每个角度都值得驻足，叹为观止',
+  '🌈 雨后来这里，简直是人间仙境',
+  '✈️ 专程飞过来，一点都不后悔！',
+  '💎 隐藏宝藏地，绝对值得一来',
+  '🎠 每次来都有新发现，玩不够！',
+  '🌻 第一次见到如此震撼的风景',
+  '🍃 大自然的鬼斧神工，太壮观了',
+  '🎯 精准推荐！来了就知道值不值',
+  '👏 不愧是必打卡地，名不虚传！',
+  '🌍 快告诉朋友，一定要来这里！',
+  '🎵 连空气都是甜的，超级治愈 🌿',
+  '🏖️ 闭上眼睛还能想起来的美景',
+];
+
+// 弹幕颜色（暖色调 + 白色，契合旅游网站橙色主题）
+const DANMU_COLORS = [
+  '#ffffff', '#fbbf24', '#f97316', '#fb923c',
+  '#fde68a', '#fdba74', '#e2e8f0', '#fed7aa',
+];
+
+/* ── Canvas 流星弹幕层 ──────────────────────────────────────── */
+function DanmuLayer({ active }) {
+  const canvasRef  = useRef(null);
+  const bulletsRef = useRef([]);
+  const animRef    = useRef(null);
+  const spawnRef   = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    if (!active) {
+      // 淡出现有弹幕
+      bulletsRef.current = bulletsRef.current.map(b => ({ ...b, dying: true }));
+      return () => window.removeEventListener('resize', resize);
+    }
+
+    // 生成一条弹幕
+    const spawn = () => {
+      const W = canvas.width, H = canvas.height;
+      // 弹幕区域：屏幕上方 5% ~ 55%（避开地球中心区域）
+      const minY = H * 0.05;
+      const maxY = H * 0.55;
+      const y = minY + Math.random() * (maxY - minY);
+      const color = DANMU_COLORS[Math.floor(Math.random() * DANMU_COLORS.length)];
+      const fontSize = 13 + Math.floor(Math.random() * 5);
+      const speed = 90 + Math.random() * 70; // px/s
+      const msg = DANMU_MSGS[Math.floor(Math.random() * DANMU_MSGS.length)];
+      bulletsRef.current.push({ text: msg, x: W + 20, y, speed, color, fontSize, alpha: 0 });
+    };
+
+    // 启动时立刻生成几条
+    for (let i = 0; i < 4; i++) {
+      setTimeout(spawn, i * 600);
+    }
+    spawnRef.current = setInterval(spawn, 1400 + Math.random() * 600);
+
+    // rAF 动画循环
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      bulletsRef.current = bulletsRef.current.filter(b => b.x > -500 && b.alpha > -0.05);
+      bulletsRef.current.forEach(b => {
+        b.x -= b.speed * dt;
+        // 淡入（右边缘）淡出（左边缘）
+        if (b.dying) {
+          b.alpha = Math.max(b.alpha - dt * 1.5, 0);
+        } else {
+          const fadeIn  = Math.min((W - b.x) / 180, 1);
+          const fadeOut = Math.min(b.x / 200, 1);
+          b.alpha = Math.min(fadeIn, fadeOut);
+        }
+
+        if (b.alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = b.alpha;
+        ctx.font = `600 ${b.fontSize}px "PingFang SC","SF Pro Display","Microsoft YaHei",sans-serif`;
+        ctx.fillStyle = b.color;
+        // 外发光（流星尾迹感）
+        ctx.shadowColor = b.color;
+        ctx.shadowBlur  = 10;
+        ctx.fillText(b.text, b.x, b.y);
+        // 内核高亮（白色二次描绘，轻微叠加）
+        ctx.shadowBlur = 4;
+        ctx.globalAlpha = b.alpha * 0.35;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(b.text, b.x, b.y);
+        ctx.restore();
+      });
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      if (spawnRef.current) clearInterval(spawnRef.current);
+    };
+  }, [active]);
 
   return (
+    <canvas ref={canvasRef}
+      style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none',
+        zIndex: 50,  // 高于 Three.js canvas（z-index 通常为 0）
+        opacity: active ? 1 : 0,
+        transition: 'opacity 1.2s ease',
+      }}
+    />
+  );
+}
+
+/* ── 主 Overlay（原有内容完整保留）──────────────────── */
+export default function GlobeOverlay() {
+  const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity, focusedCity } = useAppStore();
+
+  return (
+    <>
+    {/* ── 流星弹幕层（fixed 覆盖全屏，z-index 高于地球）── */}
+    <DanmuLayer active={!!focusedCity} />
+
     <div className="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between">
 
       {/* ── 新增：左侧旅行者排行榜 ── */}
@@ -640,5 +789,6 @@ export default function GlobeOverlay() {
         </div>
       </div>
     </div>
+    </>
   );
 }

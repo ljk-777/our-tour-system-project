@@ -407,22 +407,31 @@ const Earth = ({ radius = 5, controlsRef }) => {
       if (anim.camT >= 1) anim.camPhase = 'locked';
 
     } else if (anim.camPhase === 'locked') {
-      // 锁定距离（防止用户滚轮影响）
+      // 锁定距离
       const cur = cam.position.length();
-      if (Math.abs(cur - anim.camTo) > 0.08) {
-        cam.position.setLength(anim.camTo);
-        if (ctrl) ctrl.update();
+      if (Math.abs(cur - anim.camTo) > 0.08) cam.position.setLength(anim.camTo);
+      // 平移 orbit target → 城市投影到竖向 1/3 处（NDC y ≈ -0.31）
+      if (ctrl) {
+        const smooth = 1 - Math.pow(0.88, dt * 60);
+        ctrl.target.y += (2.0 - ctrl.target.y) * smooth;
+        ctrl.update();
       }
 
     } else if (anim.camPhase === 'zoomOut') {
       anim.camOutT = Math.min(anim.camOutT + dt / anim.camOutDur, 1);
-      const eo = 1 - Math.pow(1 - anim.camOutT, 3); // ease-out-cubic
-      const dist = anim.camReturnFrom + (anim.camReturnTo - anim.camReturnFrom) * eo;
-      cam.position.setLength(dist);
-      if (ctrl) ctrl.update();
+      const eo = 1 - Math.pow(1 - anim.camOutT, 3);
+      cam.position.setLength(
+        anim.camReturnFrom + (anim.camReturnTo - anim.camReturnFrom) * eo
+      );
+      if (ctrl) {
+        // 同步还原 orbit target
+        const smooth = 1 - Math.pow(0.88, dt * 60);
+        ctrl.target.y += (0 - ctrl.target.y) * smooth;
+        ctrl.update();
+      }
       if (anim.camOutT >= 1) {
         anim.camPhase = 'idle';
-        if (ctrl) ctrl.enabled = true;
+        if (ctrl) { ctrl.target.set(0,0,0); ctrl.enabled = true; }
       }
     }
 
