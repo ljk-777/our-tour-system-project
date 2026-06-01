@@ -1,331 +1,288 @@
-# 项目功能总览
+# PROJECT_FEATURES
 
-更新时间：2026-05-28  
-当前代码基准：`main` 分支，已同步到远端最新版本
+更新时间：2026-05-31  
+项目定位：旅游系统课程设计，覆盖景点发现、路线规划、日记管理、美食推荐、群组协作、地图能力与算法演示。
 
-本文档用于记录项目当前已经实现的功能、关键文件位置和后续维护方式。后续每次新增或修改功能时，建议同步更新本文档，方便团队总览项目状态。
+## 1. 技术栈
 
-## 更新记录
+- 前端：React + Vite + Tailwind CSS
+- 后端：Node.js + Express
+- 数据库：PostgreSQL
+- 地图服务：高德 Web API + 高德 JavaScript API
+- AI 服务：复用已有日记 AI Key 配置，支持日记生成与群组智能建议
+- 核心算法：Dijkstra、MinHeap/TopK、KMP、Trie、倒排索引、多点路径近似优化
+
+## 2. 最近更新
+
+### 2026-05-31 群组协作中枢增强
+
+- 群组聊天支持 `@ai`、`@小迹`、`@助手` 触发 AI 回复。
+- AI 回复会结合群组行程、成员偏好、最近聊天和高德天气生成旅行建议。
+- 新增 AI 操作卡片：
+  - 可追加行程备注。
+  - 可新增室内休息/补给活动。
+  - 可根据投票结果调整交通活动。
+  - 只有管理员或编辑者可以应用真实行程修改。
+- 新增群组天气协作提醒：
+  - 调用高德天气接口。
+  - 根据天气、温度、风力生成提醒、穿衣建议和行程优化。
+  - 天气变化会写入群聊系统消息。
+- 新增群组投票：
+  - 群聊内创建投票。
+  - 成员投票/改票。
+  - 投票卡片展示票数、进度条和个人选择。
+  - 投票结果领先或过半时自动生成可应用的行程变更卡片。
+- 群组路线升级为智能推荐：
+  - 默认 `smart` 模式。
+  - 短距离步行，中距离骑行，远距离驾车。
+  - 高温、雨雪、大风等天气会降低步行阈值。
+  - 页面显示“不建议步行”的原因和天气参考。
+- 群组路线新增高德地图可视化：
+  - 使用高德 JS API 展示真实地图。
+  - 按分段 polyline 绘制真实道路路径。
+  - 步行、骑行、驾车、公交使用不同颜色。
+  - 起点、终点、途经点在地图上标记。
+- 修复群组聊天体验：
+  - 切换到聊天页自动滚动到最新消息。
+  - 聊天窗口高度改为响应式，更适合查看长消息流。
+
+### 2026-05-30 群组路线切换为高德 API
+
+- 群组路线不再依赖本地 Dijkstra 图数据生成预览。
+- `POST /api/groups/:id/trips/route-preview` 改为调用 `amapService.route()`。
+- 支持步行、驾车、骑行、公交四种高德路线模式。
+- 支持两种途经点来源：
+  - 活动填写了 `spotId`：优先使用数据库景点经纬度。
+  - 活动没有 `spotId`：按活动名称调用高德地理编码解析坐标。
+- 返回真实路线数据：总距离、预计用时、分段路线、导航步骤、polyline。
+- 后端会刷新“有距离但 polyline 为空”的旧路线缓存，避免地图只显示直线。
+- 前端群组路线页增加出行方式选择和高德结果展示。
+- 群组路线请求超时放宽到 30 秒，避免多点高德请求过早超时。
+
+### 2026-05-29 群组功能增强
+
+- 新增群组偏好表 `group_preferences`。
+- 群组详情页重构为：行程、路线、偏好、协调、聊天、成员。
+- 新增群组成员管理：退出群组、移除成员、修改角色。
+- 新增群组旅行偏好填写与概览。
+- 新增群组冲突分析：规则分析 + 可选 AI 折中建议。
+- 新增群组 AI 行程生成，复用已有 AI API Key。
+- 群组详情页 UI 收紧为更紧凑的工作台布局。
+- 偏好保存增加成功/失败反馈，并在后端增加偏好表惰性创建兜底。
 
 ### 2026-05-28 大规模功能更新
 
-- **新增 群组功能**：完整的群组旅行规划系统，包含群组创建、成员管理、群行程规划、群消息
-- **新增 Auth 中间件**：`requireAuth` 中间件保护所有写接口，`x-user-id` 请求头鉴权
-- **新增 `user_likes` 表**：按用户独立跟踪点赞状态，支持取消点赞
-- **新增 `user_favorites` 表**：用户收藏功能
-- **新增 `groups` 系列表**：`groups`、`group_members`、`group_trips`、`group_messages`
-- **新增 `/api/groups` 路由**：完整的群组 CRUD 与群消息 API
-- **Profile 页面重构**：显示当前登录用户信息，支持编辑昵称/城市/简介，`/profile/:id` 查看他人
-- **用户头像可点击**：全站用户头像点击跳转个人中心
-- **Plaza 广场新增**：🏆 旅行者排行榜，用户头像/昵称可点击跳转，修复发帖人显示为昵称
-- **Admin 管理页升级**：表头点击排序，类型/标签筛选下拉框，CSV 导出 UTF-8 BOM，`lucide-react` 图标代替 emoji
-- **MapWorkspace 增强**：节点双击改名、节点拖拽移动、右键删除边、JSON 多格式导入导出、清空确认对话框、沙河/西土城数据自动加载
-- **Like 系统修复**：`unlikeDiary` API，`AuthContext` 中 `likedDiaryIds` 自动获取，点赞状态跨刷新保持
-- **登录重定向修复**：登录后通过 `?redirect=` 返回原页面
-- **注册表单新增昵称字段**
-- **Auth 守卫**：点赞/评论/发布按钮受登录状态保护
+- 新增群组系统：创建、加入、成员、行程、聊天。
+- 新增 Auth 中间件，通过 `x-user-id` 识别当前用户。
+- 新增 `user_likes`、`user_favorites`。
+- Profile、Plaza、Admin、MapWorkspace、Diary、Auth 等页面增强。
+- 登录重定向、点赞同步、注册昵称、头像跳转等体验修复。
 
-### 2026-05-27 群组功能开发
+## 3. 前端页面
 
-- **数据库**：新建 `groups`、`group_members`、`group_trips`、`group_messages` 四张表
-- **后端**：完整群组 CRUD API，群消息发送与获取
-- **前端**：群组列表页面、群组详情页面、群行程规划页面
-- **Auth 中间件**：实现 `requireAuth` 中间件，保护所有写操作端点
+### 首页
 
-## 1. 项目定位
-
-本项目是一个旅游系统课程设计项目，围绕“景点发现、路线规划、旅行日记、美食推荐、地图展示、算法演示”展开。
-
-当前项目已经从早期的静态内存数据升级为：
-
-- 前端：`React + Vite`
-- 后端：`Node.js + Express`
-- 数据库：`PostgreSQL`
-- 地图能力：高德 Web 服务 API + 高德 JavaScript API
-- 算法能力：`Dijkstra`、多点路径优化、`TopK` 小顶堆、`KMP`、`Trie`、倒排索引
-
-## 2. 前端页面功能
-
-前端入口文件：
-
-- `src/frontend/src/App.jsx`
-- `src/frontend/src/api/index.js`
-
-### 2.1 首页
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Home.jsx`
 
-已实现功能：
+功能：
 
-- 首页视觉展示与导航入口
-- 景点推荐区域
-- 首页轮播与拖拽/边缘滚动相关交互
-- 跳转到景点、路线、日记、广场、地球页等核心模块
+- 项目入口与核心模块导航
+- 景点推荐展示
+- 跳转景点、路线、日记、广场、地球、群组等模块
 
-### 2.2 景点发现
+### 景点发现
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Spots.jsx`
 - `src/frontend/src/components/SpotCard.jsx`
 
-已实现功能：
+功能：
 
-- 景点列表展示
+- 景点列表、搜索、筛选、分页/加载更多
 - 按城市、类型筛选
-- 搜索景点
-- 分页/加载更多
-- 本地景点图片展示
-- 景点卡片使用本地静态图资源，路径主要来自 `src/frontend/public/images/spots`
-- 点击卡片进入景点详情页
+- TopK 推荐与全文检索
+- 景点卡片本地图片展示
+- 点击进入景点详情
 
-数据来源：
+### 景点详情
 
-- 后端 `/api/spots`
-- 后端 `/api/spots/search`
-- 后端 `/api/spots/topk`
-- 后端 `/api/spots/recommend`
-
-### 2.3 景点详情
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/SpotDetail.jsx`
 - `src/frontend/src/components/AmapMap.jsx`
 
-已实现功能：
+功能：
 
-- 景点基本信息展示
-- 评分、标签、开放时间、门票等信息展示
+- 景点基础信息、评分、标签、门票、开放时间
 - 高德地图点位展示
-- 逆地理编码地址展示
-- 天气信息展示
-- 周边 POI 展示
+- 逆地理编码、天气、周边 POI
 - 一键跳转路线规划
 
-### 2.4 美食推荐
+### 美食推荐
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Foods.jsx`
 
-已实现功能：
+功能：
 
-- 餐厅/美食列表展示
-- 城市筛选
-- 标签筛选
-- 搜索餐厅
-- 美食卡片本地图片展示
-- 与景点数据共用 `spots` 数据表，通过 `type = restaurant` 区分
+- 美食/餐厅列表
+- 城市、标签、关键词筛选
+- 使用 `spots` 数据表，通过 `type = restaurant` 区分餐厅
 
-### 2.5 路线规划
+### 路线规划
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/RoutePlanner.jsx`
 - `src/frontend/src/components/AmapRouteMap.jsx`
 
-已实现功能：
+功能：
 
-- 本地算法模式
+- 本地算法路线规划
 - 高德真实导航模式
-- 单起点到单终点路线规划
+- 单起点到终点路线
 - 多点路径规划
-- 支持按距离或时间作为权重
-- 本地点位搜索与联想
-- 高德地点联想
-- 高德步行、驾车、骑行、公交路线规划
-- 路线距离、预计时间、路径节点展示
-- 高德路线地图展示
-- 对高德接口错误做了友好提示处理
+- 按距离或时间作为本地算法权重
+- 高德步行、驾车、骑行、公交路线
+- 距离、时间、路径节点与地图展示
 
-本地算法：
+### 旅行日记
 
-- `Dijkstra + MinHeap`
-- 多点路径使用近邻策略和 `2-opt` 优化
-
-### 2.6 旅行日记
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Diary.jsx`
 - `src/frontend/src/utils/likeSync.js`
 
-已实现功能：
+功能：
 
-- 日记列表展示
-- 日记搜索
-- 日记排序
-- 发布日记
-- 上传/压缩封面图片
-- 点赞/取消点赞
-- 评论
-- 标签展示
-- 日期格式化
-- AI 日记润色/生成草稿
-- 生成结果可预览、替换、重新生成
-- `likedDiaryIds` 状态自动获取，点赞状态跨刷新保持
-- 点赞/评论/发布按钮受登录状态保护（Auth 守卫）
+- 日记列表、搜索、排序
+- 发布日记、上传/压缩封面图
+- 点赞、取消点赞、评论
+- AI 日记草稿生成/润色
+- 登录守卫保护写操作
 
-后端支持：
+### 广场
 
-- `/api/diaries`
-- `/api/diaries/search`
-- `/api/diaries/generate`
-- `/api/diaries/:id/like`
-- `/api/diaries/:id/unlike`
-- `/api/diaries/:id/comment`
-
-### 2.7 广场
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Plaza.jsx`
 
-已实现功能：
+功能：
 
-- 旅行内容社区化展示
-- 玻璃卡片风格视觉重设计
-- 与日记、用户数据联动展示
-- 🏆 旅行者排行榜（Leaderboard）
-- 用户头像/昵称可点击跳转个人中心
-- 发帖人名称显示修复（'我' → 真实昵称）
+- 社区内容展示
+- 旅行者排行榜
+- 用户头像/昵称跳转个人主页
+- 与日记、用户数据联动
 
-### 2.8 个人中心
+### 个人中心
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Profile.jsx`
 
-已实现功能：
+功能：
 
-- 当前登录用户个人资料展示（使用 `useAuth`）
-- 查看他人用户资料（`/profile/:id` 路由）
-- 编辑个人资料（昵称/城市/简介）
-- 用户日记展示
-- 用户统计信息展示
-- 全站用户头像可点击跳转个人中心
+- 当前用户资料展示与编辑
+- `/profile/:id` 查看他人资料
+- 用户日记、收藏、足迹、统计信息
 
-数据来源：
+### 登录与注册
 
-- `/api/users`
-- `/api/users/:id`
-- `AuthContext`
-
-### 2.9 登录与注册
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Auth.jsx`
 - `src/frontend/src/context/AuthContext.jsx`
-- `src/frontend/src/hooks/useAuth.js`
 
-已实现功能：
+功能：
 
-- 登录
-- 注册（新增昵称字段）
-- 访客模式
-- 头像选择/图片压缩
+- 登录、注册、游客模式
+- 昵称、头像、资料保存
 - 登录状态本地保存
-- 受保护路由基础能力
-- 登录后重定向回原页面（`?redirect=` 参数）
-- `likedDiaryIds` 状态管理，点赞数据自动获取
+- `?redirect=` 登录后回跳
+- 点赞状态自动获取与同步
 
-说明：
+### 管理后台
 
-- 当前登录仍偏课程设计演示性质，后端返回 mock token。
-- 当前用户密码校验不是完整生产级认证。
-
-### 2.10 管理员页面
-
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Admin.jsx`
 
-已实现功能：
+功能：
 
-- 用户、日记、景点数据总览
-- 搜索
-- 筛选（类型/标签下拉筛选框）
-- 排序（表头点击排序）
-- 分页
-- 统计信息
-- 上次刷新时间显示
-- CSV 导出（UTF-8 BOM，正确处理中文）
-- `lucide-react` 图标（代替原来 emoji）
-- 数据刷新
+- 用户、景点、日记数据总览
+- 搜索、筛选、排序、分页
+- CSV 导出
+- 数据刷新和统计展示
 
-### 2.11 3D 地球页面
+### 3D 地球
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/Globe.jsx`
 - `src/frontend/src/components/Earth3D.jsx`
 - `src/frontend/src/components/GlobeOverlay.jsx`
-- `src/frontend/src/data/globeData.js`
 
-已实现功能：
+功能：
 
 - 3D 地球展示
-- 城市/旅行点位数据展示
-- 鼠标旋转和缩放
-- 旅行者排行榜
-- AI 旅游规划侧边面板
-- 首页与地球页视觉联动
+- 城市与旅行点位展示
+- 鼠标旋转缩放
+- AI 旅游规划侧边栏
 
-### 2.12 校园地图工作台
+### 校园地图工作台
 
-页面文件：
+文件：
 
 - `src/frontend/src/pages/MapWorkspace.jsx`
 - `src/frontend/src/data/sh.json`
 - `src/frontend/src/data/xtc.json`
-- `src/frontend/src/data/campusConfigs.js`
-- `src/frontend/src/utils/buildingDetector.js`
-- `src/frontend/src/utils/roadDetector.js`
 
-已实现功能：
+功能：
 
-- 沙河校区/西土城校区地图数据加载（页面打开时自动加载沙河数据）
-- 地图底图展示
-- 节点添加
-- 边添加
-- 节点拖拽移动
-- 节点双击重命名
-- 右键点击删除边
-- 路网编辑
-- 路径预览
-- 基于节点和边的校园导航
-- JSON 数据导入/导出（支持多种格式）
-- 清空确认对话框
-- 建筑与道路检测辅助工具
+- 沙河/西土城校区地图数据加载
+- 节点、边、路网编辑
+- 节点拖拽、重命名、删除边
+- JSON 导入导出
+- 路径预览与校园导航
 
-### 2.13 群组功能
+### 群组
 
-页面文件：
+文件：
 
-- `src/frontend/src/pages/Groups.jsx`
+- `src/frontend/src/pages/GroupsPage.jsx`
 - `src/frontend/src/pages/GroupDetail.jsx`
-- `src/frontend/src/pages/GroupTrip.jsx`
 
-已实现功能：
+功能：
 
-- 群组创建
-- 群组列表展示
-- 群组详情查看
-- 群成员管理（加入/退出）
-- 群行程规划
-- 群消息发送与查看
+- 群组创建、加入、列表展示
+- 群组详情与成员管理
+- 群组行程编辑
+- AI 群组行程生成
+- 群组偏好填写与概览
+- 群组冲突协调分析
+- 群组聊天
+- 群组 `@ai` 智能协作聊天
+- 群组 AI 操作卡片，可确认后真实修改行程
+- 群组投票、投票统计和投票结果联动操作卡片
+- 群组天气协作提醒和系统消息
+- 高德群组路线生成：
+  - 按活动名称或 `spotId` 解析途经点
+  - 支持智能推荐、步行、驾车、骑行、公交
+  - 智能推荐会结合距离和天气选择交通方式
+  - 展示真实距离、时间、分段导航
+  - 展示高德地图路线预览和真实道路 polyline
 
-## 3. 后端接口功能
+## 4. 后端接口
 
-后端入口：
+入口：
 
 - `src/backend/src/index.js`
 
-后端挂载接口：
+挂载接口：
 
 - `/api/spots`
 - `/api/routes`
@@ -335,20 +292,14 @@
 - `/api/groups`
 - `/api/health`
 
-安全中间件：
-
-- `src/backend/src/middleware/auth.js`
-- `requireAuth` 保护所有写操作端点
-- 基于 `x-user-id` 请求头的鉴权模式
-
-### 3.1 景点接口
+### 景点接口
 
 文件：
 
 - `src/backend/src/routes/spots.js`
 - `src/backend/src/repositories/spotRepository.js`
 
-已实现接口：
+接口：
 
 - `GET /api/spots`
 - `GET /api/spots/topk`
@@ -357,40 +308,26 @@
 - `GET /api/spots/recommend`
 - `GET /api/spots/:id`
 
-支持能力：
-
-- 景点列表
-- 景点详情
-- 城市/省份/类型筛选
-- `TopK` 推荐
-- Trie 前缀搜索
-- Trie 模糊搜索
-- 倒排索引全文搜索
-- 本地图片路径字段 `imageUrl`
-
-### 3.2 路线接口
+### 路线接口
 
 文件：
 
 - `src/backend/src/routes/routes.js`
 - `src/backend/src/repositories/routeRepository.js`
 
-已实现接口：
+接口：
 
 - `POST /api/routes/shortest`
 - `POST /api/routes/multi`
 - `GET /api/routes/nearby`
 - `GET /api/routes/graph-stats`
 
-支持能力：
+说明：
 
-- 单起点到单终点最短路径
-- 多点路径规划
-- 附近点位查询
-- 路网统计
-- 距离/时间权重切换
+- 该模块保留本地算法路线能力。
+- 群组路线已经改为走高德 API。
 
-### 3.3 日记接口
+### 日记接口
 
 文件：
 
@@ -398,7 +335,7 @@
 - `src/backend/src/repositories/diaryRepository.js`
 - `src/backend/src/services/diaryAiService.js`
 
-已实现接口：
+接口：
 
 - `GET /api/diaries`
 - `GET /api/diaries/search`
@@ -406,42 +343,26 @@
 - `POST /api/diaries`
 - `POST /api/diaries/generate`
 - `POST /api/diaries/:id/like`
+- `POST /api/diaries/:id/unlike`
 - `POST /api/diaries/:id/comment`
 
-支持能力：
-
-- 日记列表
-- 日记详情
-- 日记发布
-- 日记搜索
-- 点赞
-- 评论
-- AI 草稿生成/润色
-- 标签、天气、心情、评分、封面图字段
-
-### 3.4 用户接口
+### 用户接口
 
 文件：
 
 - `src/backend/src/routes/users.js`
 - `src/backend/src/repositories/userRepository.js`
 
-已实现接口：
+接口：
 
 - `GET /api/users`
 - `GET /api/users/:id`
 - `POST /api/users/login`
 - `POST /api/users`
+- `GET /api/users/me/favorite-ids`
+- `GET /api/users/me/liked-diaries`
 
-支持能力：
-
-- 用户列表
-- 用户详情
-- 用户注册
-- 用户登录
-- 用户关联日记查询
-
-### 3.5 高德接口代理
+### 高德代理接口
 
 文件：
 
@@ -449,7 +370,7 @@
 - `src/backend/src/services/amapService.js`
 - `src/backend/src/repositories/amapCacheRepository.js`
 
-已实现接口：
+接口：
 
 - `GET /api/amap/geocode`
 - `GET /api/amap/regeo`
@@ -458,60 +379,75 @@
 - `GET /api/amap/route`
 - `GET /api/amap/weather`
 
-支持能力：
+能力：
 
 - 地址转坐标
 - 坐标转地址
-- POI 输入提示
-- POI 搜索
+- POI 搜索与输入提示
 - 真实路线规划
 - 天气查询
-- 高德响应解析与错误提示友好化
-- POI、路线、天气缓存表支持
+- POI、路线、天气缓存
 
-### 3.6 群组接口
+### 群组接口
 
 文件：
 
 - `src/backend/src/routes/groups.js`
 - `src/backend/src/repositories/groupRepository.js`
 
-已实现接口：
+接口：
 
 - `GET /api/groups`
 - `GET /api/groups/:id`
 - `POST /api/groups`
-- `POST /api/groups/:id/members`
+- `POST /api/groups/join`
+- `DELETE /api/groups/:id`
+- `POST /api/groups/:id/leave`
 - `DELETE /api/groups/:id/members/:userId`
+- `PATCH /api/groups/:id/members/:userId/role`
 - `GET /api/groups/:id/messages`
 - `POST /api/groups/:id/messages`
+- `GET /api/groups/:id/polls`
+- `POST /api/groups/:id/polls`
+- `POST /api/groups/:id/polls/:pollId/vote`
+- `POST /api/groups/:id/ai-actions/:messageId/apply`
 - `GET /api/groups/:id/trips`
 - `POST /api/groups/:id/trips`
+- `POST /api/groups/:id/trips/ai-generate`
+- `POST /api/groups/:id/trips/route-preview`
+- `GET /api/groups/:id/preferences`
+- `POST /api/groups/:id/preferences/me`
+- `GET /api/groups/:id/conflict-analysis`
+- `GET /api/groups/:id/weather-advisory`
 
-支持能力：
+能力：
 
 - 群组 CRUD
-- 群成员管理
-- 群消息系统
-- 群行程规划
-- 群组数据与用户数据联动
-- 受 `requireAuth` 中间件保护
+- 成员权限管理
+- 群组聊天
+- 群聊系统消息：成员、偏好、行程、天气、投票和 AI 操作动态
+- `@ai` 智能回复
+- AI 操作卡片确认应用
+- 群组行程
+- AI 行程生成
+- 成员偏好
+- 冲突协调分析
+- 高德天气提醒
+- 高德智能路线生成
+- 投票创建、投票/改票、投票结果联动行程修改
 
-## 4. 数据库功能
+## 5. 数据库
 
-数据库类型：
-
-- PostgreSQL
+数据库：PostgreSQL
 
 核心文件：
 
 - `src/backend/src/db/index.js`
 - `src/backend/src/db/schema.js`
-- `src/backend/src/db/seed.js`
 - `src/backend/scripts/initDb.js`
 - `src/backend/scripts/seedDb.js`
 
-已实现表：
+主要表：
 
 - `users`
 - `spots`
@@ -526,104 +462,39 @@
 - `group_members`
 - `group_trips`
 - `group_messages`
+- `group_preferences`
+- `group_polls`
+- `group_poll_votes`
 - `amap_poi_cache`
 - `amap_route_cache`
 - `amap_weather_cache`
 
-已实现能力：
+## 6. 算法能力
 
-- 自动初始化数据库表结构
-- 自动创建索引
-- 景点、用户、日记、路线边导入
-- 景点图片路径字段 `image_url`
-- 标签拆表存储
-- 日记评论拆表存储
-- 按用户独立点赞追踪（`user_likes` 表）
-- 用户收藏功能（`user_favorites` 表）
-- 群组系统（`groups`、`group_members`、`group_trips`、`group_messages`）
-- 高德接口结果缓存
-
-常用命令：
-
-```powershell
-cd D:\code\our-tour-system-project\src\backend
-node scripts/initDb.js
-npm.cmd run seed-db
-```
-
-## 5. 数据与资源
-
-主要数据文件：
-
-- `src/backend/src/data/spots.js`
-- `src/backend/src/data/users.js`
-- `src/backend/src/data/diaries.js`
-- `src/backend/src/data/graph.js`
-- `src/frontend/src/data/globeData.js`
-- `src/frontend/src/data/sh.json`
-- `src/frontend/src/data/xtc.json`
-
-图片资源：
-
-- `src/frontend/public/images/spots`
-- `src/frontend/src/assets/bupt-shahe-campus-map.jpg`
-- `src/frontend/src/assets/bupt-xitucheng-campus-map.png`
-
-当前图片方案：
-
-- 景点/美食图片已经从远程 Unsplash 链接逐步切换为项目本地静态图片。
-- 后端数据中的 `imageUrl` 指向前端可访问的静态图片路径。
-- 前端卡片优先显示 `imageUrl`，图片失败时保留兜底展示。
-
-## 6. 核心算法
-
-算法文件：
+文件：
 
 - `src/backend/src/algorithms/dijkstra.js`
 - `src/backend/src/algorithms/heap.js`
 - `src/backend/src/algorithms/kmp.js`
 - `src/backend/src/algorithms/trie.js`
 
-已实现算法：
+能力：
 
-- `Dijkstra`：用于路线最短路
-- `MinHeap`：用于 `TopK` 推荐
-- `KMP`：用于日记关键词检索
-- `Trie`：用于景点前缀搜索和模糊搜索
-- 倒排索引：用于景点和日记全文搜索
-- 多点路径规划：近邻策略 + `2-opt` 优化
+- Dijkstra：最短路
+- MinHeap：TopK 推荐
+- KMP：日记关键词检索
+- Trie：景点前缀搜索与模糊搜索
+- 倒排索引：景点和日记全文检索
+- 多点路径：最近邻 + 2-opt
 
-前端算法演示页：
+说明：
 
-- `src/frontend/src/pages/AlgoDemo.jsx`
+- 本地算法仍用于课程设计展示与 `/api/routes`。
+- 群组路线当前优先使用高德真实路线。
 
-演示内容：
+## 7. 外部服务配置
 
-- Trie
-- Dijkstra
-- TopK
-- KMP
-- 2-opt
-
-## 7. 外部服务
-
-### 7.1 高德地图
-
-使用位置：
-
-- 前端地图展示
-- 后端高德接口代理
-- 路线规划
-- 景点详情
-- POI 搜索
-- 天气查询
-
-相关文件：
-
-- `src/frontend/src/hooks/useAmapLoader.js`
-- `src/frontend/src/components/AmapMap.jsx`
-- `src/frontend/src/components/AmapRouteMap.jsx`
-- `src/backend/src/services/amapService.js`
+### 高德地图
 
 环境变量：
 
@@ -631,16 +502,17 @@ npm.cmd run seed-db
 - `VITE_AMAP_JS_API_KEY`
 - `VITE_AMAP_SECURITY_JS_CODE`
 
-### 7.2 日记 AI 服务
-
 使用位置：
 
-- 日记页 AI 草稿生成/润色
+- 景点详情地图
+- 路线规划地图
+- 高德 POI 搜索
+- 高德路线
+- 群组路线
+- 天气查询
+- 群组路线地图真实 polyline 可视化
 
-相关文件：
-
-- `src/backend/src/services/diaryAiService.js`
-- `src/backend/src/routes/diaries.js`
+### AI 服务
 
 环境变量：
 
@@ -648,30 +520,15 @@ npm.cmd run seed-db
 - `DIARY_AI_BASE_URL`
 - `DIARY_AI_MODEL`
 
-## 8. MCP 与测试
+使用位置：
 
-MCP 相关：
+- 日记草稿生成/润色
+- 群组 AI 行程生成
+- 群组冲突协调建议
+- 群组 `@ai` 聊天回复
+- 群组 AI 操作卡片建议
 
-- `mcp/servers/tour-data-server/index.js`
-- `mcp/config/mcp_config.json`
-
-测试与对抗测试：
-
-- `tests/unit/algorithms/bench.js`
-- `adversarial/red-team/route-attack-cases.js`
-- `adversarial/red-team/search-attack-cases.js`
-- `adversarial/fuzzing/api-fuzzer.js`
-- `adversarial/chaos/chaos-scenarios.js`
-
-已覆盖方向：
-
-- 算法性能对比
-- 路线攻击用例
-- 搜索攻击用例
-- API 模糊测试
-- 混沌场景测试
-
-## 9. 当前运行方式
+## 8. 启动命令
 
 后端：
 
@@ -687,102 +544,36 @@ cd D:\code\our-tour-system-project\src\frontend
 npm.cmd run dev -- --host 0.0.0.0
 ```
 
-常用访问地址：
+常用地址：
 
-- 本机：`http://localhost:5173/`
-- 局域网：`http://当前IPv4地址:5173/`
+- 前端：`http://localhost:5173/`
 - 后端健康检查：`http://127.0.0.1:3001/api/health`
+
+## 9. 测试与验证
+
+已验证：
+
+- `npm.cmd run build` 前端构建通过
+- `node --check src/backend/src/routes/groups.js` 语法检查通过
+- `node --check src/backend/src/services/amapService.js` 语法检查通过
+- `node --check src/backend/src/repositories/groupRepository.js` 语法检查通过
+- 群组聊天切换会自动滚动到最新消息
+- 群组投票、投票结果操作卡片和行程修改链路可用
+- 群组天气提醒、AI 操作卡片和权限控制链路可用
+- 群组路线地图能显示真实道路 polyline，不再只是起终点直线
+- 高德路线后端链路可用，例如“北京邮电大学 -> 故宫博物院”返回真实距离与用时
+
+已有测试入口：
+
+- `tests/unit/algorithms/bench.js`
+- `adversarial/red-team/route-attack-cases.js`
+- `adversarial/red-team/search-attack-cases.js`
+- `adversarial/fuzzing/api-fuzzer.js`
+- `adversarial/chaos/chaos-scenarios.js`
 
 ## 10. 已知说明
 
-- 当前登录是课程设计演示级别，后端返回 mock token，不是完整生产级鉴权。
-- PostgreSQL 是当前主要运行时数据源，`src/backend/src/data/*.js` 主要用于种子数据。
-- 真实图片当前已本地化到 `public/images/spots`，后续新增景点时建议同步补图片。
-- 高德能力依赖 key 和网络，答辩或演示时建议保留本地算法模式作为兜底。
-- 仓库中部分旧文档或旧文件可能存在编码显示异常，后续建议逐步替换为 UTF-8 文档。
-
-## 11. 详细更新记录
-
-### 2026-05-28 大规模功能更新
-
-改动范围：
-
-- 前端：Profile、Plaza、Admin、MapWorkspace、Auth、Diary、新增 Groups 页面
-- 后端：新增 groups 路由、auth 中间件、like/unlike API
-- 数据库：新增 `user_likes`、`user_favorites`、`groups`、`group_members`、`group_trips`、`group_messages`
-- 安全：`requireAuth` 中间件保护所有写端点
-
-新增功能：
-
-- 群组功能（创建、成员管理、行程规划、群消息）
-- Auth 中间件鉴权（`x-user-id` 请求头）
-- Profile 编辑功能（昵称/城市/简介）
-- `unlikeDiary` API
-- Admin 增强（表头排序、筛选下拉框、lucide-react 图标、CSV UTF-8 BOM）
-- MapWorkspace 增强（节点改名、右键删边、多格式导入导出、清空确认）
-- 登录重定向（`?redirect=` 参数）
-- 注册表单新增昵称字段
-
-影响页面：
-
-- Profile、Plaza、Admin、MapWorkspace、Diary、Auth
-- 新增 Groups、GroupDetail、GroupTrip 页面
-
-验证方式：
-
-- 手动测试各页面的新增功能
-- 确认点赞状态跨刷新保持
-- 确认群组 CRUD 正常
-- 确认 Auth 守卫阻止未登录写操作
-
-### 2026-05-27 群组功能开发
-
-改动范围：
-
-- 前端：新增群组相关页面
-- 后端：新增 groups 路由和仓库
-- 数据库：四张新表
-- 安全：requireAuth 中间件
-
-新增功能：
-
-- 群组 CRUD
-- 群成员管理
-- 群消息系统
-- 群行程规划
-
-影响页面：
-
-- 新增 Groups.jsx、GroupDetail.jsx、GroupTrip.jsx
-
-## 12. 后续更新记录模板
-
-每次新增功能时，可以按下面格式追加：
-
-```markdown
-### YYYY-MM-DD 功能名称
-
-改动范围：
-
-- 前端：
-- 后端：
-- 数据库：
-- 数据/资源：
-
-新增功能：
-
-- 
-
-影响页面：
-
-- 
-
-验证方式：
-
-- 
-
-备注：
-
-- 
-```
-
+- 当前登录是课程设计演示级，依赖 `x-user-id`，不是生产级 JWT 鉴权。
+- 高德能力依赖 API Key、网络和调用额度。
+- 本地算法路线仍保留，可作为高德不可用时的课程设计展示能力。
+- 部分旧文件曾出现编码异常，本文档已整理为 UTF-8 Markdown。
