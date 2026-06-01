@@ -359,7 +359,8 @@ const Earth = ({ radius = 5, controlsRef }) => {
       groupRef.current.rotation.y += anim.speed * dt * 60;
 
     } else if (anim.phase === 'brake') {
-      anim.speed *= Math.pow(0.86, dt * 60);
+      // 更快的减速系数，缩短停顿感
+      anim.speed *= Math.pow(0.84, dt * 60);
       groupRef.current.rotation.y += anim.speed * dt * 60;
 
       if (anim.speed < 0.000004) {
@@ -373,18 +374,22 @@ const Earth = ({ radius = 5, controlsRef }) => {
         anim.seekFrom = cur;
         anim.seekTo   = cur + norm;
         anim.seekT    = 0;
+        anim.seekDur  = 1.8;   // 缩短旋转时长
         anim.phase    = 'seek';
-        // 开始摄像机缩进
-        anim.camFrom  = cam.position.length();
-        anim.camTo    = 8.5;
-        anim.camT     = 0;
-        anim.camPhase = 'zoomIn';
-        if (ctrl) ctrl.enabled = false; // 禁止用户干预
+        // 摄像机同步启动，旋转一开始立刻缩进，消除停顿
+        anim.camFrom    = cam.position.length();
+        anim.camTo      = 8.5;
+        anim.camT       = 0;
+        anim.camZoomDur = 2.6; // 比旋转稍长，追赶感
+        anim.camPhase   = 'zoomIn';
+        if (ctrl) ctrl.enabled = false;
       }
 
     } else if (anim.phase === 'seek') {
       anim.seekT = Math.min(anim.seekT + dt / anim.seekDur, 1);
-      const e = 1 - Math.pow(1 - anim.seekT, 5); // ease-out-quint
+      // ease-in-out-cubic：前段不拖沓，中段推进快，后段优雅收尾
+      const t = anim.seekT;
+      const e = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
       groupRef.current.rotation.y = anim.seekFrom + (anim.seekTo - anim.seekFrom) * e;
       if (anim.seekT >= 1) {
         anim.phase = 'lock';
