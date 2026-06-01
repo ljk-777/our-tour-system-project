@@ -581,44 +581,32 @@ const h2r = (hex, a) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 
-/* ── Canvas 流星弹幕层（粒子拖尾 + 渐变尾迹 + 循环队列）─── */
+/* ── Canvas 流星弹幕层（性能优先版 — 零 shadowBlur）──────── */
 function DanmuLayer({ active }) {
   const canvasRef = useRef(null);
-  // 所有状态存 ref，避免 closure 问题
-  const S = useRef({
-    bullets: [],
-    queue:   [],    // 消息循环队列
-    animId:  null,
-    spawnId: null,
-  });
+  const S = useRef({ bullets:[], queue:[], animId:null, spawnId:null });
 
-  // 从循环队列取下一条消息
-  const nextMsg = () => {
-    const s = S.current;
-    if (s.queue.length === 0)
-      s.queue = [...DANMU_MSGS].sort(() => Math.random() - 0.5);
+  const nextMsg = (s) => {
+    if (!s.queue.length) s.queue = [...DANMU_MSGS].sort(() => Math.random() - 0.5);
     return s.queue.shift();
   };
 
-  // 创建一颗流星
-  const makeBullet = (canvas, opts = {}) => {
+  const makeBullet = (canvas, s, opts = {}) => {
     const W = canvas.width, H = canvas.height;
-    const isMsg = opts.type !== 'star';          // msg型：带文字；star型：纯光
+    const isMsg = opts.type !== 'star';
     const color = DANMU_COLORS[Math.floor(Math.random() * DANMU_COLORS.length)];
-    const startX = opts.startX ?? W + 30;
     return {
-      x: startX,
-      y: H * 0.03 + Math.random() * H * 0.54,
-      speed:   isMsg ? 80 + Math.random() * 60 : 200 + Math.random() * 180,
-      tailLen: isMsg ? 100 + Math.random() * 60 : 50 + Math.random() * 90,
-      headR:   isMsg ? 2.8 : 1.5 + Math.random() * 1.2,
+      x:       opts.startX ?? W + 30,
+      y:       H * 0.03 + Math.random() * H * 0.54,
+      speed:   isMsg ? 85 + Math.random() * 55 : 210 + Math.random() * 160,
+      tailLen: isMsg ? 110 + Math.random() * 55 : 55 + Math.random() * 80,
+      headR:   isMsg ? 2.5 : 1.4 + Math.random(),
       color, isMsg,
-      text:    isMsg ? nextMsg() : '',
+      text:    isMsg ? nextMsg(s) : '',
       fontSize:isMsg ? 13 + Math.floor(Math.random() * 4) : 0,
-      alpha:   0,
-      dying:   false,
-      // 粒子拖尾池
-      particles: [],
+      alpha:0, dying:false,
+      // 轻量粒子：只存坐标+alpha，不存颜色（复用父级color）
+      pts: [],
     };
   };
 
@@ -626,11 +614,7 @@ function DanmuLayer({ active }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const s = S.current;
-
-    const resize = () => {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     resize();
     window.addEventListener('resize', resize);
 
@@ -640,133 +624,107 @@ function DanmuLayer({ active }) {
       return () => window.removeEventListener('resize', resize);
     }
 
-    // ── 初始爆发：铺满屏幕，立刻有流星雨感 ──────────────────
-    const W = canvas.width;
-    for (let i = 0; i < 22; i++) {
-      const b = makeBullet(canvas, {
+    // 初始爆发（铺满屏幕）
+    for (let i = 0; i < 16; i++) {
+      s.bullets.push(makeBullet(canvas, s, {
         type:   i % 3 === 0 ? 'star' : 'msg',
-        startX: W * 0.05 + Math.random() * W,
-      });
-      s.bullets.push(b);
+        startX: canvas.width * 0.05 + Math.random() * canvas.width,
+      }));
     }
 
-    // ── 持续生成（300-500ms一批，保持屏幕密度）────────────────
+    // 持续生成，max 32 颗
     s.spawnId = setInterval(() => {
-      if (s.bullets.filter(b => !b.dying).length < 55) {
-        s.bullets.push(makeBullet(canvas));
-        if (Math.random() < 0.5)
-          s.bullets.push(makeBullet(canvas, { type: 'star' }));
+      const alive = s.bullets.filter(b => !b.dying).length;
+      if (alive < 32) {
+        s.bullets.push(makeBullet(canvas, s));
+        if (Math.random() < 0.4) s.bullets.push(makeBullet(canvas, s, { type: 'star' }));
       }
-    }, 300 + Math.random() * 200);
+    }, 650);
 
-    // ── rAF 主循环 ─────────────────────────────────────────────
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
     let last = performance.now();
+
     const tick = (now) => {
       const dt = Math.min((now - last) / 1000, 0.08);
       last = now;
-
-      const ctx = canvas.getContext('2d');
       const CW = canvas.width, CH = canvas.height;
       ctx.clearRect(0, 0, CW, CH);
 
-      // 清理完全消失的
-      s.bullets = s.bullets.filter(b =>
-        !( b.dying && b.alpha <= 0 ) && b.x > -(b.tailLen + 400)
-      );
+      s.bullets = s.bullets.filter(b => !(b.dying && b.alpha <= 0) && b.x > -(b.tailLen + 300));
 
       s.bullets.forEach(b => {
-        // ── 移动 ──
         b.x -= b.speed * dt;
 
-        // ── alpha 淡入淡出 ──
+        // alpha
         if (b.dying) {
-          b.alpha = Math.max(0, b.alpha - dt * 2.2);
+          b.alpha = Math.max(0, b.alpha - dt * 2.5);
         } else {
-          const fi = Math.min((CW - b.x) / 130, 1);        // 右侧淡入
-          const fo = Math.min(Math.max(b.x + b.tailLen, 0) / 160, 1); // 左侧淡出
+          const fi = Math.min((CW - b.x) / 120, 1);
+          const fo = Math.min(Math.max(b.x + b.tailLen, 0) / 140, 1);
           b.alpha  = Math.min(fi, fo);
         }
         if (b.alpha < 0.01) return;
 
-        // ── 生成拖尾粒子（每帧随机投放）──
-        if (!b.dying && Math.random() < 0.55) {
-          b.particles.push({
-            x:     b.x + b.tailLen * (0.1 + Math.random() * 0.6),
-            y:     b.y + (Math.random() - 0.5) * 5,
-            size:  0.5 + Math.random() * 1.4,
-            alpha: 0.7 + Math.random() * 0.3,
-            color: b.color,
+        // 轻量粒子（每帧15%概率，max 6个，用 fillRect 替代 arc）
+        if (!b.dying && Math.random() < 0.15 && b.pts.length < 6) {
+          b.pts.push({
+            x: b.x + b.tailLen * (0.05 + Math.random() * 0.55),
+            y: b.y + (Math.random() - 0.5) * 4,
+            a: 0.65 + Math.random() * 0.25,
+            s: 1 + Math.random() * 1.5,
           });
         }
-        // 更新粒子（淡出 + 轻微漂移）
-        b.particles.forEach(p => {
-          p.alpha -= dt * 3.5;
-          p.y     += (Math.random() - 0.5) * 0.8;
-        });
-        b.particles = b.particles.filter(p => p.alpha > 0);
+        b.pts.forEach(p => { p.a -= dt * 3.2; });
+        b.pts = b.pts.filter(p => p.a > 0);
 
-        ctx.save();
+        // ── 绘制（无 shadowBlur，用多层渐变替代发光效果）──────
 
-        // ── 绘制粒子拖尾 ──
-        b.particles.forEach(p => {
-          ctx.globalAlpha = p.alpha * b.alpha;
-          ctx.fillStyle   = p.color;
-          ctx.shadowColor = p.color;
-          ctx.shadowBlur  = 6;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        });
+        // 1. 粗光晕线（彩色，半透明，宽一点）
+        const g1 = ctx.createLinearGradient(b.x, b.y, b.x + b.tailLen, b.y);
+        g1.addColorStop(0,   h2r(b.color, b.alpha * 0.28));
+        g1.addColorStop(0.5, h2r(b.color, b.alpha * 0.08));
+        g1.addColorStop(1,  'rgba(0,0,0,0)');
+        ctx.strokeStyle = g1;
+        ctx.lineWidth   = b.isMsg ? 6 : 4;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.tailLen * 0.6, b.y); ctx.stroke();
 
-        // ── 绘制渐变尾迹线 ──
-        ctx.globalAlpha = b.alpha;
-        const tail = ctx.createLinearGradient(b.x, b.y, b.x + b.tailLen, b.y);
-        tail.addColorStop(0,   h2r(b.color, 0.9));
-        tail.addColorStop(0.4, h2r(b.color, 0.35));
-        tail.addColorStop(1,   'rgba(0,0,0,0)');
-        ctx.strokeStyle = tail;
-        ctx.lineWidth   = b.isMsg ? 1.8 : 1.2;
-        ctx.shadowColor = b.color;
-        ctx.shadowBlur  = b.isMsg ? 10 : 6;
-        ctx.beginPath();
-        ctx.moveTo(b.x, b.y);
-        ctx.lineTo(b.x + b.tailLen, b.y);
-        ctx.stroke();
+        // 2. 细核心线（更亮）
+        const g2 = ctx.createLinearGradient(b.x, b.y, b.x + b.tailLen, b.y);
+        g2.addColorStop(0,   h2r(b.color, b.alpha * 0.92));
+        g2.addColorStop(0.45, h2r(b.color, b.alpha * 0.3));
+        g2.addColorStop(1,  'rgba(0,0,0,0)');
+        ctx.strokeStyle = g2;
+        ctx.lineWidth   = b.isMsg ? 1.6 : 1;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.tailLen, b.y); ctx.stroke();
 
-        // ── 头部亮点（白色核心 + 彩色光晕）──
-        // 外层光晕
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.headR * 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = h2r(b.color, 0.25);
-        ctx.shadowBlur = 18;
-        ctx.fill();
-        // 白色核心
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.headR, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur  = 14;
-        ctx.fill();
-
-        // ── 文字（消息型）──
-        if (b.isMsg && b.fontSize > 0) {
-          const tx = b.x + b.headR + 8;
-          const ty = b.y + b.fontSize * 0.36;
-          ctx.font      = `500 ${b.fontSize}px "PingFang SC","SF Pro Display","Microsoft YaHei",sans-serif`;
-          ctx.shadowColor = b.color;
-          ctx.shadowBlur  = 10;
-          // 彩色主体
+        // 3. 粒子（无 shadow，fillRect 最快）
+        b.pts.forEach(p => {
+          ctx.globalAlpha = p.a * b.alpha;
           ctx.fillStyle   = b.color;
+          ctx.fillRect(p.x - p.s * 0.5, p.y - p.s * 0.5, p.s, p.s);
+        });
+
+        // 4. 头部（两圈无阴影 circle，用高 alpha 模拟亮点）
+        ctx.globalAlpha = b.alpha * 0.35;
+        ctx.fillStyle   = b.color;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.headR * 2.8, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = b.alpha * 0.92;
+        ctx.fillStyle   = '#ffffff';
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.headR, 0, Math.PI*2); ctx.fill();
+
+        // 5. 文字
+        if (b.isMsg && b.fontSize > 0) {
           ctx.globalAlpha = b.alpha;
-          ctx.fillText(b.text, tx, ty);
-          // 白色高亮叠层
+          ctx.font        = `500 ${b.fontSize}px "PingFang SC","SF Pro Display",sans-serif`;
+          ctx.fillStyle   = b.color;
+          ctx.fillText(b.text, b.x + b.headR + 7, b.y + b.fontSize * 0.36);
+          // 白色微叠（无 shadow）
+          ctx.globalAlpha = b.alpha * 0.25;
           ctx.fillStyle   = '#ffffff';
-          ctx.globalAlpha = b.alpha * 0.3;
-          ctx.shadowBlur  = 4;
-          ctx.fillText(b.text, tx, ty);
+          ctx.fillText(b.text, b.x + b.headR + 7, b.y + b.fontSize * 0.36);
         }
 
-        ctx.restore();
+        ctx.globalAlpha = 1; // reset
       });
 
       s.animId = requestAnimationFrame(tick);
@@ -782,11 +740,9 @@ function DanmuLayer({ active }) {
 
   return (
     <canvas ref={canvasRef} style={{
-      position: 'fixed', inset: 0, pointerEvents: 'none',
-      zIndex: 50,
-      opacity: active ? 1 : 0,
-      transition: 'opacity 1.0s ease',
-    }} />
+      position:'fixed', inset:0, pointerEvents:'none',
+      zIndex:50, opacity: active ? 1 : 0, transition:'opacity 1.0s ease',
+    }}/>
   );
 }
 
