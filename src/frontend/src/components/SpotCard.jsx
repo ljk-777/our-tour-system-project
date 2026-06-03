@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BrandIcon from './BrandIcon.jsx';
 
 const typeLabels = {
   scenic:'景区', campus:'高校', building:'建筑',
@@ -42,6 +44,13 @@ export default function SpotCard({ spot, animDelay = 0, index = 0 }) {
   const icon   = cityIcons[spot.city] || cityIcons.default;
   const label  = typeLabels[spot.type] || spot.type;
   const accent = typeAccentColor[spot.type] || typeAccentColor.default;
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = Boolean(spot.imageUrl);
+  const showFallbackIcon = !hasImage || imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [spot.imageUrl]);
 
   const isLarge = size === 'large';
   const isWide  = size === 'wide';
@@ -86,7 +95,7 @@ export default function SpotCard({ spot, animDelay = 0, index = 0 }) {
       }} />
 
       {/* 真实图片（渐显 + 懒加载），失败隐藏退回渐变+emoji */}
-      {spot.imageUrl && (
+      {hasImage && !imageFailed && (
         <img
           src={spot.imageUrl}
           alt={spot.name}
@@ -97,23 +106,29 @@ export default function SpotCard({ spot, animDelay = 0, index = 0 }) {
             transition:'opacity 0.35s ease',
           }}
           onLoad={e => { e.target.style.opacity = '1'; }}
-          onError={e => { e.target.style.display = 'none'; }}
+          onError={() => { setImageFailed(true); }}
         />
       )}
 
       {/* 渐变遮罩让底部文字更清晰 */}
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 45%, transparent 100%)' }} />
 
-      {/* 大图 emoji */}
-      <div style={{
-        position:'absolute', top:'50%', left:'50%',
-        transform:'translate(-50%,-60%)',
-        fontSize: isLarge ? '5rem' : isWide ? '3.5rem' : '2.8rem',
-        opacity: 0.22, userSelect:'none', pointerEvents:'none',
-        filter:'blur(0.5px)',
-      }}>
-        {icon}
-      </div>
+      {/* 品牌回退 — 图片不存在或加载失败时显示 waylog 罗盘 */}
+      {showFallbackIcon && (
+        <div style={{
+          position:'absolute', top:'50%', left:'50%',
+          transform:'translate(-50%,-50%)',
+          display:'flex', flexDirection:'column', alignItems:'center', gap: 4,
+          userSelect:'none', pointerEvents:'none',
+        }}>
+          <BrandIcon size={isLarge ? 48 : isWide ? 36 : 28} variant="light" />
+          <span style={{
+            fontSize: isLarge ? '0.68rem' : '0.58rem',
+            fontWeight: 500, color: 'rgba(255,255,255,0.25)',
+            letterSpacing: '0.06em',
+          }}>waylog</span>
+        </div>
+      )}
 
       {/* 类型标签 */}
       <div style={{ position:'absolute', top:14, left:14 }}>
