@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useMotionValue } from 'framer-motion';
 import { getTopK, getGraphStats, searchSpots, getDiaries } from '../api/index.js';
 import SpotCard from '../components/SpotCard.jsx';
+import BrandIcon from '../components/BrandIcon.jsx';
 import RippleButton from '../components/RippleButton.jsx';
 import MapPreview from '../components/MapPreview.jsx';
 
@@ -529,11 +530,24 @@ export default function Home() {
                       >
                         {/* 噪点质感 */}
                         <div style={{ position:'absolute', inset:0, opacity:0.04, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize:'200px' }} />
+                        {/* 真实图片 — 渐显+懒加载，失败隐藏退回渐变+emoji */}
+                        {spot.imageUrl && (
+                          <img src={spot.imageUrl} alt={spot.name} loading="lazy"
+                            onLoad={e => { e.target.style.opacity = '1'; }}
+                            onError={e => {
+                              e.target.style.display = 'none';
+                              const fallbackIcon = e.target.parentElement?.querySelector('[data-fallback-icon]');
+                              if (fallbackIcon) fallbackIcon.style.display = 'block';
+                            }}
+                            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0, transition:'opacity 0.35s ease' }}
+                          />
+                        )}
                         {/* 底部渐变 */}
                         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.06) 50%, transparent 100%)' }} />
-                        {/* 城市 emoji */}
-                        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-62%)', fontSize:'4.2rem', opacity:0.22, userSelect:'none', pointerEvents:'none', filter:'blur(0.5px)' }}>
-                          {icon}
+                        {/* 品牌回退 — 图片不存在或加载失败时显示 waylog 罗盘 */}
+                        <div data-fallback-icon style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', display: spot.imageUrl ? 'none' : 'flex', flexDirection:'column', alignItems:'center', gap:4, userSelect:'none', pointerEvents:'none' }}>
+                          <BrandIcon size={36} variant="light" />
+                          <span style={{ fontSize:'0.6rem', fontWeight:500, color:'rgba(255,255,255,0.22)', letterSpacing:'0.06em' }}>waylog</span>
                         </div>
                         {/* 类型标签 */}
                         <div style={{ position:'absolute', top:12, left:12 }}>
