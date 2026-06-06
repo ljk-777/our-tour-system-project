@@ -83,5 +83,7 @@ export const applyGroupAiAction = (id, messageId) => api.post(`/groups/${id}/ai-
 export const getGroupPolls = (id) => api.get(`/groups/${id}/polls`);
 export const createGroupPoll = (id, data) => api.post(`/groups/${id}/polls`, data);
 export const voteGroupPoll = (id, pollId, optionIndex) => api.post(`/groups/${id}/polls/${pollId}/vote`, { optionIndex });
+export const shareSpotToGroup = (groupId, spotId) => api.post(`/groups/${groupId}/spots`, { spotId });
+export const dijkstraGroupRoute = (id, data) => api.post(`/groups/${id}/trips/dijkstra-route`, data);
 
 export default api;

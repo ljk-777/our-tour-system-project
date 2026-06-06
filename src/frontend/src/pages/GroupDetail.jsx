@@ -5,6 +5,7 @@ import {
   applyGroupAiAction,
   createGroupPoll,
   deleteGroup,
+  dijkstraGroupRoute,
   generateGroupTrip,
   getGroup,
   getGroupConflictAnalysis,
@@ -40,6 +41,7 @@ export default function GroupDetail() {
   const [weatherAdvisory, setWeatherAdvisory] = useState(null);
   const [routeResult, setRouteResult] = useState(null);
   const [routeMode, setRouteMode] = useState('smart');
+  const [dijkstraResult, setDijkstraResult] = useState(null);
   const [tab, setTab] = useState('itinerary');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -127,6 +129,18 @@ export default function GroupDetail() {
       setEditing(true);
     } catch (err) {
       alert(err?.response?.data?.message || 'AI 生成失败');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleDijkstraRoute = async () => {
+    setBusy('dijkstra');
+    try {
+      const res = await dijkstraGroupRoute(id, { dayIndex: selectedDay, mode: 'distance' });
+      setDijkstraResult(res.data.data);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Dijkstra 路线计算失败');
     } finally {
       setBusy('');
     }
@@ -274,6 +288,8 @@ export default function GroupDetail() {
           setRouteMode={setRouteMode}
           trip={trip}
           onPreview={handlePreviewRoute}
+          dijkstraResult={dijkstraResult}
+          onDijkstra={handleDijkstraRoute}
         />
       )}
 
@@ -417,15 +433,15 @@ function ItineraryTab({ busy, editing, editTrip, memberOptions, onAiTrip, onCanc
   );
 }
 
-function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, setSelectedDay, trip, onPreview }) {
+function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, setSelectedDay, trip, onPreview, dijkstraResult, onDijkstra }) {
   const days = trip?.dailyPlan || [];
   const day = days[selectedDay];
   return (
     <Panel>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">{'\u9ad8\u5fb7\u8def\u7ebf'}</h2>
-          <p className="text-xs text-gray-500">{'\u6309\u5f53\u5929\u6d3b\u52a8\u7684\u540d\u79f0\u6216\u666f\u70b9 ID \u8c03\u7528\u9ad8\u5fb7 API\uff0c\u751f\u6210\u771f\u5b9e\u8ddd\u79bb\u3001\u65f6\u95f4\u548c\u5bfc\u822a\u6b65\u9aa4\u3002'}</p>
+          <h2 className="text-sm font-bold text-gray-900">\u8def\u7ebf\u89c4\u5212</h2>
+          <p className="text-xs text-gray-500">\u9ad8\u5fb7\u8def\u7ebf\uff1a\u8c03\u7528\u9ad8\u5fb7 API\uff0c\u542b\u771f\u5b9e\u5bfc\u822a\u6b65\u9aa4\uff1bDijkstra\uff1a\u672c\u5730\u56fe\u7b97\u6cd5\uff0c\u5c55\u793a\u7b97\u6cd5\u6700\u77ed\u8def</p>
         </div>
         <div className="flex items-center gap-2">
           <select value={routeMode} onChange={(e) => setRouteMode(e.target.value)} className="compact-mini w-24">
@@ -435,7 +451,8 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
             <option value="cycling">{'\u9a91\u884c'}</option>
             <option value="transit">{'\u516c\u4ea4'}</option>
           </select>
-          <button onClick={onPreview} disabled={busy === 'route'} className="px-3 py-1.5 rounded bg-blue-600 text-xs font-medium text-white">{busy === 'route' ? '\u751f\u6210\u4e2d...' : '\u751f\u6210\u8def\u7ebf'}</button>
+          <button onClick={onPreview} disabled={busy === 'route'} className="px-3 py-1.5 rounded bg-blue-600 text-xs font-medium text-white">{busy === 'route' ? '\u751f\u6210\u4e2d...' : '\u9ad8\u5fb7\u8def\u7ebf'}</button>
+          <button onClick={onDijkstra} disabled={busy === 'dijkstra'} className="px-3 py-1.5 rounded bg-emerald-600 text-xs font-medium text-white">{busy === 'dijkstra' ? '\u8ba1\u7b97\u4e2d...' : 'Dijkstra'}</button>
         </div>
       </div>
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
@@ -491,6 +508,24 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
           )}
         </div>
       </div>
+
+      {dijkstraResult && (
+        <div className="mt-3 overflow-hidden rounded-md border border-emerald-100 bg-white/75 p-3 text-xs">
+          <h3 className="text-xs font-semibold text-emerald-800 mb-2">Dijkstra 路线结果</h3>
+          <div className="space-y-1.5">
+            <p className="text-gray-600">算法：{dijkstraResult.algorithm}</p>
+            <p className="text-gray-600">总距离：{dijkstraResult.totalCost != null ? `${dijkstraResult.totalCost} m` : '—'}</p>
+            {!dijkstraResult.reachable && <p className="text-red-500">部分景点在当前路网中不可达，仅展示可达路径</p>}
+            <p className="text-gray-700 font-medium">最优顺序：{(dijkstraResult.pathSpots || []).map((s) => s.name).join(' → ')}</p>
+            {(dijkstraResult.segments || []).map((seg, index) => (
+              <div key={index} className="group-soft-row px-2 py-1.5">
+                <span className="font-medium text-gray-800">{seg.fromName} → {seg.toName}</span>
+                <span className="text-gray-500 ml-2">{seg.cost} m</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -678,6 +713,7 @@ function ChatTab({ busy, canApplyAiAction, chatScrollRef, messageText, messages,
           <div key={m.id}>
             {m.type === 'system' ? <div className="text-center text-[11px] text-gray-400 py-1">{m.content}</div> : (
               m.type === 'ai_action' ? <AiActionCard canApply={canApplyAiAction} message={m} busy={busy} onApply={onApplyAiAction} /> : (
+              m.type === 'spot' ? <SpotCard message={m} /> : (
               m.type === 'poll' ? <PollCard busy={busy} message={m} poll={pollMap.get(readPollId(m.content))} user={user} onVote={onVotePoll} /> : (
               <div className={`flex gap-2 ${m.senderId === user?.id ? 'flex-row-reverse' : ''}`}>
                 <span className={`shrink-0 grid size-7 place-items-center rounded-full text-xs shadow-sm ${m.type === 'ai' ? 'bg-blue-600 text-white font-bold' : 'bg-white'}`}>
@@ -688,6 +724,7 @@ function ChatTab({ busy, canApplyAiAction, chatScrollRef, messageText, messages,
                   <p>{m.content}</p>
                 </div>
               </div>
+              )
               )
               )
             )}
@@ -762,6 +799,25 @@ function readPollId(content) {
   } catch {
     return null;
   }
+}
+
+function SpotCard({ message }) {
+  let spot = null;
+  try { spot = JSON.parse(message.content); } catch { return null; }
+  if (!spot?.spotId) return null;
+  return (
+    <div className="ml-9 max-w-[78%] rounded-lg border border-emerald-100 bg-white px-3 py-2 text-xs shadow-sm">
+      <p className="text-[10px] text-gray-400 mb-1">分享了景点</p>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">🏞️</span>
+        <div className="min-w-0">
+          <p className="font-semibold text-gray-900 truncate">{spot.name}</p>
+          <p className="text-gray-400">{spot.city}{spot.rating ? `  ★ ${spot.rating}` : ''}</p>
+        </div>
+        <Link to={`/spots/${spot.spotId}`} className="ml-auto shrink-0 rounded bg-emerald-50 px-2.5 py-1 text-emerald-700 hover:bg-emerald-100 whitespace-nowrap">查看</Link>
+      </div>
+    </div>
+  );
 }
 
 function AiActionCard({ busy, canApply, message, onApply }) {

@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getSpotById, nearbySearch, getDiaries, amapReverseGeocode, amapWeather, amapPoiSearch } from '../api/index.js';
+import { getSpotById, nearbySearch, getDiaries, amapReverseGeocode, amapWeather, amapPoiSearch, getGroups, shareSpotToGroup } from '../api/index.js';
 import { useFavorites } from '../context/FavoritesContext.jsx';
 import AmapMap from '../components/AmapMap.jsx';
 import BrandIcon from '../components/BrandIcon.jsx';
@@ -67,11 +67,10 @@ export default function SpotDetail() {
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(true);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
-  const [amapMeta, setAmapMeta] = useState({
-    address: null,
-    weather: null,
-    nearbyPois: [],
-  });
+  const [amapMeta, setAmapMeta] = useState({ address: null, weather: null, nearbyPois: [] });
+  const [shareOpen, setShareOpen] = useState(false);
+  const [myGroups, setMyGroups] = useState([]);
+  const [shareStatus, setShareStatus] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -215,6 +214,66 @@ export default function SpotDetail() {
                 >
                   {isFavorited(spot.id) ? '❤️' : '🤍'}
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={async () => {
+                      if (!shareOpen) {
+                        const res = await getGroups().catch(() => ({ data: { data: [] } }));
+                        setMyGroups(res.data?.data || []);
+                      }
+                      setShareOpen((v) => !v);
+                      setShareStatus('');
+                    }}
+                    title="分享到群组"
+                    style={{
+                      background: 'rgba(255,255,255,0.25)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.4)',
+                      borderRadius: 12,
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontSize: '1.1rem',
+                      lineHeight: 1,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    📤
+                  </button>
+                  {shareOpen && (
+                    <div style={{
+                      position: 'absolute', right: 0, top: '110%', zIndex: 100,
+                      background: 'rgba(255,255,255,0.96)', borderRadius: 12,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '10px 0',
+                      minWidth: 180,
+                    }}>
+                      <p style={{ fontSize: 12, color: '#888', padding: '4px 14px 8px' }}>分享到群组</p>
+                      {myGroups.length === 0
+                        ? <p style={{ fontSize: 12, color: '#aaa', padding: '4px 14px' }}>暂无群组</p>
+                        : myGroups.map((g) => (
+                          <button key={g.id} onClick={async () => {
+                            setShareStatus('sharing');
+                            try {
+                              await shareSpotToGroup(g.id, spot.id);
+                              setShareStatus('done');
+                              setTimeout(() => setShareOpen(false), 900);
+                            } catch {
+                              setShareStatus('fail');
+                            }
+                          }} style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '7px 14px', fontSize: 13, cursor: 'pointer',
+                            background: 'none', border: 'none',
+                            color: shareStatus === 'done' ? '#16a34a' : '#222',
+                          }}>
+                            {g.name}
+                          </button>
+                        ))
+                      }
+                      {shareStatus === 'done' && <p style={{ fontSize: 11, color: '#16a34a', padding: '4px 14px' }}>已分享！</p>}
+                      {shareStatus === 'fail' && <p style={{ fontSize: 11, color: '#ef4444', padding: '4px 14px' }}>分享失败，请重试</p>}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
