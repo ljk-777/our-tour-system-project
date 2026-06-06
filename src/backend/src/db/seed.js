@@ -8,9 +8,89 @@ function toDate(value) {
   return value ? new Date(value) : null;
 }
 
+async function seedProvidedRouteGraphs(client, routeGraphs) {
+  const graphs = Array.isArray(routeGraphs) ? routeGraphs : [];
+
+  await client.query('TRUNCATE local_route_edges, local_route_nodes, local_route_graphs RESTART IDENTITY CASCADE');
+
+  for (const graph of graphs) {
+    await client.query(
+      `
+        INSERT INTO local_route_graphs (id, name, type, width, height, description, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      `,
+      [
+        graph.id,
+        graph.name,
+        graph.type,
+        graph.size?.width || 800,
+        graph.size?.height || 520,
+        graph.description || null,
+      ]
+    );
+
+    for (const node of graph.nodes || []) {
+      await client.query(
+        `
+          INSERT INTO local_route_nodes (
+            graph_id, node_key, name, type, x, y, metadata, created_at, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        `,
+        [
+          graph.id,
+          node.id,
+          node.name,
+          node.type,
+          node.x,
+          node.y,
+          JSON.stringify({}),
+        ]
+      );
+    }
+
+    for (const edge of graph.edges || []) {
+      const { from, to, dist, transport, congestion, idealSpeedKmh, bikeAllowed, ...metadata } = edge;
+      await client.query(
+        `
+          INSERT INTO local_route_edges (
+            graph_id, from_node_key, to_node_key, dist, transport,
+            congestion, ideal_speed_kmh, bike_allowed, metadata, created_at, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        `,
+        [
+          graph.id,
+          from,
+          to,
+          dist,
+          transport,
+          congestion ?? 1,
+          idealSpeedKmh ?? 5,
+          bikeAllowed !== false,
+          JSON.stringify(metadata || {}),
+        ]
+      );
+    }
+  }
+}
+
 async function seedDatabase() {
   await withTransaction(async (client) => {
-    await client.query('TRUNCATE diary_comments, diary_tags, diaries, route_edges, spot_tags, spots, users RESTART IDENTITY CASCADE');
+    await client.query(`
+      TRUNCATE
+        local_route_edges,
+        local_route_nodes,
+        local_route_graphs,
+        diary_comments,
+        diary_tags,
+        diaries,
+        route_edges,
+        spot_tags,
+        spots,
+        users
+      RESTART IDENTITY CASCADE
+    `);
 
     for (const user of users) {
       await client.query(
@@ -71,10 +151,21 @@ async function seedDatabase() {
     for (const edge of edges) {
       await client.query(
         `
-          INSERT INTO route_edges (from_spot_id, to_spot_id, dist, time_cost, transport)
-          VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO route_edges (
+            from_spot_id, to_spot_id, dist, time_cost, transport,
+            congestion, ideal_speed_kmh
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
         `,
-        [edge.from, edge.to, edge.dist, edge.time, edge.transport]
+        [
+          edge.from,
+          edge.to,
+          edge.dist,
+          edge.time,
+          edge.transport,
+          edge.congestion ?? 1,
+          edge.idealSpeedKmh ?? 5,
+        ]
       );
     }
 
@@ -143,4 +234,5 @@ async function seedDatabase() {
 
 module.exports = {
   seedDatabase,
+  seedProvidedRouteGraphs,
 };
