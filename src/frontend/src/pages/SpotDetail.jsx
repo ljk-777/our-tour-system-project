@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { getSpotById, nearbySearch, getDiaries, amapReverseGeocode, amapWeather, amapPoiSearch } from '../api/index.js';
 import { useFavorites } from '../context/FavoritesContext.jsx';
 import AmapMap from '../components/AmapMap.jsx';
+import BrandIcon from '../components/BrandIcon.jsx';
 
 const TYPE_LABELS = {
   scenic: '景区',
@@ -65,6 +66,7 @@ export default function SpotDetail() {
   const [diaries, setDiaries] = useState([]);
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(true);
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const [amapMeta, setAmapMeta] = useState({
     address: null,
     weather: null,
@@ -124,6 +126,10 @@ export default function SpotDetail() {
     };
   }, [id]);
 
+  useEffect(() => {
+    setHeroImageFailed(false);
+  }, [spot?.imageUrl]);
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -146,6 +152,7 @@ export default function SpotDetail() {
   const grad = CITY_BG[spot.city] || CITY_BG.default;
   const typeIcon = TYPE_ICONS[spot.type] || '📍';
   const typeLabel = TYPE_LABELS[spot.type] || spot.type;
+  const showHeroFallback = !spot.imageUrl || heroImageFailed;
 
   return (
     <div className="glass-bg">
@@ -160,9 +167,23 @@ export default function SpotDetail() {
 
       <div className="glass-card overflow-hidden mb-6">
         <div className={`h-56 bg-gradient-to-br ${grad} flex items-center justify-center relative`}>
-          <span className="text-8xl opacity-75">{typeIcon}</span>
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/60 to-transparent">
+          {/* 景点图片 — 渐显+懒加载，失败隐藏退回渐变+emoji */}
+          {spot.imageUrl && !heroImageFailed && (
+            <img src={spot.imageUrl} alt={spot.name} loading="lazy"
+              onLoad={e => { e.target.style.opacity = '1'; }}
+              onError={() => { setHeroImageFailed(true); }}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0, transition: 'opacity 0.35s ease' }}
+            />
+          )}
+          {showHeroFallback && (
+            <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', zIndex:1, gap:6 }}>
+              <BrandIcon size={52} variant="light" />
+              <span style={{ fontSize:'0.7rem', fontWeight:500, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em' }}>waylog</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
+          <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/60 to-transparent" style={{ zIndex: 2 }}>
             <div className="flex items-end justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-1">{spot.name}</h1>
