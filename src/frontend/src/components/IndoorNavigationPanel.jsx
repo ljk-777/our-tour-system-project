@@ -770,7 +770,10 @@ function buildVerticalEdges(nodes) {
     const used = new Set();
 
     for (const lower of lowerConnectors) {
-      const candidate = nearestConnector(lower, upperConnectors.filter((node) => node.type === lower.type && !used.has(node.id)));
+      const lowerKey = connectorKey(lower);
+      const candidate = nearestConnector(lower, upperConnectors.filter((node) => (
+        !used.has(node.id) && connectorKey(node) === lowerKey
+      )));
       if (!candidate) continue;
       used.add(candidate.id);
       edges.push({
@@ -786,7 +789,7 @@ function buildVerticalEdges(nodes) {
 function connectorsForFloor(nodes, floor) {
   return nodes
     .filter((node) => node.floor === floor && ['stair', 'elevator'].includes(node.type))
-    .sort((a, b) => connectorRank(a) - connectorRank(b) || a.x - b.x || a.y - b.y);
+    .sort((a, b) => connectorKey(a).localeCompare(connectorKey(b), 'zh-CN') || a.x - b.x || a.y - b.y);
 }
 
 function nearestConnector(node, candidates) {
@@ -802,12 +805,29 @@ function nearestConnector(node, candidates) {
   return best;
 }
 
-function connectorRank(node) {
-  if (node.name.includes('电梯')) return 1;
-  if (node.name.includes('东')) return 2;
-  if (node.name.includes('北')) return 3;
-  if (node.name.includes('南')) return 4;
-  return 5;
+function connectorKey(node) {
+  const name = `${node.name || ''} ${node.shortName || ''}`;
+  const transport = node.type === 'elevator' ? 'elevator' : 'stair';
+  const wing = detectConnectorWing(node, name);
+  const side = transport === 'elevator' ? 'core' : detectStairSide(node, name);
+  return `${transport}:${wing}:${side}`;
+}
+
+function detectConnectorWing(node, name) {
+  if (name.includes('N楼')) return 'N楼';
+  if (name.includes('S楼')) return 'S楼';
+  return node.y < 1450 ? 'N楼' : 'S楼';
+}
+
+function detectStairSide(node, name) {
+  if (name.includes('北楼梯')) return '北';
+  if (name.includes('南楼梯')) return '南';
+  if (name.includes('东楼梯')) return '东';
+  if (name.includes('西楼梯')) return '西';
+  if (name.includes('中部楼梯') || name.includes('中楼梯')) return '中';
+  if (node.x > 2300) return '东';
+  if (node.x < 1300) return '西';
+  return node.y < 1450 ? '北' : '南';
 }
 
 function getDegree(edges) {
