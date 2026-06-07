@@ -4,6 +4,7 @@ const spotRepo = require('../repositories/spotRepository');
 const routeRepo = require('../repositories/routeRepository');
 const localRouteGraphRepo = require('../repositories/localRouteGraphRepository');
 const { shortestPath, multiPointPath, buildGraph, dijkstra } = require('../algorithms/dijkstra');
+const { describeRoute } = require('../services/routeDescriptionService');
 
 router.get('/local-graphs', async (req, res, next) => {
   try {
@@ -124,6 +125,18 @@ router.get('/graph-stats', async (req, res, next) => {
         totalNodes: nodeSet.size,
         totalSpots: allSpots.length,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/describe', async (req, res, next) => {
+  try {
+    const result = await describeRoute(req.body || {});
+    res.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);

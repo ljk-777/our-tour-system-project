@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bike, Footprints, MapPin, Minus, Plus, Route, Shuffle, TramFront } from 'lucide-react';
-import { getLocalRouteGraphs } from '../api/index.js';
+import { Bike, Footprints, MapPin, Minus, Plus, Route, Search, Shuffle, Store, TramFront } from 'lucide-react';
+import { describeRoute as describeRouteApi, getLocalRouteGraphs } from '../api/index.js';
 
 const ROUTE_MODES = [
   { value: 'single', label: '单点最短路' },
@@ -27,6 +27,19 @@ const STRATEGY_ICON = {
 
 const MAJOR_LABEL_TYPES = new Set(['校门', '入口', '出口', '景点', '教学楼', '办公', '宿舍', '运动', '场馆', '寺庙', '街区', '生活区']);
 const ZOOM_LEVELS = [1, 1.35, 1.7, 2.2, 2.8];
+const FACILITY_CATEGORIES = [
+  { value: 'all', label: '全部' },
+  { value: 'toilet', label: '卫生间', aliases: ['卫生间', '洗手间', '厕所', '公厕', 'wc', 'toilet'] },
+  { value: 'shop', label: '商店', aliases: ['商店', '便利店', '文创', '纪念品', '卖品', '商品部', '零售', 'shop', 'store'] },
+  { value: 'supermarket', label: '超市', aliases: ['超市', '便利超市', '生活超市', 'market', 'supermarket'] },
+  { value: 'restaurant', label: '饭店/餐厅', aliases: ['饭店', '餐厅', '餐馆', '食堂', '小吃', '美食', 'restaurant', 'canteen'] },
+  { value: 'cafe', label: '咖啡馆', aliases: ['咖啡', '咖啡馆', '茶饮', '茶馆', 'cafe', 'coffee'] },
+  { value: 'library', label: '图书馆', aliases: ['图书馆', '阅览室', '书吧', 'library'] },
+  { value: 'medical', label: '医疗点', aliases: ['医疗', '医务室', '医院', '急救', '药店', 'medical', 'clinic'] },
+  { value: 'visitor', label: '游客服务', aliases: ['游客中心', '服务中心', '咨询', '售票', '检票', '入口', '出口'] },
+  { value: 'parking', label: '停车/交通', aliases: ['停车', '车站', '站点', '交通', '换乘', 'parking', 'station'] },
+  { value: 'water', label: '饮水点', aliases: ['饮水', '开水', '直饮水', 'water'] },
+];
 
 export default function LocalAlgorithmPlanner() {
   const [graphs, setGraphs] = useState([]);
@@ -38,6 +51,10 @@ export default function LocalAlgorithmPlanner() {
   const [startId, setStartId] = useState('');
   const [endId, setEndId] = useState('');
   const [waypointIds, setWaypointIds] = useState([]);
+  const [facilityOriginId, setFacilityOriginId] = useState('');
+  const [facilityRadius, setFacilityRadius] = useState(500);
+  const [facilityCategory, setFacilityCategory] = useState('all');
+  const [facilityQuery, setFacilityQuery] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +71,7 @@ export default function LocalAlgorithmPlanner() {
           setGraphId(first.id);
           setStartId(firstSelectable[0]?.id || '');
           setEndId(firstSelectable[Math.min(4, firstSelectable.length - 1)]?.id || '');
+          setFacilityOriginId(firstSelectable[0]?.id || '');
           setWaypointIds(firstSelectable.slice(2, 5).map((node) => node.id));
         }
       })
@@ -76,6 +94,23 @@ export default function LocalAlgorithmPlanner() {
     return roundTripPath(graph.nodes, edges, startId, waypointIds, strategy, graph.type);
   }, [edges, endId, graph?.nodes, graph?.type, routeMode, startId, strategy, waypointIds]);
   const routeSet = new Set(route.path);
+  const nearbyFacilities = useMemo(() => {
+    if (!graph || !facilityOriginId) return [];
+    return findNearbyFacilities(graph.nodes, edges, facilityOriginId, {
+      radius: facilityRadius,
+      category: facilityCategory,
+      query: facilityQuery,
+    });
+  }, [edges, facilityCategory, facilityOriginId, facilityQuery, facilityRadius, graph?.nodes, graph?.type]);
+  const nearbySet = useMemo(() => new Set(nearbyFacilities.slice(0, 30).map((item) => item.node.id)), [nearbyFacilities]);
+
+  useEffect(() => {
+    if (!graph) return;
+    const nodes = selectableNodes(graph);
+    if (!nodes.some((node) => node.id === Number(facilityOriginId))) {
+      setFacilityOriginId(startId || nodes[0]?.id || '');
+    }
+  }, [facilityOriginId, graph?.id, startId]);
 
   const resetForGraph = (nextGraphId, sourceGraphs = graphs) => {
     const next = sourceGraphs.find((item) => item.id === nextGraphId) || sourceGraphs[0];
@@ -84,6 +119,7 @@ export default function LocalAlgorithmPlanner() {
     setGraphId(next.id);
     setStartId(nextSelectable[0]?.id || '');
     setEndId(nextSelectable[Math.min(4, nextSelectable.length - 1)]?.id || '');
+    setFacilityOriginId(nextSelectable[0]?.id || '');
     setWaypointIds(nextSelectable.slice(2, 5).map((node) => node.id));
   };
 
@@ -158,6 +194,26 @@ export default function LocalAlgorithmPlanner() {
             <Metric value={formatDurationMinutes(route.time)} label="预计时间" />
           </div>
 
+          {graph && (
+            <NearbyFacilitiesPanel
+              graph={graph}
+              originId={facilityOriginId}
+              radius={facilityRadius}
+              category={facilityCategory}
+              query={facilityQuery}
+              results={nearbyFacilities}
+              onOriginChange={setFacilityOriginId}
+              onRadiusChange={setFacilityRadius}
+              onCategoryChange={setFacilityCategory}
+              onQueryChange={setFacilityQuery}
+              onNavigate={(nodeId) => {
+                setRouteMode('single');
+                setStartId(Number(facilityOriginId) || startId);
+                setEndId(Number(nodeId));
+              }}
+            />
+          )}
+
           <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
             <div className="font-semibold">{graph?.name || '数据库路网'}</div>
             <div className="mt-1">{graph?.description || '本地算法模式只读取数据库中的路网图。'}</div>
@@ -169,7 +225,7 @@ export default function LocalAlgorithmPlanner() {
         <div className="bg-[#eef7ff] p-4">
           {graph ? (
             <>
-              <LocalRouteMap graph={graph} edges={edges} route={route} routeSet={routeSet} nodeMap={nodeMap} />
+              <LocalRouteMap graph={graph} edges={edges} route={route} routeSet={routeSet} nodeMap={nodeMap} nearbySet={nearbySet} />
               <RouteResult graph={graph} route={route} nodeMap={nodeMap} strategy={strategy} />
             </>
           ) : (
@@ -183,7 +239,110 @@ export default function LocalAlgorithmPlanner() {
   );
 }
 
-function LocalRouteMap({ graph, edges, route, routeSet, nodeMap }) {
+function NearbyFacilitiesPanel({
+  graph,
+  originId,
+  radius,
+  category,
+  query,
+  results,
+  onOriginChange,
+  onRadiusChange,
+  onCategoryChange,
+  onQueryChange,
+  onNavigate,
+}) {
+  const totalServices = graph.nodes.filter((node) => classifyFacility(node)).length;
+
+  return (
+    <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
+      <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+        <Store size={16} className="text-orange-500" /> 附近服务设施查询
+      </div>
+      <p className="mt-1 text-xs text-gray-500">按路网距离排序，不使用直线距离。</p>
+
+      <div className="mt-3 space-y-3">
+        <Field label="查询中心">
+          <NodeSelect graph={graph} value={originId} onChange={onOriginChange} />
+        </Field>
+
+        <div>
+          <div className="mb-2 text-sm font-semibold text-gray-700">范围</div>
+          <div className="grid grid-cols-4 gap-2">
+            {[200, 500, 1000, 2000].map((value) => (
+              <ModeButton key={value} active={radius === value} onClick={() => onRadiusChange(value)}>
+                {value >= 1000 ? `${value / 1000}km` : `${value}m`}
+              </ModeButton>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-sm font-semibold text-gray-700">类别过滤</div>
+          <div className="flex flex-wrap gap-2">
+            {FACILITY_CATEGORIES.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => onCategoryChange(item.value)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  category === item.value ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 hover:bg-orange-100'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-gray-700">输入类别名称</span>
+          <div className="flex items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2">
+            <Search size={15} className="text-orange-500" />
+            <input
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+              placeholder="如：卫生间、超市、咖啡馆"
+            />
+          </div>
+        </label>
+
+        <div className="rounded-2xl bg-white p-3">
+          <div className="mb-2 flex items-center justify-between text-xs text-gray-500">
+            <span>服务点 {totalServices} 个</span>
+            <span>命中 {results.length} 个</span>
+          </div>
+          {results.length === 0 ? (
+            <div className="rounded-xl bg-gray-50 px-3 py-4 text-center text-xs text-gray-400">当前范围或类别下暂无可达设施</div>
+          ) : (
+            <div className="max-h-72 space-y-2 overflow-auto pr-1">
+              {results.slice(0, 20).map((item, index) => (
+                <div key={item.node.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold text-gray-900">{index + 1}. {item.node.name}</div>
+                      <div className="mt-1 text-xs text-gray-500">{item.category.label} · 路网距离 {formatMeters(item.distance)} · {formatDurationMinutes(item.time)}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate(item.node.id)}
+                      className="shrink-0 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      去这里
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LocalRouteMap({ graph, edges, route, routeSet, nodeMap, nearbySet = new Set() }) {
   const activeEdges = new Set(route.edgeKeys || []);
   const scrollRef = useRef(null);
   const [zoomIndex, setZoomIndex] = useState(0);
@@ -277,14 +436,15 @@ function LocalRouteMap({ graph, edges, route, routeSet, nodeMap }) {
           )}
           {graph.nodes.map((node) => {
             const active = routeSet.has(node.id);
-            const showLabel = shouldShowNodeLabel(node, routeSet, showDetailLabels);
-            if (node.routingOnly && !active) return null;
-            const radius = node.routingOnly ? 4 : active ? 13 : showLabel ? 9 : 6;
+            const nearby = nearbySet.has(node.id);
+            const showLabel = shouldShowNodeLabel(node, routeSet, showDetailLabels) || (nearby && showDetailLabels);
+            if (node.routingOnly && !active && !nearby) return null;
+            const radius = node.routingOnly ? 4 : active ? 13 : nearby ? 10 : showLabel ? 9 : 6;
             return (
               <g key={node.id}>
                 <title>{node.name}</title>
-                <circle cx={node.x} cy={node.y} r={radius} fill={active ? '#2563eb' : '#ffffff'} stroke="#2563eb" strokeWidth={showLabel ? 3 : 2} opacity={node.routingOnly ? 0.72 : 1} />
-                <circle cx={node.x} cy={node.y} r={node.routingOnly ? 1.6 : active ? 3 : 2.5} fill={active ? '#ffffff' : '#2563eb'} />
+                <circle cx={node.x} cy={node.y} r={radius} fill={active ? '#2563eb' : nearby ? '#fff7ed' : '#ffffff'} stroke={nearby && !active ? '#f97316' : '#2563eb'} strokeWidth={showLabel || nearby ? 3 : 2} opacity={node.routingOnly ? 0.72 : 1} />
+                <circle cx={node.x} cy={node.y} r={node.routingOnly ? 1.6 : active ? 3 : 2.5} fill={active ? '#ffffff' : nearby ? '#f97316' : '#2563eb'} />
                 {showLabel && (
                   <text
                     x={node.x + 12}
@@ -357,9 +517,14 @@ function centerScrollOnRoute(container, bounds, size) {
   });
 }
 
-function RouteResult({ route, nodeMap, strategy }) {
+function RouteResult({ graph, route, nodeMap, strategy }) {
   const displayPath = routeDisplayNodes(route.path, nodeMap);
   const compactSteps = compactRouteSteps(route.steps, nodeMap);
+  const descriptionPayload = useMemo(
+    () => buildLocalRouteDescriptionPayload({ graph, route, compactSteps, nodeMap, strategy }),
+    [compactSteps, graph, nodeMap, route, strategy],
+  );
+  const routeDescription = useRouteDescription(descriptionPayload);
   return (
     <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
       <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
@@ -385,11 +550,96 @@ function RouteResult({ route, nodeMap, strategy }) {
               </div>
             ))}
           </div>
+          <RouteDescriptionCard result={routeDescription} />
           <p className="mt-3 text-xs text-gray-500">当前策略：{STRATEGIES.find((item) => item.value === strategy)?.label}</p>
         </>
       )}
     </div>
   );
+}
+
+function RouteDescriptionCard({ result }) {
+  if (!result?.description && !result?.loading) return null;
+  return (
+    <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-bold">路线说明</div>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-blue-600">
+          {result.loading ? '生成中' : result.source === 'api' ? 'API 生成' : '本地模板'}
+        </span>
+      </div>
+      <p className="mt-2 whitespace-pre-line leading-6">{result.loading ? '正在根据当前路径生成说明...' : result.description}</p>
+    </div>
+  );
+}
+
+function useRouteDescription(payload) {
+  const [state, setState] = useState({ loading: false, description: '', source: '' });
+  const payloadKey = useMemo(() => JSON.stringify(payload || {}), [payload]);
+
+  useEffect(() => {
+    if (!payload?.steps?.length) {
+      setState({ loading: false, description: '', source: '' });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setState({ loading: true, description: '', source: '' });
+    describeRouteApi(payload)
+      .then((res) => {
+        if (cancelled) return;
+        setState({
+          loading: false,
+          description: res.data?.data?.description || buildTemplateRouteDescription(payload),
+          source: res.data?.data?.source || 'template',
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState({
+          loading: false,
+          description: buildTemplateRouteDescription(payload),
+          source: 'template',
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payloadKey]);
+
+  return state;
+}
+
+function buildLocalRouteDescriptionPayload({ graph, route, compactSteps, nodeMap, strategy }) {
+  const startNode = nodeMap.get(route.path[0]);
+  const endNode = nodeMap.get(route.path[route.path.length - 1]);
+  return {
+    scene: graph?.type === 'campus' ? 'campus' : 'scenic',
+    mapName: graph?.name || '当前地图',
+    strategy: STRATEGIES.find((item) => item.value === strategy)?.label || strategy,
+    start: startNode?.name || '当前位置',
+    end: endNode?.name || '目标点',
+    distance: Math.round(route.distance || 0),
+    minutes: route.time || 0,
+    steps: (compactSteps || []).map((step, index) => ({
+      order: index + 1,
+      from: nodeMap.get(step.from)?.name || step.from,
+      to: nodeMap.get(step.to)?.name || step.to,
+      transport: step.transport || 'walk',
+      distance: Math.round(step.dist || 0),
+      minutes: step.time || 0,
+      note: step.congestion ? `拥挤度 ${step.congestion}` : '',
+    })),
+  };
+}
+
+function buildTemplateRouteDescription(payload) {
+  const firstLine = `从 ${payload.start} 出发，前往 ${payload.end}，全程约 ${formatMeters(payload.distance)}，预计 ${formatDurationMinutes(payload.minutes)}。`;
+  const stepLines = (payload.steps || []).slice(0, 6).map((step, index) => (
+    `${index + 1}. ${step.from} 到 ${step.to}，${transportLabel(step.transport)}约 ${formatMeters(step.distance)}，预计 ${formatDurationMinutes(step.minutes)}。`
+  ));
+  return [firstLine, ...stepLines].join('\n');
 }
 
 function shouldShowNodeLabel(node, routeSet, showDetailLabels) {
@@ -440,6 +690,88 @@ function compactRouteSteps(steps, nodeMap) {
   }
 
   return compact.slice(0, 12);
+}
+
+/**
+ * Finds nearby service facilities by walking-network distance, then sorts by distance.
+ * Time complexity: O(V^2 + E + V log V) with the current array/map Dijkstra scan and final sort.
+ */
+function findNearbyFacilities(nodes, edges, originId, { radius, category, query }) {
+  const distanceMap = shortestRoadDistances(nodes, edges, originId);
+  const normalizedQuery = normalizeText(query);
+  return nodes
+    .map((node) => {
+      const facilityCategory = classifyFacility(node);
+      if (!facilityCategory || node.id === Number(originId)) return null;
+      const distance = distanceMap.get(node.id) ?? Infinity;
+      if (!Number.isFinite(distance) || distance > radius) return null;
+      if (category !== 'all' && facilityCategory.value !== category) return null;
+      if (normalizedQuery && !facilityMatchesQuery(node, facilityCategory, normalizedQuery)) return null;
+      return {
+        node,
+        category: facilityCategory,
+        distance,
+        time: travelMinutes(distance, 5, 0.85),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distance - b.distance || String(a.node.name).localeCompare(String(b.node.name), 'zh-CN'));
+}
+
+/**
+ * Dijkstra single-source shortest paths over walkable road edges.
+ * Time complexity: O(V^2 + E) because the next node is selected by linear scan.
+ */
+function shortestRoadDistances(nodes, edges, originId) {
+  const graph = new Map(nodes.map((node) => [node.id, []]));
+  for (const edge of edges) {
+    const roadEdge = edgeForStrategy(edge, 'walk', 'campus');
+    if (!roadEdge) continue;
+    const item = { ...roadEdge, weight: roadEdge.dist };
+    graph.get(edge.from)?.push({ ...item, to: edge.to });
+    graph.get(edge.to)?.push({ ...item, from: edge.to, to: edge.from });
+  }
+
+  const dist = new Map(nodes.map((node) => [node.id, Infinity]));
+  const visited = new Set();
+  dist.set(Number(originId), 0);
+
+  while (visited.size < nodes.length) {
+    let current = null;
+    let best = Infinity;
+    for (const [nodeId, value] of dist.entries()) {
+      if (!visited.has(nodeId) && value < best) {
+        current = nodeId;
+        best = value;
+      }
+    }
+    if (!current) break;
+    visited.add(current);
+
+    for (const edge of graph.get(current) || []) {
+      const next = best + edge.weight;
+      if (next < dist.get(edge.to)) dist.set(edge.to, next);
+    }
+  }
+
+  return dist;
+}
+
+function classifyFacility(node) {
+  if (!node || node.routingOnly) return null;
+  const text = normalizeText([node.name, node.type, node.category, node.facilityType].filter(Boolean).join(' '));
+  return FACILITY_CATEGORIES.find((category) => (
+    category.value !== 'all' && category.aliases.some((alias) => text.includes(normalizeText(alias)))
+  )) || null;
+}
+
+function facilityMatchesQuery(node, category, normalizedQuery) {
+  const text = normalizeText([node.name, node.type, category.label, ...(category.aliases || [])].join(' '));
+  return text.includes(normalizedQuery);
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
 }
 
 function enrichEdge(edge) {
