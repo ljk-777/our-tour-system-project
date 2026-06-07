@@ -25,6 +25,8 @@ const TABS_LABELS = {
   comments: '评论管理',
 };
 
+const ADMIN_LIST_LIMIT = 1000;
+
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState({ users: [], diaries: [], spots: [] });
@@ -55,8 +57,8 @@ export default function Admin() {
     try {
       let result;
       if (type === 'users') result = await getUsers();
-      else if (type === 'diaries') result = await getDiaries();
-      else if (type === 'spots') result = await getSpots();
+      else if (type === 'diaries') result = await getDiaries({ limit: ADMIN_LIST_LIMIT, offset: 0 });
+      else if (type === 'spots') result = await getSpots({ limit: ADMIN_LIST_LIMIT, offset: 0 });
       else if (type === 'groups') {
         const r = await getGroups();
         setGroups(r.data?.data || []);

@@ -27,6 +27,7 @@ export const shortestPath = (data) => api.post('/routes/shortest', data);
 export const multiPointPath = (data) => api.post('/routes/multi', data);
 export const nearbySearch = (params) => api.get('/routes/nearby', { params });
 export const getGraphStats = () => api.get('/routes/graph-stats');
+export const getLocalRouteGraphs = () => api.get('/routes/local-graphs');
 
 // 日记相关
 export const getDiaries = (params) => api.get('/diaries', { params });

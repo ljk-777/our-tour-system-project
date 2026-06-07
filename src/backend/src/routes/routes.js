@@ -2,7 +2,20 @@ const express = require('express');
 const router = express.Router();
 const spotRepo = require('../repositories/spotRepository');
 const routeRepo = require('../repositories/routeRepository');
+const localRouteGraphRepo = require('../repositories/localRouteGraphRepository');
 const { shortestPath, multiPointPath, buildGraph, dijkstra } = require('../algorithms/dijkstra');
+
+router.get('/local-graphs', async (req, res, next) => {
+  try {
+    const graphs = await localRouteGraphRepo.getAll();
+    res.json({
+      success: true,
+      data: graphs,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post('/shortest', async (req, res, next) => {
   try {

@@ -314,4 +314,93 @@ const edges = [
   { from:82, to:81, dist:12000,  time:30, transport:'bus' },  // 大雁塔 -> 兵马俑
 ];
 
-module.exports = { edges };
+const idealSpeedByTransport = {
+  walk: 5,
+  bike: 15,
+  cart: 12,
+  bus: 28,
+  subway: 45,
+  car: 60,
+};
+
+const defaultCongestionByTransport = {
+  walk: 0.85,
+  bike: 0.78,
+  cart: 0.72,
+  bus: 0.65,
+  subway: 0.9,
+  car: 0.62,
+};
+
+const strategyDemoEdges = [
+  // 校区自行车示例路网：只允许 bike 模式使用，用于验收“自行车只能走自行车道”
+  { from: 202, to: 220, dist: 260, transport: 'bike', idealSpeedKmh: 15, congestion: 0.8, scene: 'campus' },
+  { from: 220, to: 205, dist: 190, transport: 'bike', idealSpeedKmh: 15, congestion: 0.75, scene: 'campus' },
+  { from: 205, to: 201, dist: 230, transport: 'bike', idealSpeedKmh: 14, congestion: 0.7, scene: 'campus' },
+  { from: 201, to: 208, dist: 210, transport: 'bike', idealSpeedKmh: 14, congestion: 0.82, scene: 'campus' },
+  { from: 208, to: 218, dist: 150, transport: 'bike', idealSpeedKmh: 13, congestion: 0.78, scene: 'campus' },
+  { from: 218, to: 213, dist: 220, transport: 'bike', idealSpeedKmh: 13, congestion: 0.74, scene: 'campus' },
+
+  // 景区电瓶车固定路线示例：只允许 cart 模式使用，用于验收“电瓶车路线固定”
+  { from: 1, to: 16, dist: 650, transport: 'cart', idealSpeedKmh: 12, congestion: 0.76, scene: 'scenic' },
+  { from: 16, to: 17, dist: 700, transport: 'cart', idealSpeedKmh: 12, congestion: 0.72, scene: 'scenic' },
+  { from: 17, to: 14, dist: 850, transport: 'cart', idealSpeedKmh: 11, congestion: 0.68, scene: 'scenic' },
+  { from: 14, to: 3, dist: 2600, transport: 'cart', idealSpeedKmh: 14, congestion: 0.7, scene: 'scenic' },
+
+  // 拥挤度差异示例：距离更长但时间更短，便于展示最短距离/最短时间结果不同
+  { from: 7, to: 16, dist: 2600, transport: 'walk', idealSpeedKmh: 5, congestion: 0.35, scene: 'scenic' },
+  { from: 7, to: 16, dist: 3300, transport: 'cart', idealSpeedKmh: 13, congestion: 0.82, scene: 'scenic' },
+];
+
+const graphNodeSets = {
+  'pku-campus': new Set([
+    201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+    211, 212, 213, 214, 215, 216, 217, 218, 219, 220,
+    226, 229, 240, 243, 247, 258, 260,
+  ]),
+  'forbidden-city': new Set([1, 3, 7, 14, 16, 17, 20, 221, 227, 230, 250, 253, 263]),
+  'west-lake': new Set([36, 37, 38, 40, 41, 42, 43, 44, 45, 222, 228, 231, 234, 238, 241, 244, 249, 251, 254, 257, 261]),
+};
+
+const graphCatalog = [
+  { id: 'pku-campus', name: '北京大学校园图', type: 'campus', description: '校园内部步行/自行车路网' },
+  { id: 'forbidden-city', name: '故宫及天安门景区图', type: 'scenic', description: '景区内部步行/电瓶车路网' },
+  { id: 'west-lake', name: '杭州西湖景区图', type: 'scenic', description: '景区内部步行/电瓶车路网' },
+];
+
+function inferGraphId(edge) {
+  if (edge.graphId) return edge.graphId;
+  for (const [graphId, nodeSet] of Object.entries(graphNodeSets)) {
+    if (nodeSet.has(edge.from) && nodeSet.has(edge.to)) return graphId;
+  }
+  return 'tour-city-demo';
+}
+
+function travelMinutes(dist, idealSpeedKmh, congestion) {
+  const realSpeedKmh = Math.max(0.1, idealSpeedKmh * congestion);
+  return Math.max(1, Math.round((dist / 1000 / realSpeedKmh) * 60));
+}
+
+function enrichRouteEdge(edge) {
+  const transport = edge.transport || 'walk';
+  const idealSpeedKmh = edge.idealSpeedKmh || idealSpeedByTransport[transport] || idealSpeedByTransport.walk;
+  const congestion = edge.congestion || defaultCongestionByTransport[transport] || 0.8;
+  return {
+    ...edge,
+    graphId: inferGraphId(edge),
+    congestion,
+    idealSpeedKmh,
+    time: edge.time || travelMinutes(edge.dist, idealSpeedKmh, congestion),
+  };
+}
+
+const routeEdges = [...edges, ...strategyDemoEdges].map(enrichRouteEdge);
+
+module.exports = {
+  edges: routeEdges,
+  rawEdges: edges,
+  strategyDemoEdges: strategyDemoEdges.map(enrichRouteEdge),
+  graphCatalog,
+  idealSpeedByTransport,
+  travelMinutes,
+};

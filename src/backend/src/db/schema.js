@@ -57,6 +57,49 @@ const schemaStatements = [
     );
   `,
   `
+    CREATE TABLE IF NOT EXISTS local_route_graphs (
+      id VARCHAR(80) PRIMARY KEY,
+      name VARCHAR(200) NOT NULL,
+      type VARCHAR(30) NOT NULL,
+      width INTEGER NOT NULL,
+      height INTEGER NOT NULL,
+      description TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS local_route_nodes (
+      id BIGSERIAL PRIMARY KEY,
+      graph_id VARCHAR(80) NOT NULL REFERENCES local_route_graphs(id) ON DELETE CASCADE,
+      node_key BIGINT NOT NULL,
+      name VARCHAR(200) NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      x INTEGER NOT NULL,
+      y INTEGER NOT NULL,
+      metadata JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (graph_id, node_key)
+    );
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS local_route_edges (
+      id BIGSERIAL PRIMARY KEY,
+      graph_id VARCHAR(80) NOT NULL REFERENCES local_route_graphs(id) ON DELETE CASCADE,
+      from_node_key BIGINT NOT NULL,
+      to_node_key BIGINT NOT NULL,
+      dist INTEGER NOT NULL,
+      transport VARCHAR(20) NOT NULL,
+      congestion NUMERIC(3, 2) NOT NULL DEFAULT 1,
+      ideal_speed_kmh NUMERIC(5, 2) NOT NULL DEFAULT 5,
+      bike_allowed BOOLEAN NOT NULL DEFAULT TRUE,
+      metadata JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `
     CREATE TABLE IF NOT EXISTS diaries (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -133,6 +176,14 @@ const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_route_edges_from ON route_edges(from_spot_id);`,
   `CREATE INDEX IF NOT EXISTS idx_route_edges_to ON route_edges(to_spot_id);`,
   `CREATE INDEX IF NOT EXISTS idx_route_edges_transport ON route_edges(transport);`,
+  `ALTER TABLE route_edges ADD COLUMN IF NOT EXISTS congestion NUMERIC(3, 2) NOT NULL DEFAULT 1;`,
+  `ALTER TABLE route_edges ADD COLUMN IF NOT EXISTS ideal_speed_kmh NUMERIC(5, 2) NOT NULL DEFAULT 5;`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_nodes_graph ON local_route_nodes(graph_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_nodes_type ON local_route_nodes(graph_id, type);`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_edges_graph ON local_route_edges(graph_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_edges_from ON local_route_edges(graph_id, from_node_key);`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_edges_to ON local_route_edges(graph_id, to_node_key);`,
+  `CREATE INDEX IF NOT EXISTS idx_local_route_edges_transport ON local_route_edges(graph_id, transport);`,
   `CREATE INDEX IF NOT EXISTS idx_diaries_user_id ON diaries(user_id);`,
   `CREATE INDEX IF NOT EXISTS idx_diaries_spot_id ON diaries(spot_id);`,
   `CREATE INDEX IF NOT EXISTS idx_diaries_created_at ON diaries(created_at DESC);`,

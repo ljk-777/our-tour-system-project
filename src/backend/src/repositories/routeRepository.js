@@ -8,7 +8,9 @@ async function getAll() {
         to_spot_id AS "to",
         dist,
         time_cost AS time,
-        transport
+        transport,
+        congestion,
+        ideal_speed_kmh AS "idealSpeedKmh"
       FROM route_edges
       ORDER BY id
     `

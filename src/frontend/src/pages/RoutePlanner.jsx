@@ -8,11 +8,14 @@ import {
   shortestPath,
 } from '../api/index.js';
 import AmapRouteMap from '../components/AmapRouteMap.jsx';
+import IndoorNavigationPanel from '../components/IndoorNavigationPanel.jsx';
+import LocalAlgorithmPlanner from '../components/LocalAlgorithmPlanner.jsx';
 import MapWorkspace from './MapWorkspace.jsx';
 
 const PLANNER_MODES = [
   { value: 'workspace', label: '地图工作台' },
   { value: 'algorithm', label: '本地算法模式' },
+  { value: 'indoor', label: '室内导航' },
   { value: 'amap', label: '高德真实导航' },
 ];
 
@@ -79,6 +82,7 @@ export default function RoutePlanner() {
 
   const titleText = useMemo(() => {
     if (plannerMode === 'workspace') return '地图工作台';
+    if (plannerMode === 'indoor') return '室内导航设计';
     if (plannerMode === 'amap') return '真实导航模式';
     return algoMode === 'multi' ? '多点路线规划' : '最短路径规划';
   }, [algoMode, plannerMode]);
@@ -257,7 +261,11 @@ export default function RoutePlanner() {
 
       {plannerMode === 'workspace' && <MapWorkspace />}
 
-      {plannerMode === 'algorithm' && (
+      {plannerMode === 'algorithm' && <LocalAlgorithmPlanner />}
+
+      {plannerMode === 'indoor' && <IndoorNavigationPanel />}
+
+      {false && plannerMode === 'algorithm' && (
         <>
           <section className="glass-card space-y-5 p-6">
             <div className="flex flex-wrap gap-2">
