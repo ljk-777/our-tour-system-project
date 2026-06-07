@@ -36,7 +36,7 @@ function compressImage(file, size = 600) {
   });
 }
 
-/* ── 单条日记行（无卡片，border-bottom 分隔）──────────────── */
+/* ── 单条日记行（可点击进入详情页） ──────────────────────────── */
 function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) {
   const [expanded,     setExpanded]     = useState(false);
   const [liked,        setLiked]        = useState(() => likedDiaryIdsSet?.has(diary.id) || false);
@@ -51,17 +51,17 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
   const isLong = (diary.content?.length || 0) > 140;
   const likeTimerRef = useRef(null);
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => clearTimeout(likeTimerRef.current);
   }, []);
 
-  // Sync liked state with backend data when it loads (e.g. after AuthContext fetch)
   useEffect(() => {
     setLiked(likedDiaryIdsSet?.has(diary.id) || false);
   }, [likedDiaryIdsSet, diary.id]);
 
-  const handleLike = async () => {
+  const handleLike = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (liked) {
       setLiked(false); setLikes(l => Math.max(0, l - 1));
       try { await unlikeDiary(diary.id); } catch {}
@@ -95,7 +95,10 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
   };
 
   return (
-    <div style={{
+    <Link to={`/diary/${diary.id}`} style={{
+      textDecoration: 'none',
+      color: 'inherit',
+      display: 'block',
       padding: '32px 0',
       borderBottom: '1px solid rgba(0,0,0,0.07)',
       position: 'relative',
@@ -110,7 +113,8 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
         <div>
           {/* 作者信息 */}
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-            <Link to={`/profile/${diary.userId}`} style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
+            <Link to={`/profile/${diary.userId}`} style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}
+              onClick={e => e.stopPropagation()}>
               <span style={{ fontSize:'1.2rem' }}>{diary.userAvatar}</span>
               <span style={{ fontSize:'0.82rem', fontWeight:600, color:'#1d1d1f', fontFamily:'Inter, sans-serif' }}>{diary.userName}</span>
             </Link>
@@ -141,14 +145,14 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
 
           {/* 正文摘要 */}
           <p style={{
-            fontSize:'0.875rem', color:'#6e6e73', lineHeight:1.7,
+            fontSize:'0.875rem', color:'#6e6e73', lineHeight:1.7, wordBreak:'break-word',
             display: !expanded && isLong ? '-webkit-box' : 'block',
             WebkitLineClamp: !expanded && isLong ? 3 : undefined,
             WebkitBoxOrient: 'vertical',
             overflow: !expanded && isLong ? 'hidden' : 'visible',
           }}>{diary.content}</p>
           {isLong && (
-            <button onClick={() => setExpanded(!expanded)} style={{
+            <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} style={{
               fontSize:'0.75rem', color:'#1a73e8', background:'none', border:'none',
               cursor:'pointer', padding:'4px 0', fontFamily:'Inter, sans-serif', fontWeight:500,
             }}>{expanded ? '收起 ▲' : '展开全文 ▼'}</button>
@@ -167,7 +171,7 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
 
           {/* 操作栏 */}
           <div style={{ display:'flex', alignItems:'center', gap:20, marginTop:16, paddingTop:14, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
-            <button onClick={() => requireAuth(PERMISSIONS.LIKE, handleLike)} style={{
+            <button onClick={(e) => requireAuth(PERMISSIONS.LIKE, () => handleLike(e))} style={{
               display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem',
               color: liked ? '#ef4444' : '#aeaeb2', background:'none', border:'none',
               cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:500,
@@ -179,7 +183,7 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
               {likes}
             </button>
 
-            <button onClick={() => setShowComments(!showComments)} style={{
+            <button onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} style={{
               display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem',
               color:'#aeaeb2', background:'none', border:'none', cursor:'pointer',
               fontFamily:'Inter, sans-serif',
@@ -203,7 +207,8 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
 
           {/* 评论区 */}
           {showComments && (
-            <div style={{ marginTop:16, paddingTop:16, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
+            <div style={{ marginTop:16, paddingTop:16, borderTop:'1px solid rgba(0,0,0,0.06)' }}
+              onClick={e => e.stopPropagation()}>
               {comments.length > 0 && (
                 <div style={{ marginBottom:12, display:'flex', flexDirection:'column', gap:8 }}>
                   {comments.map((c, i) => (
@@ -250,7 +255,7 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
           }}>No.{String(index + 1).padStart(2, '0')}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

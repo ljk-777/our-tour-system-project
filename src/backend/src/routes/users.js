@@ -96,7 +96,8 @@ router.get('/:id', async (req, res, next) => {
   try {
     const user = await userRepo.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
-    const { data: diaries } = await diaryRepo.findAll({ userId: user.id, limit: 100 });
+    const { data: diaries = [], total } = await diaryRepo.findAll({ userId: user.id, limit: 100 });
+    user.totalDiaries = total || diaries.length; // real count from DB
     res.json({ success: true, data: { ...user, diaries } });
   } catch (error) {
     next(error);
