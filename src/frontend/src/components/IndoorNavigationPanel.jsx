@@ -1,44 +1,75 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Accessibility,
-  ArrowUpDown,
   Building2,
   Clock3,
   Footprints,
   Layers,
-  Navigation,
+  Minus,
+  Plus,
+  Route,
 } from 'lucide-react';
+import firstFloorNetwork from '../assets/indoor/teaching-lab-1f-network.json';
+import secondFloorNetwork from '../assets/indoor/teaching-lab-2f-network.json';
+import thirdFloorNetwork from '../assets/indoor/teaching-lab-3f-network.json';
+import fourthFloorNetwork from '../assets/indoor/teaching-lab-4f-network.json';
+import fifthFloorNetwork from '../assets/indoor/teaching-lab-5f-network.json';
+import { describeRoute as describeRouteApi } from '../api/index.js';
+import firstFloorImage from '../assets/indoor/teaching-lab-1f-reference.jpg';
+import secondFloorImage from '../assets/indoor/teaching-lab-2f-reference.jpg';
+import thirdFloorImage from '../assets/indoor/teaching-lab-3f-reference.jpg';
+import fourthFloorImage from '../assets/indoor/teaching-lab-4f-reference.jpg';
+import fifthFloorImage from '../assets/indoor/teaching-lab-5f-reference.jpg';
 
 const FLOORS = ['1F', '2F', '3F', '4F', '5F'];
-const MAP_SIZE = { width: 1100, height: 700 };
-const CORRIDOR_Y = { north: 240, south: 500 };
-const EAST_CORRIDOR_X = 895;
+const ZOOM_LEVELS = [0.7, 1, 1.35, 1.8, 2.35, 3];
+const PIXEL_TO_METER = 0.045;
+const VERTICAL_TRANSFER_METERS = 18;
 
-const PREFERENCES = [
-  { value: 'fast', label: '最快', icon: Clock3 },
-  { value: 'accessible', label: '无障碍', icon: Accessibility },
-  { value: 'stairs', label: '少等电梯', icon: ArrowUpDown },
-];
+const FLOOR_IMAGES = {
+  '1F': firstFloorImage,
+  '2F': secondFloorImage,
+  '3F': thirdFloorImage,
+  '4F': fourthFloorImage,
+  '5F': fifthFloorImage,
+};
 
-const BUILDING = {
-  id: 'bupt-shahe-teaching-lab',
-  name: '教学实验综合楼',
-  code: '教学实验综合楼',
-  floors: FLOORS,
-  nodes: buildTeachingLabNodes(),
+const FLOOR_NETWORKS = {
+  '1F': firstFloorNetwork,
+  '2F': secondFloorNetwork,
+  '3F': thirdFloorNetwork,
+  '4F': fourthFloorNetwork,
+  '5F': fifthFloorNetwork,
 };
 
 export default function IndoorNavigationPanel() {
+  const graph = useMemo(() => buildManualIndoorGraph(), []);
   const [floor, setFloor] = useState('1F');
-  const [startId, setStartId] = useState('f1_s1');
-  const [endId, setEndId] = useState('f3_east_4');
-  const [preference, setPreference] = useState('accessible');
+  const [startId, setStartId] = useState(() => graph.selectableNodes[0]?.id || '');
+  const [endId, setEndId] = useState(() => graph.selectableNodes.find((node) => node.floor === '3F' && node.type === 'door')?.id || graph.selectableNodes.at(-1)?.id || '');
+  const [zoomIndex, setZoomIndex] = useState(2);
+  const [facilityOriginId, setFacilityOriginId] = useState(() => graph.selectableNodes[0]?.id || '');
+  const [facilityCategory, setFacilityCategory] = useState('all');
+  const [facilityRadius, setFacilityRadius] = useState(120);
 
-  const nodesById = useMemo(() => new Map(BUILDING.nodes.map((node) => [node.id, node])), []);
-  const route = useMemo(() => buildIndoorRoute(BUILDING.nodes, startId, endId, preference), [endId, preference, startId]);
-  const visibleNodes = BUILDING.nodes.filter((node) => node.floor === floor);
-  const routeNodeIds = new Set(route.nodes.map((node) => node.id));
-  const floorRoute = route.floorPaths[floor] || [];
+  const route = useMemo(() => shortestIndoorPath(graph, startId, endId), [endId, graph, startId]);
+  const nearbyFacilities = useMemo(() => findNearbyIndoorFacilities(graph, facilityOriginId, {
+    category: facilityCategory,
+    radius: facilityRadius,
+  }), [facilityCategory, facilityOriginId, facilityRadius, graph]);
+  const currentSize = graph.floorSizes[floor];
+  const visibleNodes = graph.nodes.filter((node) => node.floor === floor);
+  const visibleEdges = graph.edges.filter((edge) => {
+    const from = graph.nodeMap.get(edge.from);
+    const to = graph.nodeMap.get(edge.to);
+    return from?.floor === floor && to?.floor === floor;
+  });
+  const floorRoutePath = route.path.filter((id) => graph.nodeMap.get(id)?.floor === floor);
+  const routeNodeIds = new Set(route.path);
+  const activeEdgeKeys = new Set(route.edgeKeys);
+  const zoom = ZOOM_LEVELS[zoomIndex];
+  const showAllLabels = zoom >= 0.7;
+  const descriptionPayload = useMemo(() => buildIndoorRouteDescriptionPayload(graph, route), [graph, route]);
+  const routeDescription = useRouteDescription(descriptionPayload);
 
   return (
     <section className="grid gap-0 overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-xl lg:grid-cols-[360px_1fr]">
@@ -48,12 +79,14 @@ export default function IndoorNavigationPanel() {
             <Building2 size={18} /> 室内导航
           </div>
           <h2 className="mt-2 text-2xl font-black text-gray-900">教学实验综合楼</h2>
-          <p className="mt-2 text-sm text-gray-500">按真实疏散图结构重绘，加入房间编号、门洞、消防设施、疏散箭头和跨层连接点。</p>
+          <p className="mt-2 text-sm text-gray-500">
+            使用你手动标注的五层 JSON 建模。教室、门口、楼梯、电梯、安全出口、卫生间和开水间都会作为独立节点参与最短路径计算。
+          </p>
         </div>
 
         <Field label="查看楼层">
           <div className="grid grid-cols-5 gap-2">
-            {BUILDING.floors.map((item) => (
+            {FLOORS.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -66,98 +99,340 @@ export default function IndoorNavigationPanel() {
           </div>
         </Field>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid gap-3">
           <Field label="起点">
-            <select value={startId} onChange={(event) => setStartId(event.target.value)} className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
-              {BUILDING.nodes.map((node) => <option key={node.id} value={node.id}>{node.floor} · {node.name}</option>)}
-            </select>
+            <IndoorNodeSelect graph={graph} value={startId} onChange={setStartId} />
           </Field>
           <Field label="终点">
-            <select value={endId} onChange={(event) => setEndId(event.target.value)} className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
-              {BUILDING.nodes.map((node) => <option key={node.id} value={node.id}>{node.floor} · {node.name}</option>)}
-            </select>
+            <IndoorNodeSelect graph={graph} value={endId} onChange={setEndId} />
           </Field>
         </div>
-
-        <Field label="路线偏好">
-          <div className="grid grid-cols-3 gap-2">
-            {PREFERENCES.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setPreference(item.value)}
-                  className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold transition ${preference === item.value ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-gray-50 text-gray-600 hover:bg-blue-50'}`}
-                >
-                  <Icon size={15} /> {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </Field>
 
         <div className="grid grid-cols-3 gap-2">
           <Metric icon={Footprints} value={`${route.distance}m`} label="距离" />
           <Metric icon={Clock3} value={formatSeconds(route.seconds)} label="时间" />
-          <Metric icon={Layers} value={`${route.floorChanges}次`} label="换层" />
+          <Metric icon={Layers} value={`${graph.nodes.length}`} label="节点" />
         </div>
 
         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
           <div className="font-semibold">当前模型</div>
-          <div className="mt-1">5 层室内矢量图，{BUILDING.nodes.length} 个导航点，房间门洞和消防设施为可视图层。</div>
+          <div className="mt-1">
+            五层手动路网：{graph.nodes.length} 个点，{graph.edges.length} 条边。卫生间 {graph.counts.toilet} 个，开水间 {graph.counts.water} 个，均独立命名并参与导航。
+          </div>
         </div>
+
+        <RouteSteps route={route} graph={graph} />
       </aside>
 
       <div className="bg-[#eef7ff] p-4">
         <div className="rounded-2xl border border-blue-100 bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-lg font-black text-gray-900">{BUILDING.name}室内导航图</div>
-              <div className="mt-1 text-sm text-gray-500">{floor} · 当前显示 {visibleNodes.length} 个点位</div>
+              <div className="text-lg font-black text-gray-900">教学实验综合楼 {floor} 室内导航图</div>
+              <div className="mt-1 text-sm text-gray-500">按当前楼层真实图片比例绘制，灰线为手动标注通道，蓝线为当前路线。</div>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
-              <Navigation size={16} /> {nodesById.get(startId)?.name} → {nodesById.get(endId)?.name}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setZoomIndex((value) => Math.max(0, value - 1))}
+                className="grid h-9 w-9 place-items-center rounded-full bg-gray-50 text-gray-600"
+                aria-label="缩小地图"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-14 text-center text-sm font-bold text-gray-600">{Math.round(zoom * 100)}%</span>
+              <button
+                type="button"
+                onClick={() => setZoomIndex((value) => Math.min(ZOOM_LEVELS.length - 1, value + 1))}
+                className="grid h-9 w-9 place-items-center rounded-full bg-gray-50 text-gray-600"
+                aria-label="放大地图"
+              >
+                <Plus size={16} />
+              </button>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-[#f8fbff] p-2">
-            <svg viewBox={`0 0 ${MAP_SIZE.width} ${MAP_SIZE.height}`} className="block h-auto w-full" role="img" aria-label={`${BUILDING.name}${floor}细化建模室内导航图`}>
-              <rect x="0" y="0" width={MAP_SIZE.width} height={MAP_SIZE.height} rx="28" fill="#eef8fb" />
-              <FloorModel floor={floor} />
-              <RoutePolyline points={floorRoute} />
-              {visibleNodes.map((node) => {
-                const active = routeNodeIds.has(node.id);
-                const showLabel = active || node.type !== 'room';
-                return (
-                  <g key={node.id}>
-                    <circle cx={node.x} cy={node.y} r={active ? 13 : 7} fill={active ? '#2563eb' : '#ffffff'} stroke={nodeColor(node.type)} strokeWidth="4" />
-                    <circle cx={node.x} cy={node.y} r="3" fill={active ? '#ffffff' : nodeColor(node.type)} />
-                    {showLabel && (
-                      <text x={node.x + 13} y={node.y - 9} fontSize="14" fontWeight="800" fill={active ? '#1d4ed8' : '#1f2937'} paintOrder="stroke" stroke="#ffffff" strokeWidth="4">
-                        {node.name}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
+          <div className="mt-4 max-h-[640px] overflow-auto rounded-2xl bg-[#f8fbff]">
+            <svg
+              viewBox={`0 0 ${currentSize.width} ${currentSize.height}`}
+              className="block h-auto max-w-none"
+              style={{ width: `${zoom * 100}%`, minWidth: '100%' }}
+              role="img"
+              aria-label={`教学实验综合楼${floor}手动路网室内导航图`}
+            >
+              <image href={FLOOR_IMAGES[floor]} x="0" y="0" width={currentSize.width} height={currentSize.height} preserveAspectRatio="xMidYMid meet" opacity="0.9" />
+              <rect x="0" y="0" width={currentSize.width} height={currentSize.height} fill="transparent" stroke="#2563eb" strokeWidth="8" />
+              <IndoorEdges graph={graph} edges={visibleEdges} activeEdgeKeys={activeEdgeKeys} />
+              <RoutePolyline graph={graph} path={floorRoutePath} />
+              <IndoorNodes nodes={visibleNodes} routeNodeIds={routeNodeIds} showAllLabels={showAllLabels} />
             </svg>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {route.steps.map((step, index) => (
-              <div key={`${step.title}-${index}`} className="rounded-2xl bg-blue-50 p-3 text-sm text-blue-900">
-                <div className="flex items-center gap-2 font-bold">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs text-white">{index + 1}</span>
-                  {step.title}
-                </div>
-                <div className="mt-2 text-blue-700">{step.detail}</div>
-              </div>
-            ))}
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+            <Legend color="#94a3b8" label="手动标注通道" line />
+            <Legend color="#2563eb" label="当前路线" line />
+            <Legend color="#0ea5e9" label="房间/教室" />
+            <Legend color="#16a34a" label="安全出口" />
+            <Legend color="#7c3aed" label="楼梯" />
+            <Legend color="#f97316" label="电梯" />
+            <Legend color="#0891b2" label="卫生间" />
+            <Legend color="#0d9488" label="开水间" />
           </div>
         </div>
+        <IndoorNearbyFacilitiesPanel
+          graph={graph}
+          originId={facilityOriginId}
+          category={facilityCategory}
+          radius={facilityRadius}
+          results={nearbyFacilities}
+          onOriginChange={setFacilityOriginId}
+          onCategoryChange={setFacilityCategory}
+          onRadiusChange={setFacilityRadius}
+          onNavigate={(node) => {
+            setStartId(facilityOriginId);
+            setEndId(node.id);
+            setFloor(node.floor);
+          }}
+        />
+        <RouteDescriptionCard result={routeDescription} />
       </div>
     </section>
+  );
+}
+
+function IndoorEdges({ graph, edges, activeEdgeKeys }) {
+  return (
+    <g>
+      {edges.map((edge) => {
+        const from = graph.nodeMap.get(edge.from);
+        const to = graph.nodeMap.get(edge.to);
+        if (!from || !to) return null;
+        const active = activeEdgeKeys.has(edgeKey(edge.from, edge.to));
+        return (
+          <line
+            key={`${edge.from}-${edge.to}`}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
+            stroke={active ? '#2563eb' : '#64748b'}
+            strokeWidth={active ? 15 : 8}
+            strokeLinecap="round"
+            opacity={active ? 0.95 : 0.45}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+function IndoorNodes({ nodes, routeNodeIds, showAllLabels }) {
+  return (
+    <g>
+      {nodes.map((node) => {
+        const active = routeNodeIds.has(node.id);
+        const important = !['corridor', 'junction'].includes(node.type);
+        const showLabel = active || important || showAllLabels;
+        const radius = active ? 18 : important ? 13 : 8;
+        return (
+          <g key={node.id}>
+            <title>{node.name}</title>
+            <circle cx={node.x} cy={node.y} r={radius + 5} fill="#ffffff" opacity="0.9" />
+            <circle cx={node.x} cy={node.y} r={radius} fill={active ? '#2563eb' : '#ffffff'} stroke={nodeColor(node.type)} strokeWidth="6" />
+            <circle cx={node.x} cy={node.y} r="4" fill={active ? '#ffffff' : nodeColor(node.type)} />
+            {showLabel && (
+              <text
+                x={node.x + 18}
+                y={node.y - 15}
+                fontSize={active ? 34 : 25}
+                fontWeight="800"
+                fill="#0f172a"
+                stroke="#ffffff"
+                strokeWidth="7"
+                paintOrder="stroke"
+              >
+                {node.shortName}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function RoutePolyline({ graph, path }) {
+  if (path.length < 2) return null;
+  const points = path.map((id) => graph.nodeMap.get(id)).filter(Boolean);
+  return (
+    <polyline
+      points={points.map((point) => `${point.x},${point.y}`).join(' ')}
+      fill="none"
+      stroke="#2563eb"
+      strokeWidth="14"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.95"
+    />
+  );
+}
+
+function RouteSteps({ route, graph }) {
+  const compact = compactIndoorPath(route.path, graph.nodeMap);
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-900">
+        <Route size={16} /> 输出路径
+      </div>
+      <div className="space-y-2">
+        {compact.map((id, index) => {
+          const node = graph.nodeMap.get(id);
+          return (
+            <div key={`${id}-${index}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-gray-700">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">{index + 1}</span>
+              <span className="font-semibold">{node?.name || id}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RouteDescriptionCard({ result }) {
+  if (!result?.description && !result?.loading) return null;
+  return (
+    <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-bold">路线说明</div>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-blue-600">
+          {result.loading ? '生成中' : result.source === 'api' ? 'API 生成' : '本地模板'}
+        </span>
+      </div>
+      <p className="mt-2 whitespace-pre-line leading-6">{result.loading ? '正在根据当前路径生成说明...' : result.description}</p>
+    </div>
+  );
+}
+
+function IndoorNearbyFacilitiesPanel({
+  graph,
+  originId,
+  category,
+  radius,
+  results,
+  onOriginChange,
+  onCategoryChange,
+  onRadiusChange,
+  onNavigate,
+}) {
+  return (
+    <div className="mt-5 rounded-2xl border border-cyan-100 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-lg font-black text-gray-900">附近设施排序</div>
+          <div className="mt-1 text-sm text-gray-500">按室内路网距离排序，不按直线距离；可查最近卫生间和开水间。</div>
+        </div>
+        <div className="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-700">
+          Dijkstra 排序
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_1fr_1fr]">
+        <Field label="当前位置">
+          <IndoorNodeSelect graph={graph} value={originId} onChange={onOriginChange} />
+        </Field>
+        <Field label="设施类别">
+          <select value={category} onChange={(event) => onCategoryChange(event.target.value)} className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
+            <option value="all">全部设施</option>
+            <option value="toilet">卫生间</option>
+            <option value="water">开水间</option>
+          </select>
+        </Field>
+        <Field label="搜索范围">
+          <select value={radius} onChange={(event) => onRadiusChange(Number(event.target.value))} className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
+            <option value={60}>60 米内</option>
+            <option value={120}>120 米内</option>
+            <option value={200}>200 米内</option>
+            <option value={9999}>全部可达</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {results.length === 0 ? (
+          <div className="rounded-2xl bg-gray-50 px-4 py-5 text-center text-sm text-gray-400 md:col-span-2">
+            当前范围内没有可达设施，试试扩大搜索范围。
+          </div>
+        ) : results.slice(0, 8).map((item, index) => (
+          <div key={item.node.id} className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-cyan-600 text-xs font-black text-white">{index + 1}</span>
+                <span className="truncate text-sm font-bold text-gray-900">{item.node.name}</span>
+              </div>
+              <div className="mt-1 pl-9 text-xs text-gray-500">
+                {indoorFacilityLabel(item.node.type)} · 路网距离 {item.distance} 米 · 约 {formatSeconds(item.seconds)}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate(item.node)}
+              className="shrink-0 rounded-full bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-blue-100"
+            >
+              导航
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function useRouteDescription(payload) {
+  const [state, setState] = useState({ loading: false, description: '', source: '' });
+  const payloadKey = useMemo(() => JSON.stringify(payload || {}), [payload]);
+
+  useEffect(() => {
+    if (!payload?.steps?.length) {
+      setState({ loading: false, description: '', source: '' });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setState({ loading: true, description: '', source: '' });
+    describeRouteApi(payload)
+      .then((res) => {
+        if (cancelled) return;
+        setState({
+          loading: false,
+          description: res.data?.data?.description || buildTemplateRouteDescription(payload),
+          source: res.data?.data?.source || 'template',
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState({
+          loading: false,
+          description: buildTemplateRouteDescription(payload),
+          source: 'template',
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payloadKey]);
+
+  return state;
+}
+
+function IndoorNodeSelect({ graph, value, onChange }) {
+  return (
+    <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
+      {graph.selectableNodes.map((node) => (
+        <option key={node.id} value={node.id}>{node.name}</option>
+      ))}
+    </select>
   );
 }
 
@@ -180,418 +455,512 @@ function Metric({ icon: Icon, value, label }) {
   );
 }
 
-function FloorModel({ floor }) {
-  const hasEastWing = floor !== '1F';
+function Legend({ color, label, line = false }) {
   return (
-    <g>
-      <text x="72" y="74" fontSize="34" fontWeight="900" fill="#be123c">{floor}</text>
-      <text x="135" y="74" fontSize="25" fontWeight="900" fill="#111827">教学实验综合楼安全疏散建模图</text>
-      <text x="930" y="74" fontSize="16" fontWeight="800" fill="#be123c">北</text>
-      <path d="M942 92 L928 138 H956 Z" fill="#e11d48" />
-
-      <BuildingWing y="115" floor={floor} wing="north" label="北部保卫处" />
-      <BuildingWing y="375" floor={floor} wing="south" label="南部保卫处" />
-      {hasEastWing && <EastWing floor={floor} />}
-
-      <CorridorPath d={`M145 ${CORRIDOR_Y.north} H965`} />
-      <CorridorPath d={`M145 ${CORRIDOR_Y.south} H965`} />
-      {hasEastWing && <CorridorPath d={`M${EAST_CORRIDOR_X} ${CORRIDOR_Y.north} V${CORRIDOR_Y.south}`} />}
-      <CorridorLabel x="540" y={CORRIDOR_Y.north - 18} text="北侧走廊" />
-      <CorridorLabel x="540" y={CORRIDOR_Y.south - 18} text="南侧走廊" />
-      {hasEastWing && <CorridorLabel x={EAST_CORRIDOR_X + 44} y="370" text="东翼走廊" vertical />}
-
-      <ServiceCluster floor={floor} hasEastWing={hasEastWing} />
-      <Legend />
-    </g>
+    <span className="inline-flex items-center gap-2">
+      {line ? <span className="h-1 w-8 rounded-full" style={{ backgroundColor: color }} /> : <span className="h-3 w-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: color }} />}
+      {label}
+    </span>
   );
 }
 
-function BuildingWing({ y, floor, wing, label }) {
-  const roomXs = [155, 245, 335, 425, 515, 605, 695, 785, 875];
-  return (
-    <g>
-      <rect x="120" y={y} width="875" height="170" rx="10" fill="#f8fafc" stroke="#111827" strokeWidth="4" />
-      <rect x="145" y={y + 76} width="820" height="38" rx="4" fill="#e5e7eb" stroke="#111827" strokeWidth="2.5" />
-      <text x="555" y={y + 101} textAnchor="middle" fontSize="13" fontWeight="900" fill="#475569">走廊</text>
-      {roomXs.map((x, index) => {
-        const codePrefix = wing === 'north' ? 'N' : 'S';
-        const upperLabel = `${codePrefix}-${floorNumber(floor)}${String(index * 2 + 1).padStart(2, '0')}`;
-        const lowerLabel = `${codePrefix}-${floorNumber(floor)}${String(index * 2 + 2).padStart(2, '0')}`;
-        const upperKind = index % 2 === 0 ? '教室' : '实验室';
-        const lowerKind = index % 2 === 0 ? '实验室' : '教室';
-        return (
-          <g key={x}>
-            <RoomCell x={x - 24} y={y + 8} width={82} height="58" label={upperLabel} kind={upperKind} />
-            <RoomCell x={x - 24} y={y + 124} width={82} height="38" label={lowerLabel} kind={lowerKind} compact />
-            <Door x={x + 18} y={y + 76} flip={false} />
-            <Door x={x + 18} y={y + 114} flip />
-          </g>
-        );
-      })}
-      <text x="128" y={y - 10} fontSize="15" fontWeight="800" fill="#64748b">{label}</text>
-      <ExitIcon x="126" y={y + 104} />
-      <FireIcon x="295" y={y + 94} />
-      <FireIcon x="550" y={y + 94} />
-      <FireIcon x="845" y={y + 94} />
-    </g>
-  );
-}
-
-function RoomCell({ x, y, width, height, label, kind, compact = false }) {
-  const isClassroom = kind === '教室';
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx="6"
-        fill="#ffffff"
-        stroke="#111827"
-        strokeWidth="2.6"
-      />
-      <text x={x + 8} y={y + (compact ? 17 : 21)} fontSize={compact ? 11 : 12} fontWeight="900" fill="#1f2937">{label}</text>
-      <text x={x + 8} y={y + (compact ? 32 : 40)} fontSize={compact ? 10 : 11} fontWeight="900" fill={isClassroom ? '#334155' : '#64748b'}>{kind}</text>
-    </g>
-  );
-}
-
-function Door({ x, y, flip = false }) {
-  const sweep = flip ? -1 : 1;
-  return (
-    <g>
-      <rect x={x - 18} y={y - 6} width="36" height="12" rx="1" fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
-      <path d={`M${x - 15} ${y} Q${x} ${y + sweep * 24} ${x + 15} ${y}`} fill="none" stroke="#111827" strokeWidth="2.3" />
-      <text x={x + 18} y={y + sweep * 13} fontSize="10" fontWeight="900" fill="#111827">门</text>
-    </g>
-  );
-}
-
-function EastWing({ floor }) {
-  const roomYs = [304, 352, 400, 448];
-  return (
-    <g>
-      <rect x="830" y="255" width="165" height="270" rx="10" fill="#f8fafc" stroke="#111827" strokeWidth="4" />
-      <rect x="875" y="270" width="42" height="235" rx="4" fill="#e5e7eb" stroke="#111827" strokeWidth="2.5" />
-      {roomYs.map((y) => <line key={y} x1="830" y1={y} x2="995" y2={y} stroke="#111827" strokeWidth="3" />)}
-      {roomYs.map((y, index) => (
-        <g key={y}>
-          <RoomCell x="920" y={y - 42} width="62" height="34" label={`E-${floorNumber(floor)}${index + 1}`} kind="教室" />
-          <Door x={872} y={y - 17} />
-        </g>
-      ))}
-      <text x="913" y="272" fontSize="13" fontWeight="800" fill="#64748b">东翼</text>
-      <FireIcon x="875" y="420" />
-    </g>
-  );
-}
-
-function ServiceCluster({ floor, hasEastWing }) {
-  return (
-    <g>
-      <StairBlock x="410" y="168" label="楼梯口" />
-      <ServiceBlock x="745" y="170" label="卫生间" accent="#0f766e" />
-      <ServiceBlock x="812" y="170" label="开水间" accent="#0891b2" />
-      <StairBlock x="915" y="172" label="东楼梯口" />
-      <StairBlock x="410" y="428" label="楼梯口" />
-      <ServiceBlock x="745" y="430" label="卫生间" accent="#0f766e" />
-      <ServiceBlock x="812" y="430" label="开水间" accent="#0891b2" />
-      <StairBlock x="915" y="432" label="东楼梯口" />
-      <ElevatorBlock x={hasEastWing ? EAST_CORRIDOR_X : 800} y={hasEastWing ? 348 : 318} />
-      <SafetyExitLabel x="510" y={floor === '1F' ? 330 : 120} />
-      <SafetyExitLabel x="870" y={floor === '1F' ? 275 : 530} />
-    </g>
-  );
-}
-
-function ServiceBlock({ x, y, label, accent = '#7c3aed' }) {
-  return (
-    <g>
-      <rect x={x - 31} y={y - 24} width="62" height="48" rx="8" fill="#eef2ff" stroke={accent} strokeWidth="3" />
-      <text x={x} y={y + 5} textAnchor="middle" fontSize="12" fontWeight="800" fill="#334155">{label}</text>
-    </g>
-  );
-}
-
-function StairBlock({ x, y, label }) {
-  return (
-    <g>
-      <rect x={x - 36} y={y - 27} width="72" height="54" rx="8" fill="#f5f3ff" stroke="#7c3aed" strokeWidth="3" />
-      {[-18, -9, 0, 9, 18].map((offset) => (
-        <line key={offset} x1={x - 24} y1={y + offset} x2={x + 24} y2={y + offset} stroke="#7c3aed" strokeWidth="2" />
-      ))}
-      <path d={`M${x - 20} ${y + 18} L${x + 20} ${y - 18}`} stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" />
-      <text x={x} y={y + 42} textAnchor="middle" fontSize="12" fontWeight="900" fill="#5b21b6">{label}</text>
-    </g>
-  );
-}
-
-function ElevatorBlock({ x, y }) {
-  return (
-    <g>
-      <rect x={x - 34} y={y - 28} width="68" height="56" rx="8" fill="#fff7ed" stroke="#f97316" strokeWidth="3" />
-      <line x1={x} y1={y - 24} x2={x} y2={y + 24} stroke="#f97316" strokeWidth="2" />
-      <path d={`M${x - 18} ${y - 6} L${x - 26} ${y - 14} M${x - 18} ${y - 6} L${x - 10} ${y - 14}`} stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
-      <path d={`M${x + 18} ${y + 6} L${x + 10} ${y + 14} M${x + 18} ${y + 6} L${x + 26} ${y + 14}`} stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
-      <text x={x} y={y + 43} textAnchor="middle" fontSize="12" fontWeight="900" fill="#c2410c">电梯口</text>
-    </g>
-  );
-}
-
-function CorridorPath({ d }) {
-  return (
-    <g>
-      <path d={d} fill="none" stroke="#111827" strokeWidth="28" strokeLinecap="round" strokeLinejoin="round" opacity="0.2" />
-      <path d={d} fill="none" stroke="#e5e7eb" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeDasharray="12 12" strokeLinecap="round" opacity="0.8" />
-    </g>
-  );
-}
-
-function CorridorLabel({ x, y, text, vertical = false }) {
-  return (
-    <text
-      x={x}
-      y={y}
-      transform={vertical ? `rotate(90 ${x} ${y})` : undefined}
-      textAnchor="middle"
-      fontSize="13"
-      fontWeight="900"
-      fill="#475569"
-      paintOrder="stroke"
-      stroke="#f8fafc"
-      strokeWidth="4"
-    >
-      {text}
-    </text>
-  );
-}
-
-function FireIcon({ x, y }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <rect x="-8" y="-10" width="7" height="18" rx="2" fill="#dc2626" />
-      <rect x="2" y="-10" width="7" height="18" rx="2" fill="#dc2626" />
-      <circle cx="-4.5" cy="-12" r="4" fill="#ef4444" />
-      <circle cx="5.5" cy="-12" r="4" fill="#ef4444" />
-    </g>
-  );
-}
-
-function ExitIcon({ x, y }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <rect x="-14" y="-18" width="28" height="36" rx="2" fill="#ecfdf5" stroke="#10b981" strokeWidth="3" />
-      <path d="M-5 -8 L5 0 L-5 8" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-  );
-}
-
-function SafetyExitLabel({ x, y }) {
-  return (
-    <g>
-      <text x={x} y={y} fontSize="14" fontWeight="900" fill="#dc2626" textAnchor="middle">安全出口</text>
-      <ExitIcon x={x} y={y + 22} />
-    </g>
-  );
-}
-
-function Legend() {
-  return (
-    <g transform="translate(130 638)">
-      <LegendItem x={0} color="#16a34a" label="安全出口" />
-      <LegendItem x={132} color="#2563eb" label="房间/教室" />
-      <LegendItem x={282} color="#7c3aed" label="楼梯" />
-      <LegendItem x={392} color="#f97316" label="电梯" />
-      <LegendItem x={502} color="#dc2626" label="消防设施" />
-      <LegendItem x={642} color="#94a3b8" label="走廊" line />
-      <LegendItem x={742} color="#2563eb" label="当前路线" line />
-    </g>
-  );
-}
-
-function LegendItem({ x, color, label, line = false }) {
-  return (
-    <g transform={`translate(${x} 0)`}>
-      {line ? <line x1="0" y1="9" x2="34" y2="9" stroke={color} strokeWidth="8" strokeLinecap="round" /> : <circle cx="10" cy="9" r="8" fill="#ffffff" stroke={color} strokeWidth="4" />}
-      <text x="44" y="14" fontSize="15" fontWeight="700" fill="#475569">{label}</text>
-    </g>
-  );
-}
-
-function RoutePolyline({ points }) {
-  if (points.length < 2) return null;
-  return (
-    <polyline
-      points={points.map((point) => `${point.x},${point.y}`).join(' ')}
-      fill="none"
-      stroke="#2563eb"
-      strokeWidth="10"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity="0.94"
-    />
-  );
-}
-
-function buildTeachingLabNodes() {
-  const nodes = [];
-  for (let floor = 1; floor <= 5; floor += 1) {
-    const f = `${floor}F`;
-    const prefix = String(floor);
-    const hasLongEastWing = floor >= 2;
-    const north = [
-      [170, 240], [260, 240], [350, 240], [440, 240], [530, 240], [620, 240], [710, 240], [800, 240], [940, 240],
-    ];
-    const south = [
-      [170, 500], [260, 500], [350, 500], [440, 500], [530, 500], [620, 500], [710, 500], [800, 500], [940, 500],
-    ];
-
-    north.forEach(([x, y], index) => {
-      nodes.push({ id: `f${floor}_n${index + 1}`, name: `N-${prefix}${String(index * 2 + 1).padStart(2, '0')}`, floor: f, type: 'room', wing: 'north', x, y });
-    });
-    south.forEach(([x, y], index) => {
-      nodes.push({ id: `f${floor}_s${index + 1}`, name: `S-${prefix}${String(index * 2 + 1).padStart(2, '0')}`, floor: f, type: 'room', wing: 'south', x, y });
-    });
-
-    nodes.push({ id: `f${floor}_west_exit`, name: '西侧安全出口', floor: f, type: 'exit', wing: 'north', x: 130, y: 240 });
-    nodes.push({ id: `f${floor}_south_exit`, name: '南侧安全出口', floor: f, type: 'exit', wing: 'south', x: 130, y: 500 });
-    nodes.push({ id: `f${floor}_mid_stair`, name: '中部楼梯', floor: f, type: 'stair', wing: 'north', x: 410, y: 240 });
-    nodes.push({ id: `f${floor}_east_stair`, name: '东侧楼梯', floor: f, type: 'stair', wing: 'north', x: 915, y: 240 });
-    nodes.push({ id: `f${floor}_elevator`, name: '电梯', floor: f, type: 'elevator', wing: 'east', x: hasLongEastWing ? EAST_CORRIDOR_X : 800, y: hasLongEastWing ? 350 : 318 });
-    nodes.push({ id: `f${floor}_wc_n`, name: '北侧卫生间', floor: f, type: 'service', wing: 'north', x: 745, y: 240 });
-    nodes.push({ id: `f${floor}_wc_s`, name: '南侧卫生间', floor: f, type: 'service', wing: 'south', x: 745, y: 500 });
-    nodes.push({ id: `f${floor}_water_n`, name: '北侧开水间', floor: f, type: 'service', wing: 'north', x: 812, y: 240 });
-    nodes.push({ id: `f${floor}_water_s`, name: '南侧开水间', floor: f, type: 'service', wing: 'south', x: 812, y: 500 });
-
-    if (hasLongEastWing) {
-      [304, 352, 400, 448].forEach((y, index) => {
-        nodes.push({ id: `f${floor}_east_${index + 1}`, name: `东翼房间 ${index + 1}`, floor: f, type: 'room', wing: 'east', x: 925, y });
-      });
-    }
-  }
-  return nodes;
-}
-
-function buildIndoorRoute(nodes, startId, endId, preference) {
-  const nodesById = new Map(nodes.map((node) => [node.id, node]));
-  const start = nodesById.get(startId) || nodes[0];
-  const end = nodesById.get(endId) || nodes[0];
-  const useElevator = preference !== 'stairs';
-  const connectorType = useElevator ? '电梯' : '楼梯';
-  const connectorKey = useElevator ? 'elevator' : 'east_stair';
-  const routeNodes = [start];
-
-  if (start.floor !== end.floor) {
-    const startConnector = nodesById.get(`f${floorNumber(start.floor)}_${connectorKey}`);
-    const endConnector = nodesById.get(`f${floorNumber(end.floor)}_${connectorKey}`);
-    if (startConnector && startConnector.id !== start.id) routeNodes.push(startConnector);
-    if (endConnector && endConnector.id !== routeNodes[routeNodes.length - 1]?.id) routeNodes.push(endConnector);
-  }
-  if (end.id !== routeNodes[routeNodes.length - 1]?.id) routeNodes.push(end);
-
-  const floorPaths = buildFloorPaths(routeNodes);
-  const distance = Math.round(Object.values(floorPaths).flat().reduce((sum, point, index, allPoints) => {
-    if (index === 0) return 0;
-    const prev = allPoints[index - 1];
-    if (point.floor !== prev.floor) return sum;
-    return sum + Math.hypot(point.x - prev.x, point.y - prev.y) * 0.42;
-  }, 0) + floorVerticalMeters(routeNodes));
-  const floorChanges = Math.max(0, new Set(routeNodes.map((node) => node.floor)).size - 1);
-  const seconds = Math.round(distance / 1.15 + floorChanges * (useElevator ? 35 : 22));
-
+function buildIndoorRouteDescriptionPayload(graph, route) {
+  const start = graph.nodeMap.get(route.path[0]);
+  const end = graph.nodeMap.get(route.path[route.path.length - 1]);
+  const steps = compactIndoorDescriptionSteps(route.steps || [], graph.nodeMap);
   return {
-    nodes: routeNodes,
-    floorPaths,
-    distance,
-    seconds,
-    floorChanges,
-    steps: buildSteps(routeNodes, connectorType),
+    scene: 'indoor',
+    mapName: '教学实验综合楼',
+    strategy: '室内最短路径',
+    start: start?.name || '当前位置',
+    end: end?.name || '目标点',
+    distance: route.distance,
+    seconds: route.seconds,
+    steps,
   };
 }
 
-function buildFloorPaths(routeNodes) {
-  const floorPaths = {};
-  for (let i = 1; i < routeNodes.length; i += 1) {
-    const from = routeNodes[i - 1];
-    const to = routeNodes[i];
-    if (from.floor !== to.floor) continue;
-    const segment = orthogonalPath(from, to);
-    floorPaths[from.floor] = [...(floorPaths[from.floor] || []), ...dropDuplicateJoin(floorPaths[from.floor], segment)];
+function findNearbyIndoorFacilities(graph, originId, { category, radius }) {
+  if (!originId || !graph.nodeMap.has(originId)) return [];
+  const distances = shortestIndoorDistances(graph, originId);
+  return graph.nodes
+    .filter((node) => ['toilet', 'water'].includes(node.type))
+    .filter((node) => category === 'all' || node.type === category)
+    .map((node) => ({
+      node,
+      distance: Math.round(distances.get(node.id) ?? Infinity),
+      seconds: Math.round((distances.get(node.id) ?? Infinity) / 1.15),
+    }))
+    .filter((item) => Number.isFinite(item.distance) && item.distance <= radius)
+    .sort((a, b) => a.distance - b.distance || a.node.name.localeCompare(b.node.name, 'zh-CN'));
+}
+
+/**
+ * Single-source Dijkstra for indoor facility sorting.
+ * Time complexity: O(V^2 + E) with linear minimum-distance selection.
+ */
+function shortestIndoorDistances(graph, originId) {
+  const dist = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+  const visited = new Set();
+  const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
+  for (const edge of graph.edges) {
+    adjacency.get(edge.from)?.push({ to: edge.to, dist: edge.dist });
+    adjacency.get(edge.to)?.push({ to: edge.from, dist: edge.dist });
   }
-  return floorPaths;
-}
 
-function orthogonalPath(from, to) {
-  if (from.wing === to.wing) {
-    return [from, { floor: from.floor, x: to.x, y: from.y }, to];
-  }
-  const fromY = corridorY(from);
-  const toY = corridorY(to);
-  const joinX = from.wing === 'east' || to.wing === 'east' ? EAST_CORRIDOR_X : Math.max(from.x, to.x);
-  return [
-    from,
-    { floor: from.floor, x: from.x, y: fromY },
-    { floor: from.floor, x: joinX, y: fromY },
-    { floor: from.floor, x: joinX, y: toY },
-    { floor: from.floor, x: to.x, y: toY },
-    to,
-  ];
-}
-
-function dropDuplicateJoin(existing = [], next = []) {
-  if (!existing.length || !next.length) return next;
-  const last = existing[existing.length - 1];
-  const first = next[0];
-  return last.x === first.x && last.y === first.y ? next.slice(1) : next;
-}
-
-function corridorY(node) {
-  if (node.wing === 'south') return CORRIDOR_Y.south;
-  if (node.wing === 'east') return node.y;
-  return CORRIDOR_Y.north;
-}
-
-function floorVerticalMeters(routeNodes) {
-  return routeNodes.reduce((sum, node, index) => {
-    if (index === 0) return 0;
-    const prev = routeNodes[index - 1];
-    return sum + Math.abs(floorNumber(node.floor) - floorNumber(prev.floor)) * 18;
-  }, 0);
-}
-
-function buildSteps(nodes, connectorType) {
-  return nodes.slice(1).map((node, index) => {
-    const prev = nodes[index];
-    if (node.floor !== prev.floor) {
-      return {
-        title: `${prev.floor} → ${node.floor}`,
-        detail: `从${prev.name}乘坐${connectorType}到${node.floor}。`,
-      };
+  dist.set(originId, 0);
+  while (visited.size < graph.nodes.length) {
+    let current = null;
+    let best = Infinity;
+    for (const [id, value] of dist.entries()) {
+      if (!visited.has(id) && value < best) {
+        current = id;
+        best = value;
+      }
     }
-    return {
-      title: `${prev.name} → ${node.name}`,
-      detail: `沿${prev.floor}疏散通道前往${node.name}。`,
-    };
+    if (!current) break;
+    visited.add(current);
+    for (const edge of adjacency.get(current) || []) {
+      const next = best + edge.dist;
+      if (next < dist.get(edge.to)) dist.set(edge.to, next);
+    }
+  }
+
+  return dist;
+}
+
+function indoorFacilityLabel(type) {
+  return ({ toilet: '卫生间', water: '开水间' })[type] || '设施';
+}
+
+function compactIndoorDescriptionSteps(steps, nodeMap) {
+  const result = [];
+  let segmentStart = steps[0]?.from;
+  let segmentDist = 0;
+  let segmentSteps = [];
+
+  steps.forEach((step, index) => {
+    const from = nodeMap.get(step.from);
+    const to = nodeMap.get(step.to);
+
+    if (step.kind === 'vertical' && segmentStart && segmentStart !== step.from && segmentDist > 0) {
+      result.push(buildIndoorDescriptionStep(result.length + 1, segmentStart, step.from, segmentDist, 'indoor', nodeMap, segmentSteps));
+      segmentStart = step.from;
+      segmentDist = 0;
+      segmentSteps = [];
+    }
+
+    segmentDist += step.dist || 0;
+    segmentSteps.push(step);
+    const isLast = index === steps.length - 1;
+    const shouldCloseSegment = step.kind === 'vertical' || isDescriptionNode(to) || isLast;
+
+    if (segmentStart && shouldCloseSegment) {
+      result.push(buildIndoorDescriptionStep(
+        result.length + 1,
+        segmentStart,
+        step.to,
+        segmentDist,
+        step.kind === 'vertical' ? verticalTransport(from, to) : 'indoor',
+        nodeMap,
+        segmentSteps,
+      ));
+      segmentStart = step.to;
+      segmentDist = 0;
+      segmentSteps = [];
+    }
   });
+
+  return result.filter((step) => step.from !== step.to);
+}
+
+function buildIndoorDescriptionStep(order, fromId, toId, distance, transport, nodeMap, segmentSteps = []) {
+  const from = nodeMap.get(fromId);
+  const to = nodeMap.get(toId);
+  const dist = Math.round(distance || 0);
+  const direction = transport === 'indoor' ? summarizeDirections(segmentSteps, nodeMap) : '';
+  return {
+    order,
+    from: from?.name || fromId,
+    to: to?.name || toId,
+    floor: from?.floor === to?.floor ? from?.floor : `${from?.floor || ''} 到 ${to?.floor || ''}`,
+    transport,
+    distance: dist,
+    seconds: Math.round(dist / 1.15),
+    note: direction || (transport === 'elevator' || transport === 'stair' ? '跨楼层通行' : ''),
+  };
+}
+
+function summarizeDirections(steps, nodeMap) {
+  const directions = [];
+  for (const step of steps) {
+    const from = nodeMap.get(step.from);
+    const to = nodeMap.get(step.to);
+    if (!from || !to || from.floor !== to.floor) continue;
+    const direction = edgeDirection(from, to);
+    if (!direction) continue;
+    if (directions.at(-1) !== direction) directions.push(direction);
+  }
+  const compact = directions.slice(0, 3);
+  if (compact.length === 0) return '';
+  if (compact.length === 1) return `行进方向：向${compact[0]}`;
+  return `行进方向：先向${compact[0]}，再${compact.slice(1).map((item, index) => `向${item}${index === compact.length - 2 ? '一点' : ''}`).join('，再')}`;
+}
+
+function edgeDirection(from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (Math.hypot(dx, dy) < 4) return '';
+  if (Math.abs(dx) >= Math.abs(dy) * 1.35) return dx > 0 ? '东' : '西';
+  if (Math.abs(dy) >= Math.abs(dx) * 1.35) return dy > 0 ? '南' : '北';
+  if (dx > 0 && dy < 0) return '东北';
+  if (dx > 0 && dy > 0) return '东南';
+  if (dx < 0 && dy < 0) return '西北';
+  return '西南';
+}
+
+function isDescriptionNode(node) {
+  if (!node) return false;
+  if (['door', 'exit', 'stair', 'elevator', 'toilet', 'water'].includes(node.type)) return true;
+  return !/节点|通道点/.test(node.name);
+}
+
+function verticalTransport(from, to) {
+  if (from?.type === 'elevator' || to?.type === 'elevator') return 'elevator';
+  return 'stair';
+}
+
+function buildTemplateRouteDescription(payload) {
+  const firstLine = `从 ${payload.start} 出发，前往 ${payload.end}，全程约 ${payload.distance} 米，预计 ${formatSeconds(payload.seconds)}。`;
+  const stepLines = (payload.steps || []).slice(0, 6).map((step, index) => (
+    `${index + 1}. ${step.floor ? `在 ${step.floor}，` : ''}从 ${step.from} 到 ${step.to}，${indoorTransportLabel(step.transport)}约 ${step.distance} 米。${step.note || ''}`
+  ));
+  return [firstLine, ...stepLines].join('\n');
+}
+
+function indoorTransportLabel(transport) {
+  return ({
+    indoor: '沿室内通道前进',
+    elevator: '乘坐电梯',
+    stair: '通过楼梯',
+  })[transport] || '前进';
+}
+
+function buildManualIndoorGraph() {
+  const nodes = [];
+  const edges = [];
+  const floorSizes = {};
+  const sourceNodeMap = new Map();
+
+  for (const floor of FLOORS) {
+    const network = FLOOR_NETWORKS[floor];
+    const degree = getDegree(network.edges);
+    floorSizes[floor] = network.imageSize;
+
+    const floorNodes = network.nodes.map((sourceNode) => {
+      const node = normalizeIndoorNode(sourceNode, floor, degree, network.imageSize);
+      sourceNodeMap.set(node.id, sourceNode);
+      return node;
+    });
+    applyUniqueServiceNames(floorNodes, network.imageSize);
+    nodes.push(...floorNodes);
+
+    for (const edge of network.edges) {
+      edges.push({
+        from: scopedNodeId(floor, edge.from),
+        to: scopedNodeId(floor, edge.to),
+        floor,
+        kind: 'horizontal',
+      });
+    }
+  }
+
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  edges.push(...buildVerticalEdges(nodes));
+
+  const weightedEdges = edges
+    .filter((edge) => nodeMap.has(edge.from) && nodeMap.has(edge.to))
+    .map((edge) => {
+      const from = nodeMap.get(edge.from);
+      const to = nodeMap.get(edge.to);
+      return {
+        ...edge,
+        dist: edge.kind === 'vertical'
+          ? VERTICAL_TRANSFER_METERS
+          : Math.max(1, Math.round(Math.hypot(from.x - to.x, from.y - to.y) * PIXEL_TO_METER)),
+      };
+    });
+
+  const selectableNodes = nodes
+    .filter((node) => !node.routingOnly && !['corridor', 'junction'].includes(node.type))
+    .sort((a, b) => floorNumber(a.floor) - floorNumber(b.floor) || typeRank(a.type) - typeRank(b.type) || a.name.localeCompare(b.name, 'zh-CN'));
+
+  return {
+    floorSizes,
+    nodes,
+    edges: weightedEdges,
+    nodeMap,
+    selectableNodes,
+    counts: {
+      toilet: nodes.filter((node) => node.type === 'toilet').length,
+      water: nodes.filter((node) => node.type === 'water').length,
+    },
+  };
+}
+
+function normalizeIndoorNode(sourceNode, floor, degree, imageSize) {
+  const rawName = String(sourceNode.name || '').trim();
+  const type = classifyNode(rawName, degree.get(sourceNode.id) || 0);
+  const scopedId = scopedNodeId(floor, sourceNode.id);
+  const fallbackName = type === 'corridor'
+    ? `${floor} 通道点 ${sourceNode.id.replace('node_manual_', '')}`
+    : `${floor} ${rawName || sourceNode.id}`;
+  const name = readableName(rawName) ? `${floor} ${rawName}` : fallbackName;
+
+  return {
+    ...sourceNode,
+    id: scopedId,
+    sourceId: sourceNode.id,
+    floor,
+    name,
+    shortName: shortLabel(name, floor),
+    type,
+    x: clampNumber(sourceNode.x, 0, imageSize.width),
+    y: clampNumber(sourceNode.y, 0, imageSize.height),
+    degree: degree.get(sourceNode.id) || 0,
+  };
+}
+
+function applyUniqueServiceNames(floorNodes, imageSize) {
+  const serviceNodes = floorNodes
+    .filter((node) => ['toilet', 'water'].includes(node.type))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  const counters = new Map();
+
+  for (const node of serviceNodes) {
+    const serviceLabel = node.type === 'toilet' ? '卫生间' : '开水间';
+    const side = positionLabel(node, imageSize);
+    const key = `${node.floor}-${node.type}-${side}`;
+    const count = (counters.get(key) || 0) + 1;
+    counters.set(key, count);
+    const suffix = count > 1 ? count : '';
+    node.name = `${node.floor} ${side}${serviceLabel}${suffix}`;
+    node.shortName = `${side}${serviceLabel}${suffix}`;
+  }
+}
+
+function classifyNode(name, degree) {
+  if (name.includes('卫生间') || name.includes('厕所') || name.includes('洗手间')) return 'toilet';
+  if (name.includes('开水间') || name.includes('饮水') || name.includes('水房')) return 'water';
+  if (name.includes('电梯')) return 'elevator';
+  if (name.includes('楼梯')) return 'stair';
+  if (name.includes('出口')) return 'exit';
+  if (/^[NS]\d{3}/.test(name)) return 'door';
+  if (degree > 2) return 'junction';
+  return 'corridor';
+}
+
+function buildVerticalEdges(nodes) {
+  const edges = [];
+  for (let index = 0; index < FLOORS.length - 1; index += 1) {
+    const lowerFloor = FLOORS[index];
+    const upperFloor = FLOORS[index + 1];
+    const lowerConnectors = connectorsForFloor(nodes, lowerFloor);
+    const upperConnectors = connectorsForFloor(nodes, upperFloor);
+    const used = new Set();
+
+    for (const lower of lowerConnectors) {
+      const lowerKey = connectorKey(lower);
+      const candidate = nearestConnector(lower, upperConnectors.filter((node) => (
+        !used.has(node.id) && connectorKey(node) === lowerKey
+      )));
+      if (!candidate) continue;
+      used.add(candidate.id);
+      edges.push({
+        from: lower.id,
+        to: candidate.id,
+        kind: 'vertical',
+      });
+    }
+  }
+  return edges;
+}
+
+function connectorsForFloor(nodes, floor) {
+  return nodes
+    .filter((node) => node.floor === floor && ['stair', 'elevator'].includes(node.type))
+    .sort((a, b) => connectorKey(a).localeCompare(connectorKey(b), 'zh-CN') || a.x - b.x || a.y - b.y);
+}
+
+function nearestConnector(node, candidates) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const candidate of candidates) {
+    const distance = Math.hypot(node.x - candidate.x, node.y - candidate.y);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function connectorKey(node) {
+  const name = `${node.name || ''} ${node.shortName || ''}`;
+  const transport = node.type === 'elevator' ? 'elevator' : 'stair';
+  const wing = detectConnectorWing(node, name);
+  const side = transport === 'elevator' ? 'core' : detectStairSide(node, name);
+  return `${transport}:${wing}:${side}`;
+}
+
+function detectConnectorWing(node, name) {
+  if (name.includes('N楼')) return 'N楼';
+  if (name.includes('S楼')) return 'S楼';
+  return node.y < 1450 ? 'N楼' : 'S楼';
+}
+
+function detectStairSide(node, name) {
+  if (name.includes('北楼梯')) return '北';
+  if (name.includes('南楼梯')) return '南';
+  if (name.includes('东楼梯')) return '东';
+  if (name.includes('西楼梯')) return '西';
+  if (name.includes('中部楼梯') || name.includes('中楼梯')) return '中';
+  if (node.x > 2300) return '东';
+  if (node.x < 1300) return '西';
+  return node.y < 1450 ? '北' : '南';
+}
+
+function getDegree(edges) {
+  const degree = new Map();
+  for (const edge of edges) {
+    degree.set(edge.from, (degree.get(edge.from) || 0) + 1);
+    degree.set(edge.to, (degree.get(edge.to) || 0) + 1);
+  }
+  return degree;
+}
+
+/**
+ * Dijkstra shortest path for the manually modeled indoor graph.
+ * Time complexity: O(V^2 + E) with linear minimum-distance selection.
+ */
+function shortestIndoorPath(graph, startId, endId) {
+  const dist = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+  const prev = new Map();
+  const prevEdge = new Map();
+  const visited = new Set();
+  const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
+  for (const edge of graph.edges) {
+    adjacency.get(edge.from)?.push({ ...edge, to: edge.to });
+    adjacency.get(edge.to)?.push({ ...edge, from: edge.to, to: edge.from });
+  }
+
+  if (!dist.has(startId) || !dist.has(endId)) return { path: [], steps: [], edgeKeys: [], distance: 0, seconds: 0 };
+
+  dist.set(startId, 0);
+  while (visited.size < graph.nodes.length) {
+    let current = null;
+    let best = Infinity;
+    for (const [id, value] of dist.entries()) {
+      if (!visited.has(id) && value < best) {
+        current = id;
+        best = value;
+      }
+    }
+    if (!current || current === endId) break;
+    visited.add(current);
+    for (const edge of adjacency.get(current) || []) {
+      const next = best + edge.dist;
+      if (next < dist.get(edge.to)) {
+        dist.set(edge.to, next);
+        prev.set(edge.to, current);
+        prevEdge.set(edge.to, edge);
+      }
+    }
+  }
+
+  const path = [];
+  const steps = [];
+  let current = endId;
+  while (current) {
+    path.unshift(current);
+    if (current === startId) break;
+    const edge = prevEdge.get(current);
+    if (edge) steps.unshift(edge);
+    current = prev.get(current);
+  }
+  if (path[0] !== startId) return { path: [], steps: [], edgeKeys: [], distance: 0, seconds: 0 };
+
+  const distance = Math.round(dist.get(endId));
+  return {
+    path,
+    steps,
+    edgeKeys: path.slice(1).map((id, index) => edgeKey(path[index], id)),
+    distance,
+    seconds: Math.round(distance / 1.15),
+  };
+}
+
+function compactIndoorPath(path, nodeMap) {
+  const keyNodes = path.filter((id) => {
+    const node = nodeMap.get(id);
+    return node && (node.type !== 'corridor' || node.degree !== 2);
+  });
+  return keyNodes.length >= 2 ? keyNodes : path;
+}
+
+function edgeKey(from, to) {
+  return [from, to].sort().join('__');
+}
+
+function nodeColor(type) {
+  return ({
+    door: '#0ea5e9',
+    exit: '#16a34a',
+    stair: '#7c3aed',
+    elevator: '#f97316',
+    toilet: '#0891b2',
+    water: '#0d9488',
+    junction: '#2563eb',
+    corridor: '#64748b',
+  })[type] || '#2563eb';
+}
+
+function typeRank(type) {
+  return ({ door: 1, exit: 2, stair: 3, elevator: 4, toilet: 5, water: 6, junction: 7, corridor: 8 })[type] || 9;
+}
+
+function scopedNodeId(floor, baseId) {
+  return `${floor.toLowerCase()}_${baseId}`;
 }
 
 function floorNumber(floor) {
   return Number(String(floor).replace(/\D/g, '')) || 1;
 }
 
-function formatSeconds(seconds) {
-  if (seconds < 60) return `${seconds}秒`;
-  return `${Math.round(seconds / 60)}分钟`;
+function readableName(name) {
+  return name && !/^节点\s*\d+$/.test(name);
 }
 
-function nodeColor(type) {
-  return ({
-    exit: '#16a34a',
-    room: '#2563eb',
-    service: '#0f766e',
-    stair: '#7c3aed',
-    elevator: '#f97316',
-  })[type] || '#2563eb';
+function shortLabel(name, floor) {
+  return name.replace(`${floor} `, '').replace('N楼', 'N').replace('S楼', 'S');
+}
+
+function positionLabel(node, imageSize) {
+  const wing = node.y < imageSize.height * 0.5 ? '北楼' : '南楼';
+  if (node.x < imageSize.width * 0.42) return `${wing}西侧`;
+  if (node.x > imageSize.width * 0.66) return `${wing}东侧`;
+  return `${wing}中部`;
+}
+
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.max(min, Math.min(max, number));
+}
+
+function formatSeconds(seconds) {
+  if (seconds < 60) return `${seconds}秒`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest > 0 ? `${minutes}分${rest}秒` : `${minutes}分钟`;
 }

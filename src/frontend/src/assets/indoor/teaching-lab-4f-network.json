@@ -1,0 +1,1518 @@
+{
+  "presetId": null,
+  "imageUrl": "blob:http://10.21.214.241:5173/68fdc47b-a8e3-48a8-90dc-f10617fbe018",
+  "imageSize": {
+    "width": 3504,
+    "height": 2624
+  },
+  "nodes": [
+    {
+      "id": "node_manual_1",
+      "name": "N401",
+      "type": "road",
+      "x": 874.7299064965174,
+      "y": 835.3085857565245,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_2",
+      "name": "N402",
+      "type": "road",
+      "x": 874.7299064965174,
+      "y": 942.4272298243212,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_3",
+      "name": "节点 3",
+      "type": "road",
+      "x": 874.7299064965174,
+      "y": 887.8509586378805,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_4",
+      "name": "节点 4",
+      "type": "road",
+      "x": 1209.6451607338056,
+      "y": 890.9018060955076,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_5",
+      "name": "N403",
+      "type": "road",
+      "x": 1204.2214319202462,
+      "y": 822.4272298243211,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_6",
+      "name": "N404",
+      "type": "road",
+      "x": 1202.1875336151616,
+      "y": 968.1899416887279,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_7",
+      "name": "节点 7",
+      "type": "road",
+      "x": 1471.6790590388903,
+      "y": 893.2746874514398,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_8",
+      "name": "节点 8",
+      "type": "road",
+      "x": 1466.255330225331,
+      "y": 739.7153654175414,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_9",
+      "name": "N楼北楼梯",
+      "type": "road",
+      "x": 1331.0010929371956,
+      "y": 746.1560433836431,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_10",
+      "name": "节点 10",
+      "type": "road",
+      "x": 1556.198826153562,
+      "y": 883.2181833796707,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_11",
+      "name": "N405",
+      "type": "road",
+      "x": 1555.1818770010195,
+      "y": 815.7605562610266,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_12",
+      "name": "N406",
+      "type": "road",
+      "x": 1556.198826153562,
+      "y": 966.9469969389928,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_13",
+      "name": "节点 13",
+      "type": "road",
+      "x": 1829.0801820857655,
+      "y": 884.5741155830606,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_14",
+      "name": "N407",
+      "type": "road",
+      "x": 1824.6734024247485,
+      "y": 843.5571664305181,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_15",
+      "name": "N408",
+      "type": "road",
+      "x": 1826.7073007298334,
+      "y": 939.1503867695012,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_16",
+      "name": "节点 16",
+      "type": "road",
+      "x": 1888.0632329332232,
+      "y": 885.5910647356029,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_17",
+      "name": "N409",
+      "type": "road",
+      "x": 1888.0632329332232,
+      "y": 831.6927596508572,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_18",
+      "name": "N410",
+      "type": "road",
+      "x": 1896.5378092044095,
+      "y": 942.5402172779758,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_19",
+      "name": "节点 19",
+      "type": "road",
+      "x": 2126.368317678986,
+      "y": 883.2181833796707,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_20",
+      "name": "N411",
+      "type": "road",
+      "x": 2123.3174702213587,
+      "y": 835.0825901593317,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_21",
+      "name": "N412",
+      "type": "road",
+      "x": 2128.7411990349183,
+      "y": 938.1334376169589,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_22",
+      "name": "节点 22",
+      "type": "road",
+      "x": 2235.4078725982126,
+      "y": 887.9639460915351,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_23",
+      "name": "N413",
+      "type": "road",
+      "x": 2237.4417709032973,
+      "y": 835.4215732101792,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_24",
+      "name": "节点 24",
+      "type": "road",
+      "x": 2356.650775968181,
+      "y": 886.7210013417999,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_25",
+      "name": "卫生间",
+      "type": "road",
+      "x": 2352.243996307164,
+      "y": 960.9582894773932,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_26",
+      "name": "节点 26",
+      "type": "road",
+      "x": 2522.0745047817404,
+      "y": 880.2803233756982,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_27",
+      "name": "N413",
+      "type": "road",
+      "x": 2520.0406064766557,
+      "y": 802.9921877824779,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_28",
+      "name": "开水间",
+      "type": "road",
+      "x": 2517.6677251207234,
+      "y": 977.2294759180712,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_29",
+      "name": "节点 29",
+      "type": "road",
+      "x": 2611.2270471546217,
+      "y": 891.8057471045119,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_30",
+      "name": "N415",
+      "type": "road",
+      "x": 2613.599928510554,
+      "y": 800.6193064265457,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_31",
+      "name": "节点 31",
+      "type": "road",
+      "x": 2872.2439963071643,
+      "y": 880.2803233756982,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_32",
+      "name": "N416",
+      "type": "road",
+      "x": 2869.193148849537,
+      "y": 828.4159165960373,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_33",
+      "name": "节点 33",
+      "type": "road",
+      "x": 2688.515182747842,
+      "y": 884.3481199858678,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_34",
+      "name": "节点 34",
+      "type": "road",
+      "x": 2687.4982335952996,
+      "y": 944.6871030367153,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_35",
+      "name": "节点 35",
+      "type": "road",
+      "x": 2863.769420035978,
+      "y": 941.2972725282407,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_36",
+      "name": "N楼东楼梯",
+      "type": "road",
+      "x": 2866.8202674936047,
+      "y": 1015.5345606638339,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_37",
+      "name": "节点 37",
+      "type": "road",
+      "x": 2685.464335290215,
+      "y": 1035.8735437146813,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_38",
+      "name": "电梯",
+      "type": "road",
+      "x": 2536.3117929173336,
+      "y": 1036.8904928672237,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_39",
+      "name": "节点 39",
+      "type": "road",
+      "x": 2691.0010308675455,
+      "y": 1093.9526535531347,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_40",
+      "name": "N418",
+      "type": "road",
+      "x": 2757.7806918844944,
+      "y": 1079.7153654175415,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_41",
+      "name": "N417",
+      "type": "road",
+      "x": 2627.611200359071,
+      "y": 1089.545873892118,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_42",
+      "name": "节点 42",
+      "type": "road",
+      "x": 2692.0179800200876,
+      "y": 1139.0373993158466,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_43",
+      "name": "N419",
+      "type": "road",
+      "x": 2618.119674935342,
+      "y": 1140.054348468389,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_44",
+      "name": "节点 44",
+      "type": "road",
+      "x": 2687.9501834099183,
+      "y": 1206.4950264344907,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_45",
+      "name": "N21",
+      "type": "road",
+      "x": 2621.1705223929694,
+      "y": 1212.9357044005924,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_46",
+      "name": "N420",
+      "type": "road",
+      "x": 2749.984081715003,
+      "y": 1202.4272298243213,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_47",
+      "name": "节点 47",
+      "type": "road",
+      "x": 2688.967132562461,
+      "y": 1261.410280671779,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_48",
+      "name": "N423",
+      "type": "road",
+      "x": 2620.153573240427,
+      "y": 1258.0204501633043,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_49",
+      "name": "N422",
+      "type": "road",
+      "x": 2766.2552681556813,
+      "y": 1265.4780772819483,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_50",
+      "name": "节点 50",
+      "type": "road",
+      "x": 2694.564938428443,
+      "y": 1327.6302579308758,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_51",
+      "name": "N425",
+      "type": "road",
+      "x": 2626.6131311995273,
+      "y": 1333.654354316418,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_52",
+      "name": "节点 52",
+      "type": "road",
+      "x": 2694.564938428443,
+      "y": 1371.7266434730445,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_53",
+      "name": "N426",
+      "type": "road",
+      "x": 2635.0468661392865,
+      "y": 1367.1483302200324,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_54",
+      "name": "N424",
+      "type": "road",
+      "x": 2755.52879385013,
+      "y": 1374.1362820272614,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_55",
+      "name": "节点 55",
+      "type": "road",
+      "x": 2683.721564934467,
+      "y": 1439.6784507019602,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_56",
+      "name": "N427",
+      "type": "road",
+      "x": 2628.7818058983225,
+      "y": 1443.533872388707,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_57",
+      "name": "S424",
+      "type": "road",
+      "x": 2747.817950476636,
+      "y": 1436.7868844369,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_58",
+      "name": "节点 58",
+      "type": "road",
+      "x": 2686.45246749153,
+      "y": 1476.5417586160436,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_59",
+      "name": "S425",
+      "type": "road",
+      "x": 2624.634285673348,
+      "y": 1482.2560443303291,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_60",
+      "name": "节点 60",
+      "type": "road",
+      "x": 2693.725194764257,
+      "y": 1549.7885118627967,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_61",
+      "name": "S423",
+      "type": "road",
+      "x": 2631.387532426595,
+      "y": 1555.5027975770824,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_62",
+      "name": "S422",
+      "type": "road",
+      "x": 2743.0758441149064,
+      "y": 1549.009291083576,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_63",
+      "name": "节点 63",
+      "type": "road",
+      "x": 2697.881038920101,
+      "y": 1594.2040962783813,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_64",
+      "name": "S421",
+      "type": "road",
+      "x": 2637.1018181408804,
+      "y": 1593.4248754991604,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_65",
+      "name": "S420",
+      "type": "road",
+      "x": 2740.7381817772443,
+      "y": 1599.1391612134462,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_66",
+      "name": "节点 66",
+      "type": "road",
+      "x": 2694.7641558032183,
+      "y": 1667.4508495251343,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_67",
+      "name": "S419",
+      "type": "road",
+      "x": 2635.543376582439,
+      "y": 1668.4898105640955,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_68",
+      "name": "节点 68",
+      "type": "road",
+      "x": 2692.4264934655557,
+      "y": 1711.087213161498,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_69",
+      "name": "S417",
+      "type": "road",
+      "x": 2641.257662296725,
+      "y": 1704.5937066679917,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_70",
+      "name": "S418",
+      "type": "road",
+      "x": 2744.8940259330884,
+      "y": 1714.4638365381215,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_71",
+      "name": "节点 71",
+      "type": "road",
+      "x": 2696.9286685365787,
+      "y": 1774.1175214762302,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_72",
+      "name": "S楼电梯",
+      "type": "road",
+      "x": 2546.279317887228,
+      "y": 1777.2344045931134,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_73",
+      "name": "节点 73",
+      "type": "road",
+      "x": 2697.794448264663,
+      "y": 1866.8448100567903,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_74",
+      "name": "节点 74",
+      "type": "road",
+      "x": 2873.1191235893384,
+      "y": 1864.2474074593877,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_75",
+      "name": "S楼东楼梯",
+      "type": "road",
+      "x": 2868.1840586542735,
+      "y": 1801.9097451217253,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_76",
+      "name": "节点 76",
+      "type": "road",
+      "x": 2671.3009417711564,
+      "y": 1915.416238628219,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_77",
+      "name": "节点 77",
+      "type": "road",
+      "x": 2885.326915797131,
+      "y": 1920.3513035632839,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_78",
+      "name": "S416",
+      "type": "road",
+      "x": 2887.924318394533,
+      "y": 1962.1694853814656,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_79",
+      "name": "节点 79",
+      "type": "road",
+      "x": 2606.3658768360915,
+      "y": 1920.3513035632839,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_80",
+      "name": "S415",
+      "type": "road",
+      "x": 2608.9632794334943,
+      "y": 1990.2214334334137,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_81",
+      "name": "节点 81",
+      "type": "road",
+      "x": 2522.4697729399877,
+      "y": 1922.6889659009462,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_82",
+      "name": "S414",
+      "type": "road",
+      "x": 2517.534708004923,
+      "y": 1990.2214334334137,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_83",
+      "name": "开水间",
+      "type": "road",
+      "x": 2524.0282144984294,
+      "y": 1833.0785762905566,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_84",
+      "name": "节点 84",
+      "type": "road",
+      "x": 2365.75982151446,
+      "y": 1921.6500048619853,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_85",
+      "name": "卫生间",
+      "type": "road",
+      "x": 2364.9806007352395,
+      "y": 1845.0266282386085,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_86",
+      "name": "节点 86",
+      "type": "road",
+      "x": 2237.1018022875933,
+      "y": 1920.3513035632839,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_87",
+      "name": "S413",
+      "type": "road",
+      "x": 2241.2576464434374,
+      "y": 1982.9487061606865,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_88",
+      "name": "节点 88",
+      "type": "road",
+      "x": 2133.4654386512293,
+      "y": 1924.1608326572368,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_89",
+      "name": "S411",
+      "type": "road",
+      "x": 2135.023880209671,
+      "y": 1869.8751183715226,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_90",
+      "name": "S412",
+      "type": "road",
+      "x": 2132.6862178720085,
+      "y": 1970.3945988910032,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_91",
+      "name": "节点 91",
+      "type": "road",
+      "x": 1897.6212828070736,
+      "y": 1924.6803131767174,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_92",
+      "name": "S409",
+      "type": "road",
+      "x": 1894.2446594304502,
+      "y": 1880.2647287611328,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_93",
+      "name": "S410",
+      "type": "road",
+      "x": 1897.6212828070736,
+      "y": 1962.6023910987954,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_94",
+      "name": "节点 94",
+      "type": "road",
+      "x": 1840.6515752685184,
+      "y": 1924.9400534364577,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_95",
+      "name": "S407",
+      "type": "road",
+      "x": 1838.313912930856,
+      "y": 1882.0829105793148,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_96",
+      "name": "S408",
+      "type": "road",
+      "x": 1840.6515752685184,
+      "y": 1964.420572916977,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_97",
+      "name": "节点 97",
+      "type": "road",
+      "x": 1563.8550173342649,
+      "y": 1923.987683052935,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_98",
+      "name": "S405",
+      "type": "road",
+      "x": 1564.6342381134857,
+      "y": 1850.7409298061816,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_99",
+      "name": "S406",
+      "type": "road",
+      "x": 1566.1926796719274,
+      "y": 1979.8318388970906,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_100",
+      "name": "节点 100",
+      "type": "road",
+      "x": 1484.3732726849057,
+      "y": 1925.2756179056498,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_101",
+      "name": "节点 101",
+      "type": "road",
+      "x": 1476.2042586003986,
+      "y": 2079.6418150887484,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_102",
+      "name": "S楼南楼梯",
+      "type": "road",
+      "x": 1364.6549628257508,
+      "y": 2074.289702412692,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_103",
+      "name": "节点 103",
+      "type": "road",
+      "x": 1219.3967583253104,
+      "y": 1920.9563748103592,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_104",
+      "name": "S403",
+      "type": "road",
+      "x": 1220.2418287478458,
+      "y": 1848.5620086131762,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_105",
+      "name": "S404",
+      "type": "road",
+      "x": 1224.7488710013668,
+      "y": 2000.392994528669,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_106",
+      "name": "节点 106",
+      "type": "road",
+      "x": 890.6643639591132,
+      "y": 1923.5854770605793,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_107",
+      "name": "S401",
+      "type": "road",
+      "x": 887.8474625506625,
+      "y": 1882.458716497199,
+      "routingOnly": false
+    },
+    {
+      "id": "node_manual_108",
+      "name": "S402",
+      "type": "road",
+      "x": 887.0023921281273,
+      "y": 1967.2474488915652,
+      "routingOnly": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "node_manual_1",
+      "to": "node_manual_3",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_3",
+      "to": "node_manual_2",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_3",
+      "to": "node_manual_4",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "node_manual_5",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "node_manual_6",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_4",
+      "to": "node_manual_7",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_7",
+      "to": "node_manual_8",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_9",
+      "to": "node_manual_8",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_7",
+      "to": "node_manual_10",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "node_manual_11",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "node_manual_12",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_10",
+      "to": "node_manual_13",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_13",
+      "to": "node_manual_14",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_13",
+      "to": "node_manual_15",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_13",
+      "to": "node_manual_16",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "node_manual_17",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "node_manual_18",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_16",
+      "to": "node_manual_19",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_19",
+      "to": "node_manual_20",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_19",
+      "to": "node_manual_21",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_19",
+      "to": "node_manual_22",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_22",
+      "to": "node_manual_23",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_22",
+      "to": "node_manual_24",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_24",
+      "to": "node_manual_25",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_24",
+      "to": "node_manual_26",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "node_manual_27",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "node_manual_29",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_29",
+      "to": "node_manual_30",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_26",
+      "to": "node_manual_28",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_33",
+      "to": "node_manual_29",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_33",
+      "to": "node_manual_31",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_31",
+      "to": "node_manual_32",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_33",
+      "to": "node_manual_34",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_34",
+      "to": "node_manual_35",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_35",
+      "to": "node_manual_36",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_34",
+      "to": "node_manual_37",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "node_manual_38",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_37",
+      "to": "node_manual_39",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_39",
+      "to": "node_manual_41",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_39",
+      "to": "node_manual_40",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_39",
+      "to": "node_manual_42",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_42",
+      "to": "node_manual_43",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_44",
+      "to": "node_manual_42",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_44",
+      "to": "node_manual_45",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_44",
+      "to": "node_manual_46",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "node_manual_44",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "node_manual_49",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_48",
+      "to": "node_manual_47",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_47",
+      "to": "node_manual_50",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_50",
+      "to": "node_manual_51",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_50",
+      "to": "node_manual_52",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "node_manual_53",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "node_manual_54",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_52",
+      "to": "node_manual_55",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_55",
+      "to": "node_manual_56",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_55",
+      "to": "node_manual_57",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_55",
+      "to": "node_manual_58",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_58",
+      "to": "node_manual_59",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_58",
+      "to": "node_manual_60",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_60",
+      "to": "node_manual_61",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_62",
+      "to": "node_manual_60",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_65",
+      "to": "node_manual_63",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_63",
+      "to": "node_manual_60",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_64",
+      "to": "node_manual_63",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_63",
+      "to": "node_manual_66",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_66",
+      "to": "node_manual_67",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_66",
+      "to": "node_manual_68",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_68",
+      "to": "node_manual_69",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_68",
+      "to": "node_manual_70",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_68",
+      "to": "node_manual_71",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_71",
+      "to": "node_manual_72",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_71",
+      "to": "node_manual_73",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_73",
+      "to": "node_manual_74",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_74",
+      "to": "node_manual_75",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_73",
+      "to": "node_manual_76",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_77",
+      "to": "node_manual_76",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_78",
+      "to": "node_manual_77",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_80",
+      "to": "node_manual_79",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_79",
+      "to": "node_manual_76",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_79",
+      "to": "node_manual_81",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_81",
+      "to": "node_manual_83",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_81",
+      "to": "node_manual_82",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_81",
+      "to": "node_manual_84",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_84",
+      "to": "node_manual_85",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_84",
+      "to": "node_manual_86",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_86",
+      "to": "node_manual_87",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_86",
+      "to": "node_manual_88",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_88",
+      "to": "node_manual_89",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_88",
+      "to": "node_manual_90",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_88",
+      "to": "node_manual_91",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_91",
+      "to": "node_manual_92",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_91",
+      "to": "node_manual_93",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_91",
+      "to": "node_manual_94",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_94",
+      "to": "node_manual_95",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_94",
+      "to": "node_manual_96",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_94",
+      "to": "node_manual_97",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_97",
+      "to": "node_manual_98",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_97",
+      "to": "node_manual_99",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_97",
+      "to": "node_manual_100",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_100",
+      "to": "node_manual_101",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_101",
+      "to": "node_manual_102",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_100",
+      "to": "node_manual_103",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_103",
+      "to": "node_manual_104",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_103",
+      "to": "node_manual_105",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_103",
+      "to": "node_manual_106",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_106",
+      "to": "node_manual_107",
+      "type": "walkway",
+      "bidirectional": true
+    },
+    {
+      "from": "node_manual_106",
+      "to": "node_manual_108",
+      "type": "walkway",
+      "bidirectional": true
+    }
+  ]
+}

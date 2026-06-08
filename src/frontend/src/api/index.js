@@ -28,6 +28,7 @@ export const multiPointPath = (data) => api.post('/routes/multi', data);
 export const nearbySearch = (params) => api.get('/routes/nearby', { params });
 export const getGraphStats = () => api.get('/routes/graph-stats');
 export const getLocalRouteGraphs = () => api.get('/routes/local-graphs');
+export const describeRoute = (data) => api.post('/routes/describe', data, { timeout: 20000 });
 
 // 日记相关
 export const getDiaries = (params) => api.get('/diaries', { params });
