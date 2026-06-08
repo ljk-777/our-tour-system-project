@@ -9,9 +9,106 @@ export default function AlgoDemo() {
   const [activeAlgo, setActiveAlgo] = useState('trie');
   const [stats, setStats] = useState(null);
 
+  // Compression tab state
+  const [compressText, setCompressText] = useState('北京邮电大学沙河校区位于北京市昌平区，校园环境优美。这里有教学楼、图书馆、宿舍和食堂，学生们每天都在这里学习和生活。');
+  const [compressResult, setCompressResult] = useState(null);
+  const [compressLoading, setCompressLoading] = useState(false);
+
   useEffect(() => {
     getGraphStats().then(r => setStats(r.data.data)).catch(() => {});
   }, []);
+
+  const runCompressionBenchmark = async () => {
+    if (!compressText.trim()) return;
+    setCompressLoading(true);
+    try {
+      const { default: api } = await import('../api/index.js');
+      const res = await api.post('/compression/benchmark', { text: compressText.trim() });
+      setCompressResult(res.data?.data || null);
+    } catch (err) {
+      alert(err?.response?.data?.message || '对比失败');
+    } finally {
+      setCompressLoading(false);
+    }
+  };
+
+  const renderCompression = () => {
+    const colorStyles = {
+      blue: 'bg-blue-50 border-blue-200',
+      green: 'bg-green-50 border-green-200',
+      purple: 'bg-purple-50 border-purple-200',
+    };
+
+    return (
+      <div className="glass-card rounded-2xl p-6 shadow-lg">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">📦 无损压缩算法对比</h3>
+        <p className="text-sm text-gray-500 mb-4">Huffman 编码 · LZ77 滑动窗口 · BWT+MTF+Huffman 流水线</p>
+
+        {/* Input */}
+        <textarea
+          value={compressText}
+          onChange={e => setCompressText(e.target.value)}
+          rows={4}
+          placeholder="输入一段文本（或从已有日记选取）..."
+          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+
+        <button
+          onClick={runCompressionBenchmark}
+          disabled={compressLoading || !compressText.trim()}
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 mb-4"
+        >
+          {compressLoading ? '对比中...' : '📊 一键对比'}
+        </button>
+
+        {/* Results */}
+        {compressResult && !compressResult.error && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: 'huffman', label: 'Huffman 编码', color: 'blue' },
+                { key: 'lz77', label: 'LZ77', color: 'green' },
+                { key: 'bwt', label: 'BWT+MTF+Huffman', color: 'purple' },
+              ].map(({ key, label, color }) => {
+                const data = compressResult[key];
+                if (!data || data.error) return null;
+                return (
+                  <div key={key} className={`${colorStyles[color]} rounded-xl p-4`}>
+                    <div className="text-xs font-semibold text-gray-500 mb-2">{label}</div>
+                    <div className="text-2xl font-bold text-gray-900">{data.stats.ratio}%</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      原文 {data.stats.originalSize}B → {data.stats.compressedSize}B
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      耗时 {data.stats.duration}ms
+                      {data.stats.charCount !== undefined && ` · ${data.stats.charCount} 种字符`}
+                      {data.stats.tokenCount !== undefined && ` · ${data.stats.tokenCount} tokens`}
+                      {data.stats.matchRate !== undefined && ` · 匹配率 ${(data.stats.matchRate * 100).toFixed(0)}%`}
+                    </div>
+                    <div className="text-xs mt-1 font-medium">
+                      {compressResult.verification?.[key]}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary */}
+            {compressResult.summary && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                💡 {compressResult.summary}
+              </div>
+            )}
+
+            {/* Text preview */}
+            <div className="text-xs text-gray-400 mt-2">
+              测试文本: {compressResult.textPreview}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -27,7 +124,7 @@ export default function AlgoDemo() {
             { icon:'🗺️', label:'图中节点数',  value: stats.totalNodes,  color:'text-blue-600' },
             { icon:'🛤️', label:'道路边数',    value: stats.totalEdges,  color:'text-teal-600' },
             { icon:'📍', label:'景点总数',    value: stats.totalSpots,  color:'text-orange-600' },
-            { icon:'⚡', label:'核心算法数',  value: 6,                 color:'text-purple-600' },
+            { icon:'⚡', label:'核心算法数',  value: 7,                 color:'text-purple-600' },
           ].map(s => (
             <div key={s.label} className="card p-4 text-center">
               <div className="text-2xl mb-1">{s.icon}</div>
@@ -77,6 +174,7 @@ export default function AlgoDemo() {
           {activeAlgo === 'twoopt'   && <TwoOptDemo />}
           {activeAlgo === 'topk'     && <TopKDemo />}
           {activeAlgo === 'kmp'      && <KMPDemo />}
+          {activeAlgo === 'compression' && renderCompression()}
         </div>
       </div>
     </div>
@@ -84,11 +182,12 @@ export default function AlgoDemo() {
 }
 
 const ALGOS = [
-  { key: 'trie',     name: 'Trie 前缀树',      icon: '🔍' },
-  { key: 'dijkstra', name: 'Dijkstra 最短路',   icon: '🛤️' },
-  { key: 'twoopt',   name: '2-opt 多点路径',    icon: '🔄' },
-  { key: 'topk',     name: 'MinHeap TopK',      icon: '⛏️' },
-  { key: 'kmp',      name: 'KMP 字符串匹配',    icon: '🔎' },
+  { key: 'trie',        name: 'Trie 前缀树',      icon: '🔍' },
+  { key: 'dijkstra',    name: 'Dijkstra 最短路',   icon: '🛤️' },
+  { key: 'twoopt',      name: '2-opt 多点路径',    icon: '🔄' },
+  { key: 'topk',        name: 'MinHeap TopK',      icon: '⛏️' },
+  { key: 'kmp',         name: 'KMP 字符串匹配',    icon: '🔎' },
+  { key: 'compression', name: '无损压缩',          icon: '📦' },
 ];
 
 /* ====== Trie 演示 ====== */

@@ -19,6 +19,7 @@ import Spots        from './pages/Spots.jsx';
 import SpotDetail   from './pages/SpotDetail.jsx';
 import RoutePlanner from './pages/RoutePlanner.jsx';
 import Diary        from './pages/Diary.jsx';
+import DiaryDetail  from './pages/DiaryDetail.jsx';
 import Plaza        from './pages/Plaza.jsx';
 import Profile      from './pages/Profile.jsx';
 import Admin        from './pages/Admin.jsx';
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/spots/:id" element={<StandardLayout><SpotDetail /></StandardLayout>} />
           <Route path="/route"     element={<StandardLayout><RoutePlanner /></StandardLayout>} />
           <Route path="/diary"     element={<StandardLayout><Diary /></StandardLayout>} />
+          <Route path="/diary/:id" element={<StandardLayout><DiaryDetail /></StandardLayout>} />
           <Route path="/plaza"     element={<StandardLayout><Plaza /></StandardLayout>} />
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
           <Route path="/profile/:id" element={<StandardLayout><Profile /></StandardLayout>} />

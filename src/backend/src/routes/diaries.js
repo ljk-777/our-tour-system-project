@@ -139,6 +139,7 @@ router.post('/:id/comment', requireAuth, async (req, res, next) => {
   try {
     const { content } = req.body;
     if (!content) return res.status(400).json({ success: false, message: '评论不能为空' });
+    if (content.length > 2000) return res.status(400).json({ success: false, message: '评论不能超过2000个字符' });
 
     const diary = await diaryRepo.addComment(req.params.id, {
       userId: req.user.id,  // ← FROM AUTH
