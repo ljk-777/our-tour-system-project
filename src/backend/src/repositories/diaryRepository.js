@@ -15,6 +15,7 @@ function mapDiary(row) {
     videoUrl: row.video_url || null,
     tags: row.tags || [],
     rating: row.rating === null ? null : Number(row.rating),
+    ratingCount: Number(row.rating_count || 0),
     visitDate: row.visit_date_text || row.visit_date,
     weather: row.weather,
     mood: row.mood,
@@ -297,6 +298,47 @@ async function addComment(id, comment) {
   return findById(id);
 }
 
+async function incrementViews(id) {
+  await query(
+    `UPDATE diaries SET views_count = views_count + 1, updated_at = NOW() WHERE id = $1`,
+    [Number(id)]
+  );
+}
+
+async function rate(userId, diaryId, score) {
+  const exists = await query('SELECT id FROM diaries WHERE id = $1', [Number(diaryId)]);
+  if (exists.rowCount === 0) return null;
+
+  await query(
+    `INSERT INTO diary_ratings (diary_id, user_id, score, updated_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (diary_id, user_id) DO UPDATE SET score = $3, updated_at = NOW()`,
+    [Number(diaryId), Number(userId), Number(score)]
+  );
+
+  // 重新计算平均分和评分人数，更新 diaries 表
+  const agg = await query(
+    `SELECT AVG(score)::numeric(3,1) AS avg_score, COUNT(*) AS cnt
+     FROM diary_ratings WHERE diary_id = $1`,
+    [Number(diaryId)]
+  );
+  const { avg_score, cnt } = agg.rows[0];
+  await query(
+    `UPDATE diaries SET rating = $1, rating_count = $2, updated_at = NOW() WHERE id = $3`,
+    [Number(avg_score) || 0, Number(cnt) || 0, Number(diaryId)]
+  );
+
+  return findById(diaryId);
+}
+
+async function getMyRating(userId, diaryId) {
+  const { rows } = await query(
+    `SELECT score FROM diary_ratings WHERE diary_id = $1 AND user_id = $2`,
+    [Number(diaryId), Number(userId)]
+  );
+  return rows[0]?.score ?? null;
+}
+
 module.exports = {
   findAll,
   findById,
@@ -308,4 +350,7 @@ module.exports = {
   unlike,
   getLikedDiaryIds,
   addComment,
+  incrementViews,
+  rate,
+  getMyRating,
 };

@@ -73,8 +73,8 @@ function getPath(prev, startId, endId) {
  * @param {number} endId
  * @param {string} mode - 'distance'|'time'
  */
-function shortestPath(nodesData, edgesData, startId, endId, mode = 'distance') {
-  const graph = buildGraph(edgesData);
+function shortestPath(nodesData, edgesData, startId, endId, mode = 'distance', vehicle = 'walk') {
+  const graph = buildGraph(edgesData, vehicle);
 
   // 检查节点是否存在
   if (!graph.has(startId)) graph.set(startId, []);
@@ -100,10 +100,10 @@ function shortestPath(nodesData, edgesData, startId, endId, mode = 'distance') {
  * @param {Array<number>} waypointIds - 途经点 ID 数组（含起点终点）
  * @param {string} mode
  */
-function multiPointPath(nodesData, edgesData, waypointIds, mode = 'distance') {
+function multiPointPath(nodesData, edgesData, waypointIds, mode = 'distance', vehicle = 'walk') {
   if (waypointIds.length < 2) return { path: waypointIds, totalCost: 0, segments: [] };
 
-  const graph = buildGraph(edgesData);
+  const graph = buildGraph(edgesData, vehicle);
 
   // 预计算每对节点的最短路
   const pairDist = new Map();
@@ -183,14 +183,23 @@ function twoOpt(route, pairDist) {
   return best;
 }
 
-// 构建邻接表（双向图）
-function buildGraph(edgesData) {
+/**
+ * 构建邻接表（双向图）
+ * @param {Array} edgesData
+ * @param {string} [vehicle] - 'walk'|'bike'|'electric' — 过滤允许该交通方式的边
+ *   walk: 所有边可走（步行默认不受限）
+ *   bike: 仅 bike_allowed=true 的边（校区自行车道）
+ *   electric: 仅 transport==='electric' 的边（景区电瓶车路线）
+ */
+function buildGraph(edgesData, vehicle) {
   const graph = new Map();
   for (const edge of edgesData) {
+    if (vehicle === 'bike'     && edge.bike_allowed === false) continue;
+    if (vehicle === 'electric' && edge.transport !== 'electric') continue;
     if (!graph.has(edge.from)) graph.set(edge.from, []);
-    if (!graph.has(edge.to)) graph.set(edge.to, []);
-    graph.get(edge.from).push({ to: edge.to, dist: edge.dist, time: edge.time, transport: edge.transport });
-    graph.get(edge.to).push({ to: edge.from, dist: edge.dist, time: edge.time, transport: edge.transport });
+    if (!graph.has(edge.to))   graph.set(edge.to,   []);
+    graph.get(edge.from).push({ to: edge.to,   dist: edge.dist, time: edge.time, transport: edge.transport });
+    graph.get(edge.to  ).push({ to: edge.from, dist: edge.dist, time: edge.time, transport: edge.transport });
   }
   return graph;
 }
