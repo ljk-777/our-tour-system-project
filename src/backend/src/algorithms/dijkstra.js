@@ -195,4 +195,88 @@ function buildGraph(edgesData) {
   return graph;
 }
 
-module.exports = { dijkstra, shortestPath, multiPointPath, buildGraph, getPath };
+/**
+ * A* 算法（启发式最短路）
+ * 课程设计知识点：A* = Dijkstra + 启发函数，以 Haversine 直线距离作下界估计
+ * 优势：比 Dijkstra 少探索无关节点，理论复杂度相同但实际更快
+ * @param {Map} graph - 邻接表
+ * @param {number} startId
+ * @param {number} endId
+ * @param {Map} coords - Map<nodeId, {lat, lng}>（用于启发函数）
+ * @param {string} mode - 'distance'|'time'
+ * @returns {{ dist, prev, nodesExplored }}
+ */
+function aStar(graph, startId, endId, coords, mode = 'distance') {
+  function heuristic(id) {
+    const a = coords.get(id);
+    const b = coords.get(endId);
+    if (!a || !b || a.lat == null || b.lat == null) return 0;
+    const R = 6371000;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const sin2 = Math.sin(dLat / 2) ** 2
+      + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(sin2));
+  }
+
+  const g = new Map();
+  const prev = new Map();
+  const visited = new Set();
+
+  for (const nodeId of graph.keys()) g.set(nodeId, Infinity);
+  g.set(startId, 0);
+
+  const pq = new MinHeap((a, b) => a.f - b.f);
+  pq.push({ id: startId, f: heuristic(startId) });
+  let nodesExplored = 0;
+
+  while (!pq.isEmpty()) {
+    const { id: u } = pq.pop();
+    if (u === endId) break;
+    if (visited.has(u)) continue;
+    visited.add(u);
+    nodesExplored++;
+
+    for (const edge of (graph.get(u) || [])) {
+      const weight = mode === 'time' ? edge.time : edge.dist;
+      const newG = (g.get(u) ?? Infinity) + weight;
+      if (newG < (g.get(edge.to) ?? Infinity)) {
+        g.set(edge.to, newG);
+        prev.set(edge.to, u);
+        pq.push({ id: edge.to, f: newG + heuristic(edge.to) });
+      }
+    }
+  }
+
+  return { dist: g, prev, nodesExplored };
+}
+
+/**
+ * A* 单点最短路（对外接口）
+ * @param {Array} nodesData - 含 {id, lat, lng} 的节点数组
+ * @param {Array} edgesData
+ * @param {number} startId
+ * @param {number} endId
+ * @param {string} mode
+ */
+function aStarPath(nodesData, edgesData, startId, endId, mode = 'distance') {
+  const graph = buildGraph(edgesData);
+  const coords = new Map(nodesData.map((n) => [n.id, { lat: Number(n.lat), lng: Number(n.lng) }]));
+
+  if (!graph.has(startId)) graph.set(startId, []);
+  if (!graph.has(endId)) graph.set(endId, []);
+
+  const { dist, prev, nodesExplored } = aStar(graph, startId, endId, coords, mode);
+  const path = getPath(prev, startId, endId);
+  const totalCost = dist.get(endId);
+
+  return {
+    path,
+    totalDist: mode === 'distance' ? totalCost : null,
+    totalTime: mode === 'time' ? totalCost : null,
+    reachable: totalCost !== Infinity,
+    nodesExplored,
+  };
+}
+
+module.exports = { dijkstra, aStar, shortestPath, aStarPath, multiPointPath, buildGraph, getPath };

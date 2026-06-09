@@ -25,6 +25,7 @@ import Profile      from './pages/Profile.jsx';
 import Admin        from './pages/Admin.jsx';
 import GroupsPage   from './pages/GroupsPage.jsx';
 import GroupDetail  from './pages/GroupDetail.jsx';
+import AlgoDemo     from './pages/AlgoDemo.jsx';
 
 /**
  * ProtectedRoute — 需要登录或访客身份才能访问
@@ -77,8 +78,9 @@ export default function App() {
           <Route path="/profile"   element={<StandardLayout><Profile /></StandardLayout>} />
           <Route path="/profile/:id" element={<StandardLayout><Profile /></StandardLayout>} />
           <Route path="/admin"     element={<StandardLayout><Admin /></StandardLayout>} />
-          <Route path="/groups"   element={<StandardLayout><GroupsPage /></StandardLayout>} />
+          <Route path="/groups"    element={<StandardLayout><GroupsPage /></StandardLayout>} />
           <Route path="/groups/:id" element={<StandardLayout><GroupDetail /></StandardLayout>} />
+          <Route path="/algo"      element={<StandardLayout><AlgoDemo /></StandardLayout>} />
 
           {/* ── 404 ──────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />

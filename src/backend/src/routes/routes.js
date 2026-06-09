@@ -3,7 +3,7 @@ const router = express.Router();
 const spotRepo = require('../repositories/spotRepository');
 const routeRepo = require('../repositories/routeRepository');
 const localRouteGraphRepo = require('../repositories/localRouteGraphRepository');
-const { shortestPath, multiPointPath, buildGraph, dijkstra } = require('../algorithms/dijkstra');
+const { shortestPath, aStarPath, multiPointPath, buildGraph, dijkstra } = require('../algorithms/dijkstra');
 const { describeRoute } = require('../services/routeDescriptionService');
 
 router.get('/local-graphs', async (req, res, next) => {
@@ -124,6 +124,41 @@ router.get('/graph-stats', async (req, res, next) => {
         totalEdges: edges.length,
         totalNodes: nodeSet.size,
         totalSpots: allSpots.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/astar', async (req, res, next) => {
+  try {
+    const { fromId, toId, mode = 'distance' } = req.body;
+    if (!fromId || !toId) return res.status(400).json({ success: false, message: '缺少 fromId 或 toId' });
+
+    const [spots, edges] = await Promise.all([spotRepo.getAll(), routeRepo.getAll()]);
+    const result = aStarPath(spots, edges, Number(fromId), Number(toId), mode);
+
+    if (!result.reachable) {
+      return res.json({ success: false, message: '两点之间不可达', reachable: false });
+    }
+
+    const spotMap = new Map(spots.map((s) => [s.id, s]));
+    const pathSpots = result.path.map((id) => {
+      const s = spotMap.get(id);
+      return s ? { id: s.id, name: s.name, city: s.city, type: s.type } : { id };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        path: result.path,
+        pathSpots,
+        totalDist: result.totalDist,
+        totalTime: result.totalTime,
+        nodesExplored: result.nodesExplored,
+        mode,
+        algorithm: 'A* + Haversine 启发函数',
       },
     });
   } catch (error) {

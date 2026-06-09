@@ -161,8 +161,11 @@ export default function RoutePlanner() {
     setResult(null);
 
     try {
+      // 闭环：末尾追加起点，实现"游览完返回出发点"
+      const ids = waypoints.map((item) => item.id);
+      const closedIds = ids[ids.length - 1] === ids[0] ? ids : [...ids, ids[0]];
       const response = await multiPointPath({
-        waypointIds: waypoints.map((item) => item.id),
+        waypointIds: closedIds,
         mode: weightMode,
       });
       if (!response.data.success) {

@@ -136,6 +136,13 @@ export default function DiaryDetail() {
             {formattedDate && <span>📅 {formattedDate}</span>}
           </div>
 
+          {/* 封面视频 */}
+          {diary.videoUrl && (
+            <video src={diary.videoUrl} controls
+              className="w-full rounded-xl mb-4"
+              style={{ maxHeight: 260 }} />
+          )}
+
           {/* Full content */}
           <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
             {diary.content}

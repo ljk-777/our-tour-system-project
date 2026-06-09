@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { to: '/plaza',   label: '广场'   },
   { to: '/profile', label: '旅行者' },
   { to: '/globe',   label: '🌍 星球' },
+  { to: '/algo',    label: '⚙️ 算法' },
 ];
 
 const DROPDOWN_ITEMS = [
@@ -23,6 +24,7 @@ const DROPDOWN_ITEMS = [
   { icon: '🍜', label: '美食推荐',   to: '/foods',    desc: '当地特色美食导航' },
   { icon: '🌍', label: '3D 星球',    to: '/globe',    desc: '互动地球探索模式' },
   { icon: '🏙️', label: '旅行广场',   to: '/plaza',    desc: '社区动态与精选内容' },
+  { icon: '⚙️', label: '算法演示',   to: '/algo',     desc: 'A* / Dijkstra / KMP / AIGC动画' },
 ];
 
 const LEVEL_COLOR = {

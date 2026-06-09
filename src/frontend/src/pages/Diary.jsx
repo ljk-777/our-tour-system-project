@@ -36,6 +36,12 @@ function compressImage(file, size = 600) {
   });
 }
 
+/* ── KMP 高亮渲染（将 <mark>xxx</mark> 字符串安全渲染为 JSX）── */
+function HL({ html, style }) {
+  if (!html || !html.includes('<mark>')) return <span style={style}>{html}</span>;
+  return <span style={style} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 /* ── 单条日记行（可点击进入详情页） ──────────────────────────── */
 function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) {
   const [expanded,     setExpanded]     = useState(false);
@@ -137,20 +143,30 @@ function DiaryRow({ diary, index, currentUser, likedDiaryIdsSet, requireAuth }) 
               style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:12, marginBottom:14 }} />
           )}
 
-          {/* 标题 */}
+          {/* 视频 */}
+          {diary.videoUrl && (
+            <video src={diary.videoUrl} controls
+              style={{ width:'100%', borderRadius:12, marginBottom:14, maxHeight:200 }} />
+          )}
+
+          {/* 标题（KMP搜索时高亮匹配词）*/}
           <h3 style={{
             fontFamily:'Inter, sans-serif', fontSize:'1.15rem', fontWeight:700,
             color:'#1d1d1f', letterSpacing:'-0.02em', lineHeight:1.3, marginBottom:8,
-          }}>{diary.title}</h3>
+          }}>
+            <HL html={diary._highlights?.title || diary.title} />
+          </h3>
 
-          {/* 正文摘要 */}
+          {/* 正文摘要（KMP搜索时高亮匹配词）*/}
           <p style={{
             fontSize:'0.875rem', color:'#6e6e73', lineHeight:1.7, wordBreak:'break-word',
             display: !expanded && isLong ? '-webkit-box' : 'block',
             WebkitLineClamp: !expanded && isLong ? 3 : undefined,
             WebkitBoxOrient: 'vertical',
             overflow: !expanded && isLong ? 'hidden' : 'visible',
-          }}>{diary.content}</p>
+          }}>
+            <HL html={diary._highlights?.content || diary.content} />
+          </p>
           {isLong && (
             <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} style={{
               fontSize:'0.75rem', color:'#1a73e8', background:'none', border:'none',
@@ -271,13 +287,15 @@ export default function Diary() {
   const [showCreate, setShowCreate] = useState(false);
   const [form,       setForm]       = useState({
     title:'', content:'', spotName:'', tags:'',
-    weather:'晴', mood:'愉悦', rating:5, coverImage:'',
+    weather:'晴', mood:'愉悦', rating:5, coverImage:'', videoUrl:'',
   });
   const [imgPreview,  setImgPreview]  = useState('');
+  const [videoPreview, setVideoPreview] = useState('');
   const [submitting,  setSubmitting]  = useState(false);
   const [generating,  setGenerating]  = useState(false);
   const [aiDraft,     setAiDraft]     = useState('');
   const fileRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => { loadAll(); }, [sortBy]);
 
@@ -310,6 +328,17 @@ export default function Diary() {
       setImgPreview(b64);
       setForm(f => ({ ...f, coverImage: b64 }));
     } catch { alert('图片处理失败'); }
+    e.target.value = '';
+  };
+
+  const handleVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) { alert('请选择视频文件'); return; }
+    if (file.size > 100 * 1024 * 1024) { alert('视频文件请控制在 100MB 以内'); return; }
+    const url = URL.createObjectURL(file);
+    setVideoPreview(url);
+    setForm(f => ({ ...f, videoUrl: url }));
     e.target.value = '';
   };
 
@@ -354,9 +383,10 @@ export default function Diary() {
         loadAll();
       }
       setShowCreate(false);
-      setForm({ title:'', content:'', spotName:'', tags:'', weather:'晴', mood:'愉悦', rating:5, coverImage:'' });
+      setForm({ title:'', content:'', spotName:'', tags:'', weather:'晴', mood:'愉悦', rating:5, coverImage:'', videoUrl:'' });
       setAiDraft('');
       setImgPreview('');
+      setVideoPreview('');
     } catch {
       alert('发布失败，请稍后重试');
     } finally { setSubmitting(false); }
@@ -473,6 +503,7 @@ export default function Diary() {
                 {/* 图片上传 */}
                 <div>
                   <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImageSelect} />
+                  <input ref={videoRef} type="file" accept="video/*" style={{ display:'none' }} onChange={handleVideoSelect} />
                   <button type="button" onClick={() => fileRef.current?.click()} style={{
                     display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%',
                     padding:'10px', borderRadius:10, fontSize:'0.82rem', fontFamily:'Inter, sans-serif',
@@ -488,6 +519,32 @@ export default function Diary() {
                     <div style={{ position:'relative', marginTop:10 }}>
                       <img src={imgPreview} alt="预览" style={{ width:'100%', maxHeight:200, objectFit:'cover', borderRadius:10 }} />
                       <button type="button" onClick={() => { setImgPreview(''); setForm(f=>({...f,coverImage:''})); }} style={{
+                        position:'absolute', top:8, right:8, width:24, height:24,
+                        background:'rgba(0,0,0,0.5)', color:'#fff', border:'none',
+                        borderRadius:'50%', fontSize:'0.7rem', cursor:'pointer',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 视频上传 */}
+                <div>
+                  <button type="button" onClick={() => videoRef.current?.click()} style={{
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%',
+                    padding:'10px', borderRadius:10, fontSize:'0.82rem', fontFamily:'Inter, sans-serif',
+                    border:'1px dashed rgba(0,0,0,0.15)', background:'transparent', color:'#aeaeb2',
+                    cursor:'pointer', transition:'all 0.2s ease',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,0,0,0.3)'; e.currentTarget.style.color='#1d1d1f'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(0,0,0,0.15)'; e.currentTarget.style.color='#aeaeb2'; }}
+                  >
+                    🎬 {videoPreview ? '重新选择视频' : '添加视频（选填，≤100MB）'}
+                  </button>
+                  {videoPreview && (
+                    <div style={{ position:'relative', marginTop:10 }}>
+                      <video src={videoPreview} controls style={{ width:'100%', borderRadius:10, maxHeight:200 }} />
+                      <button type="button" onClick={() => { setVideoPreview(''); setForm(f=>({...f,videoUrl:''})); }} style={{
                         position:'absolute', top:8, right:8, width:24, height:24,
                         background:'rgba(0,0,0,0.5)', color:'#fff', border:'none',
                         borderRadius:'50%', fontSize:'0.7rem', cursor:'pointer',
