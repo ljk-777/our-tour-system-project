@@ -4,6 +4,8 @@ const { requireAuth } = require('../middleware/auth');
 const groupRepo = require('../repositories/groupRepository');
 const userRepo = require('../repositories/userRepository');
 const spotRepo = require('../repositories/spotRepository');
+const routeRepo = require('../repositories/routeRepository');
+const { multiPointPath } = require('../algorithms/dijkstra');
 const { generateGroupTripSuggestion, analyzeGroupConflictWithAi, generateGroupChatReply } = require('../services/diaryAiService');
 const amapService = require('../services/amapService');
 
@@ -313,6 +315,58 @@ router.get('/:id/preferences', requireGroupMember, async (req, res, next) => {
   }
 });
 
+// Dijkstra route planning using local graph algorithm
+router.post('/:id/trips/dijkstra-route', requireGroupMember, async (req, res, next) => {
+  try {
+    const trip = await groupRepo.getTrip(req.params.id);
+    const { dayIndex = 0, mode = 'distance' } = req.body;
+    const day = (trip?.dailyPlan || [])[dayIndex];
+    const spotIds = (day?.activities || [])
+      .filter((act) => act.spotId)
+      .map((act) => Number(act.spotId))
+      .filter(Number.isFinite);
+
+    if (spotIds.length < 2) {
+      return res.status(400).json({ success: false, message: '当天至少需要 2 个带景点 ID 的活动' });
+    }
+
+    const [spots, edges] = await Promise.all([
+      spotRepo.findByIds([...new Set(spotIds)]),
+      routeRepo.getAll(),
+    ]);
+
+    const spotMap = new Map(spots.map((s) => [s.id, s]));
+    const validIds = spotIds.filter((id) => spotMap.has(id));
+    if (validIds.length < 2) {
+      return res.status(400).json({ success: false, message: '景点 ID 在数据库中不存在，请检查行程活动中的景点 ID' });
+    }
+
+    const result = multiPointPath(spots, edges, validIds, mode);
+    const pathSpots = result.path.map((id) => spotMap.get(id)).filter(Boolean);
+    const segments = result.segments.map((seg) => ({
+      from: seg.from, to: seg.to,
+      fromName: spotMap.get(seg.from)?.name || `#${seg.from}`,
+      toName: spotMap.get(seg.to)?.name || `#${seg.to}`,
+      cost: seg.cost,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        path: result.path,
+        totalCost: result.totalCost,
+        reachable: result.reachable !== false,
+        pathSpots,
+        segments,
+        mode,
+        algorithm: 'Dijkstra + 最近邻贪心 + 2-opt（本地图算法）',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/:id/preferences/me', requireGroupMember, async (req, res, next) => {
   try {
     const preference = await groupRepo.upsertPreference(req.params.id, req.user.id, req.body);
@@ -420,6 +474,26 @@ router.post('/:id/polls/:pollId/vote', requireGroupMember, async (req, res, next
     if (!poll) return res.status(404).json({ success: false, message: '投票不存在' });
     await maybeCreatePollDecisionAction(req.params.id, poll);
     res.json({ success: true, data: poll, message: '投票已记录' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Share spot to group chat
+router.post('/:id/spots', requireGroupMember, async (req, res, next) => {
+  try {
+    const { spotId } = req.body;
+    if (!spotId) return res.status(400).json({ success: false, message: '请指定景点 ID' });
+    const spot = await spotRepo.findById(Number(spotId));
+    if (!spot) return res.status(404).json({ success: false, message: '景点不存在' });
+    const user = await userRepo.findById(req.user.id);
+    const content = JSON.stringify({
+      spotId: spot.id, name: spot.name, city: spot.city,
+      rating: spot.rating, imageUrl: spot.imageUrl || spot.image_url,
+    });
+    const msg = await groupRepo.addMessage(req.params.id, req.user.id, 'spot', content);
+    await groupRepo.addMessage(req.params.id, null, 'system', `${user?.nickname || user?.username || '成员'} 分享了景点：${spot.name}`);
+    res.json({ success: true, data: msg, message: '景点已分享到群' });
   } catch (error) {
     next(error);
   }

@@ -364,23 +364,42 @@ const Earth = ({ radius = 5, controlsRef }) => {
       groupRef.current.rotation.y += anim.speed * dt * 60;
 
       if (anim.speed < 0.000004) {
-        const cur    = groupRef.current.rotation.y;
-        const pos    = latLngToVector3(fc.lat, fc.lng, 1);
-        const camAz  = Math.atan2(cam.position.x, cam.position.z);
-        const cityAz = Math.atan2(pos.x, pos.z);
-        const rawY   = camAz - cityAz;
-        const diff   = rawY - cur;
-        const norm   = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
+        const cur = groupRef.current.rotation.y;
+        const pos = latLngToVector3(fc.lat, fc.lng, 1);
+
+        // ── 正确的 3D 旋转目标公式 ─────────────────────────────
+        // 最大化 city_world · camDir（城市朝向相机方向）
+        // 对 Y 旋转 β 求导令导数为零，得到解析解：
+        // β = atan2( pz*camDir.x - px*camDir.z,  px*camDir.x + pz*camDir.z )
+        const camDir = cam.position.clone().normalize();
+        const px = pos.x, pz = pos.z;
+        const horizLen = Math.sqrt(camDir.x * camDir.x + camDir.z * camDir.z);
+
+        let rawY;
+        if (horizLen < 0.05) {
+          // 相机几乎正上方/正下方：水平方向不确定，保持当前旋转不动
+          rawY = cur;
+        } else {
+          rawY = Math.atan2(pz * camDir.x - px * camDir.z,
+                            px * camDir.x + pz * camDir.z);
+          // 验证城市确实朝向相机（点积 > 0），否则翻转 π
+          const cx = px * Math.cos(rawY) + pz * Math.sin(rawY);
+          const cz = -px * Math.sin(rawY) + pz * Math.cos(rawY);
+          if (cx * camDir.x + cz * camDir.z < 0) rawY += Math.PI;
+        }
+
+        const diff = rawY - cur;
+        const norm = diff - Math.round(diff / (2 * Math.PI)) * 2 * Math.PI;
         anim.seekFrom = cur;
         anim.seekTo   = cur + norm;
         anim.seekT    = 0;
-        anim.seekDur  = 1.8;   // 缩短旋转时长
+        anim.seekDur  = 1.8;
         anim.phase    = 'seek';
-        // 摄像机同步启动，旋转一开始立刻缩进，消除停顿
+        // 摄像机同步启动
         anim.camFrom    = cam.position.length();
         anim.camTo      = 8.5;
         anim.camT       = 0;
-        anim.camZoomDur = 2.6; // 比旋转稍长，追赶感
+        anim.camZoomDur = 2.6;
         anim.camPhase   = 'zoomIn';
         if (ctrl) ctrl.enabled = false;
       }
@@ -398,28 +417,25 @@ const Earth = ({ radius = 5, controlsRef }) => {
     }
     // 'lock': 地球静止
 
-    // ── 摄像机缩进动画（与旋转并行） ─────────────────────────
+    // ── 摄像机缩进动画（与旋转并行，无任何 target 偏移）────────
     if (anim.camPhase === 'zoomIn') {
       anim.camT = Math.min(anim.camT + dt / anim.camZoomDur, 1);
-      const t = anim.camT;
-      // ease-out-back：轻微过冲后回落，有游戏开场感
+      const t  = anim.camT;
+      // ease-out-back：轻微过冲后回落，游戏开场感
       const ec = t < 1
         ? 1 + 2.5 * Math.pow(t - 1, 3) + 1.5 * Math.pow(t - 1, 2)
         : 1;
-      const dist = anim.camFrom + (anim.camTo - anim.camFrom) * Math.max(0, Math.min(ec, 1.04));
-      cam.position.setLength(dist);
+      cam.position.setLength(
+        anim.camFrom + (anim.camTo - anim.camFrom) * Math.max(0, Math.min(ec, 1.04))
+      );
       if (ctrl) ctrl.update();
       if (anim.camT >= 1) anim.camPhase = 'locked';
 
     } else if (anim.camPhase === 'locked') {
-      // 锁定距离
-      const cur = cam.position.length();
-      if (Math.abs(cur - anim.camTo) > 0.08) cam.position.setLength(anim.camTo);
-      // 平移 orbit target → 城市投影到竖向 1/3 处（NDC y ≈ -0.31）
-      if (ctrl) {
-        const smooth = 1 - Math.pow(0.88, dt * 60);
-        ctrl.target.y += (2.0 - ctrl.target.y) * smooth;
-        ctrl.update();
+      // 纯锁定距离，零额外运动
+      if (Math.abs(cam.position.length() - anim.camTo) > 0.08) {
+        cam.position.setLength(anim.camTo);
+        if (ctrl) ctrl.update();
       }
 
     } else if (anim.camPhase === 'zoomOut') {
@@ -428,15 +444,10 @@ const Earth = ({ radius = 5, controlsRef }) => {
       cam.position.setLength(
         anim.camReturnFrom + (anim.camReturnTo - anim.camReturnFrom) * eo
       );
-      if (ctrl) {
-        // 同步还原 orbit target
-        const smooth = 1 - Math.pow(0.88, dt * 60);
-        ctrl.target.y += (0 - ctrl.target.y) * smooth;
-        ctrl.update();
-      }
+      if (ctrl) ctrl.update();
       if (anim.camOutT >= 1) {
         anim.camPhase = 'idle';
-        if (ctrl) { ctrl.target.set(0,0,0); ctrl.enabled = true; }
+        if (ctrl) ctrl.enabled = true;
       }
     }
 
