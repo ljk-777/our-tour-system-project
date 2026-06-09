@@ -440,8 +440,8 @@ function RouteTab({ busy, routeMode, routeResult, selectedDay, setRouteMode, set
     <Panel>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">\u8def\u7ebf\u89c4\u5212</h2>
-          <p className="text-xs text-gray-500">\u9ad8\u5fb7\u8def\u7ebf\uff1a\u8c03\u7528\u9ad8\u5fb7 API\uff0c\u542b\u771f\u5b9e\u5bfc\u822a\u6b65\u9aa4\uff1bDijkstra\uff1a\u672c\u5730\u56fe\u7b97\u6cd5\uff0c\u5c55\u793a\u7b97\u6cd5\u6700\u77ed\u8def</p>
+          <h2 className="text-sm font-bold text-gray-900">路线规划</h2>
+          <p className="text-xs text-gray-500">高德路线：调用高德 API，含真实导航步骤；Dijkstra：本地图算法，展示算法最短路</p>
         </div>
         <div className="flex items-center gap-2">
           <select value={routeMode} onChange={(e) => setRouteMode(e.target.value)} className="compact-mini w-24">
