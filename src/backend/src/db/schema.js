@@ -122,6 +122,18 @@ const schemaStatements = [
     );
   `,
   `ALTER TABLE diaries ADD COLUMN IF NOT EXISTS video_url TEXT;`,
+  `ALTER TABLE diaries ADD COLUMN IF NOT EXISTS rating_count INTEGER NOT NULL DEFAULT 0;`,
+  `
+    CREATE TABLE IF NOT EXISTS diary_ratings (
+      diary_id BIGINT NOT NULL REFERENCES diaries(id) ON DELETE CASCADE,
+      user_id  BIGINT NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+      score    NUMERIC(2,1) NOT NULL CHECK (score >= 1 AND score <= 5),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (diary_id, user_id)
+    );
+  `,
+  `CREATE INDEX IF NOT EXISTS idx_diary_ratings_diary ON diary_ratings(diary_id);`,
   `
     CREATE TABLE IF NOT EXISTS diary_tags (
       id BIGSERIAL PRIMARY KEY,

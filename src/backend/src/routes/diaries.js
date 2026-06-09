@@ -17,14 +17,16 @@ async function buildDiaryIndex() {
 
 router.get('/', async (req, res, next) => {
   try {
-    const { userId, spotId, tag, sortBy = 'createdAt', order = 'desc', limit = 10, offset = 0 } = req.query;
+    const { userId, spotId, tag, spotName, sortBy = 'createdAt', order = 'desc', limit = 10, offset = 0 } = req.query;
     let { data: result, total } = await diaryRepo.findAll({ userId, spotId, limit: 9999, offset: 0 });
 
-    if (tag) result = result.filter((diary) => diary.tags && diary.tags.includes(tag));
+    if (tag)      result = result.filter((d) => d.tags && d.tags.includes(tag));
+    if (spotName) result = result.filter((d) => d.spotName && d.spotName.includes(spotName));
 
     result.sort((a, b) => {
-      if (sortBy === 'likes') return order === 'desc' ? b.likes - a.likes : a.likes - b.likes;
-      if (sortBy === 'views') return order === 'desc' ? b.views - a.views : a.views - b.views;
+      if (sortBy === 'likes')   return order === 'desc' ? b.likes - a.likes : a.likes - b.likes;
+      if (sortBy === 'views')   return order === 'desc' ? b.views - a.views : a.views - b.views;
+      if (sortBy === 'rating')  return order === 'desc' ? (b.rating||0) - (a.rating||0) : (a.rating||0) - (b.rating||0);
       return order === 'desc'
         ? new Date(b.createdAt) - new Date(a.createdAt)
         : new Date(a.createdAt) - new Date(b.createdAt);
@@ -88,7 +90,12 @@ router.get('/:id', async (req, res, next) => {
   try {
     const diary = await diaryRepo.findById(req.params.id);
     if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
-    res.json({ success: true, data: diary });
+    // 浏览量 +1（非阻塞）
+    diaryRepo.incrementViews(req.params.id).catch(() => {});
+    // 附带当前用户的评分（如已登录）
+    let myRating = null;
+    if (req.user) myRating = await diaryRepo.getMyRating(req.user.id, req.params.id).catch(() => null);
+    res.json({ success: true, data: { ...diary, myRating } });
   } catch (error) {
     next(error);
   }
@@ -130,6 +137,19 @@ router.post('/:id/unlike', requireAuth, async (req, res, next) => {
     const diary = await diaryRepo.unlike(req.user.id, req.params.id);
     if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
     res.json({ success: true, likes: diary.likes });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/:id/rate', requireAuth, async (req, res, next) => {
+  try {
+    const { score } = req.body;
+    const s = Number(score);
+    if (!s || s < 1 || s > 5) return res.status(400).json({ success: false, message: '评分须为 1-5 分' });
+    const diary = await diaryRepo.rate(req.user.id, req.params.id, s);
+    if (!diary) return res.status(404).json({ success: false, message: '日记不存在' });
+    res.json({ success: true, rating: diary.rating, ratingCount: diary.ratingCount, myRating: s });
   } catch (error) {
     next(error);
   }

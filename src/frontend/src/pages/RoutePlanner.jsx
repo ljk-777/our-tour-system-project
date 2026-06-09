@@ -29,6 +29,12 @@ const WEIGHT_MODE_OPTIONS = [
   { value: 'time', label: '最短时间' },
 ];
 
+const VEHICLE_OPTIONS = [
+  { value: 'walk',     label: '🚶 步行',  desc: '所有道路均可通行' },
+  { value: 'bike',     label: '🚲 自行车', desc: '仅限自行车道（校区）' },
+  { value: 'electric', label: '🛺 电瓶车', desc: '仅限电瓶车路线（景区）' },
+];
+
 const TRAVEL_MODE_OPTIONS = [
   { value: 'walking', label: '步行' },
   { value: 'driving', label: '驾车' },
@@ -49,6 +55,7 @@ export default function RoutePlanner() {
   const [plannerMode, setPlannerMode] = useState('workspace');
   const [algoMode, setAlgoMode] = useState('single');
   const [weightMode, setWeightMode] = useState('distance');
+  const [vehicle, setVehicle] = useState('walk');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
@@ -132,6 +139,7 @@ export default function RoutePlanner() {
         fromId: fromSpot.id,
         toId: toSpot.id,
         mode: weightMode,
+        vehicle,
       });
       if (!response.data.success) {
         setError(response.data.message || '路线计算失败');
@@ -167,6 +175,7 @@ export default function RoutePlanner() {
       const response = await multiPointPath({
         waypointIds: closedIds,
         mode: weightMode,
+        vehicle,
       });
       if (!response.data.success) {
         setError(response.data.message || '多点路径计算失败');
@@ -284,6 +293,24 @@ export default function RoutePlanner() {
                 <ModeButton key={option.value} active={weightMode === option.value} onClick={() => setWeightMode(option.value)}>
                   {option.label}
                 </ModeButton>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-gray-400 mr-1">交通工具</span>
+              {VEHICLE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setVehicle(opt.value)}
+                  title={opt.desc}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    vehicle === opt.value
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
               ))}
             </div>
 
