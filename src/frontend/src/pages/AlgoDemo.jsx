@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { searchSpots, shortestPath, getTopK, multiPointPath, getGraphStats } from '../api/index.js';
+import { useState, useEffect, useRef } from 'react';
+import { searchSpots, shortestPath, aStarPath, getTopK, multiPointPath, getGraphStats, getDiaries } from '../api/index.js';
 
 /**
  * 算法演示页 — 课程验收专用
@@ -169,12 +169,14 @@ export default function AlgoDemo() {
 
         {/* 主内容区 */}
         <div className="lg:col-span-3 animate-fade-in">
-          {activeAlgo === 'trie'     && <TrieDemo />}
-          {activeAlgo === 'dijkstra' && <DijkstraDemo />}
-          {activeAlgo === 'twoopt'   && <TwoOptDemo />}
-          {activeAlgo === 'topk'     && <TopKDemo />}
-          {activeAlgo === 'kmp'      && <KMPDemo />}
+          {activeAlgo === 'trie'        && <TrieDemo />}
+          {activeAlgo === 'dijkstra'    && <DijkstraDemo />}
+          {activeAlgo === 'astar'       && <AStarDemo />}
+          {activeAlgo === 'twoopt'      && <TwoOptDemo />}
+          {activeAlgo === 'topk'        && <TopKDemo />}
+          {activeAlgo === 'kmp'         && <KMPDemo />}
           {activeAlgo === 'compression' && renderCompression()}
+          {activeAlgo === 'aigc'        && <AIGCAnimationDemo />}
         </div>
       </div>
     </div>
@@ -184,10 +186,12 @@ export default function AlgoDemo() {
 const ALGOS = [
   { key: 'trie',        name: 'Trie 前缀树',      icon: '🔍' },
   { key: 'dijkstra',    name: 'Dijkstra 最短路',   icon: '🛤️' },
+  { key: 'astar',       name: 'A* 启发搜索',       icon: '⭐' },
   { key: 'twoopt',      name: '2-opt 多点路径',    icon: '🔄' },
   { key: 'topk',        name: 'MinHeap TopK',      icon: '⛏️' },
   { key: 'kmp',         name: 'KMP 字符串匹配',    icon: '🔎' },
   { key: 'compression', name: '无损压缩',          icon: '📦' },
+  { key: 'aigc',        name: 'AIGC 旅游动画',     icon: '🎬' },
 ];
 
 /* ====== Trie 演示 ====== */
@@ -677,4 +681,363 @@ function highlightMatches(text, pattern, matches) {
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ====== A* 启发搜索演示 ====== */
+function AStarDemo() {
+  const [fromId, setFromId] = useState(1);
+  const [toId, setToId] = useState(4);
+  const [mode, setMode] = useState('distance');
+  const [dijResult, setDijResult] = useState(null);
+  const [astarResult, setAstarResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const EXAMPLES = [
+    { label: '故宫 → 颐和园',    from: 1,   to: 4   },
+    { label: '西湖 → 灵隐寺',    from: 36,  to: 38  },
+    { label: '北大图书馆 → 博雅塔', from: 201, to: 206 },
+  ];
+
+  const run = async () => {
+    setLoading(true); setError(''); setDijResult(null); setAstarResult(null);
+    try {
+      const [dijRes, asRes] = await Promise.all([
+        shortestPath({ fromId: Number(fromId), toId: Number(toId), mode }),
+        aStarPath({ fromId: Number(fromId), toId: Number(toId), mode }),
+      ]);
+      if (!dijRes.data.success || !asRes.data.success) { setError('路线不可达或节点不存在'); return; }
+      setDijResult(dijRes.data.data);
+      setAstarResult(asRes.data.data);
+    } catch { setError('请求失败，请确认后端服务已启动'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="card p-6">
+      <AlgoHeader
+        name="A* 启发式搜索 vs Dijkstra 对比"
+        desc="A* = Dijkstra + 启发函数 h(n)。h(n) 用 Haversine 公式估计当前节点到终点的直线距离（下界）。每次优先扩展 f(n) = g(n) + h(n) 最小的节点，减少无效探索。与 Dijkstra 路径相同，但探索节点更少。"
+        complexity={{ time: 'O((V+E) log V)（启发函数好时实际更快）', space: 'O(V+E)' }}
+        where="backend/src/algorithms/dijkstra.js → aStar / aStarPath"
+      />
+
+      <div className="flex flex-wrap gap-2 mb-4 text-xs">
+        {EXAMPLES.map(ex => (
+          <button key={ex.label} onClick={() => { setFromId(ex.from); setToId(ex.to); }}
+            className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors">
+            {ex.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">起点 节点ID</label>
+          <input type="number" value={fromId} onChange={e => setFromId(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">终点 节点ID</label>
+          <input type="number" value={toId} onChange={e => setToId(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        {[['distance','最短距离'], ['time','最短时间']].map(([v, l]) => (
+          <button key={v} onClick={() => setMode(v)}
+            className={`px-4 py-1.5 rounded-lg text-sm transition-colors ${mode === v ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+            {l}
+          </button>
+        ))}
+        <button onClick={run} disabled={loading}
+          className="ml-auto px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+          {loading ? '对比中...' : '▶ Dijkstra vs A* 对比'}
+        </button>
+      </div>
+
+      {error && <div className="text-red-600 text-sm bg-red-50 px-4 py-2 rounded-xl mb-4">⚠️ {error}</div>}
+
+      {dijResult && astarResult && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Dijkstra', data: dijResult, color: 'blue', explored: '全图' },
+              { label: 'A* (启发)', data: astarResult, color: 'amber', explored: astarResult.nodesExplored },
+            ].map(({ label, data, color, explored }) => (
+              <div key={label} className={`rounded-xl p-4 ${color === 'blue' ? 'bg-blue-50 border border-blue-100' : 'bg-amber-50 border border-amber-100'}`}>
+                <div className={`text-xs font-bold mb-3 ${color === 'blue' ? 'text-blue-600' : 'text-amber-600'}`}>{label}</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">路径长度</span>
+                    <span className="font-semibold">
+                      {data.totalDist >= 1000 ? `${(data.totalDist/1000).toFixed(1)}km` : `${data.totalDist}m`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">途经节点</span>
+                    <span className="font-semibold">{data.path?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">探索节点数</span>
+                    <span className={`font-bold ${color === 'amber' ? 'text-amber-600' : 'text-blue-600'}`}>{explored}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {astarResult.nodesExplored < (dijResult.path?.length || 0) * 3 && (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+              💡 A* 仅探索了 {astarResult.nodesExplored} 个节点，有效利用 Haversine 启发函数剪枝，比盲目的 Dijkstra 更高效
+            </div>
+          )}
+          <div>
+            <div className="text-xs text-gray-400 mb-2">A* 路径（节点序列）：</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(astarResult.pathSpots || []).map((s, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  <span className="bg-amber-500 text-white text-xs px-2.5 py-1 rounded-full">{s.name || `节点${s.id}`}</span>
+                  {i < astarResult.pathSpots.length - 1 && <span className="text-gray-400 text-xs">→</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ====== AIGC 旅游动画演示 ====== */
+function AIGCAnimationDemo() {
+  const canvasRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const [diaries, setDiaries] = useState([]);
+  const [playing, setPlaying] = useState(false);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    getDiaries({ limit: 12, offset: 0, sortBy: 'likes', order: 'desc' })
+      .then(res => { setDiaries(res.data.data || []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const CARD_COLORS = [
+    ['#f97316','#fbbf24'], ['#06b6d4','#3b82f6'], ['#8b5cf6','#ec4899'],
+    ['#10b981','#06b6d4'], ['#f43f5e','#f97316'], ['#84cc16','#10b981'],
+  ];
+
+  const drawFrame = (canvas, diary, progress, colorPair) => {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // Background gradient (animated)
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, colorPair[0] + '33');
+    grad.addColorStop(1, colorPair[1] + '22');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Animated particles
+    ctx.save();
+    for (let i = 0; i < 20; i++) {
+      const x = ((i * 137 + progress * 80) % W);
+      const y = ((i * 89 + progress * 50) % H);
+      const r = 2 + (i % 4);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = colorPair[0] + Math.floor(40 + 40 * Math.sin(progress * 0.05 + i)).toString(16).padStart(2,'0');
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Card (slide in from right)
+    const slideX = W * 0.1 + (progress > 0.1 ? 0 : (0.1 - progress) / 0.1 * W * 0.5);
+    const cardW = W * 0.8, cardH = H * 0.65;
+    const cardY = H * 0.175;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(slideX, cardY, cardW, cardH, 20);
+    ctx.fill();
+    ctx.restore();
+
+    // Color header bar
+    const barGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
+    barGrad.addColorStop(0, colorPair[0]);
+    barGrad.addColorStop(1, colorPair[1]);
+    ctx.fillStyle = barGrad;
+    ctx.beginPath();
+    ctx.roundRect(slideX, cardY, cardW, 54, [20, 20, 0, 0]);
+    ctx.fill();
+
+    // Title
+    const titleAlpha = Math.min(1, (progress - 0.15) / 0.15);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, titleAlpha);
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(W * 0.042)}px Inter, sans-serif`;
+    ctx.textBaseline = 'middle';
+    const title = (diary.title || '旅行记忆').slice(0, 14);
+    ctx.fillText(title, slideX + 20, cardY + 27);
+    ctx.restore();
+
+    // Spot name chip
+    if (diary.spotName) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, titleAlpha);
+      ctx.fillStyle = colorPair[0] + '22';
+      ctx.beginPath();
+      ctx.roundRect(slideX + 20, cardY + 64, 120, 24, 12);
+      ctx.fill();
+      ctx.fillStyle = colorPair[0];
+      ctx.font = `${Math.round(W * 0.028)}px Inter, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📍 ' + diary.spotName.slice(0, 8), slideX + 28, cardY + 76);
+      ctx.restore();
+    }
+
+    // Content preview
+    const contentAlpha = Math.min(1, (progress - 0.3) / 0.2);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, contentAlpha);
+    ctx.fillStyle = '#374151';
+    ctx.font = `${Math.round(W * 0.03)}px Inter, sans-serif`;
+    ctx.textBaseline = 'top';
+    const content = (diary.content || '').slice(0, 60) + (diary.content?.length > 60 ? '...' : '');
+    const words = content.split('');
+    let line = '', lines = [], lineW = cardW - 40;
+    for (const ch of words) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > lineW) { lines.push(line); line = ch; }
+      else line = test;
+    }
+    if (line) lines.push(line);
+    lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, slideX + 20, cardY + 100 + i * 26));
+    ctx.restore();
+
+    // Rating stars
+    const starsAlpha = Math.min(1, (progress - 0.5) / 0.2);
+    if (diary.rating > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, starsAlpha);
+      ctx.font = `${Math.round(W * 0.032)}px sans-serif`;
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('⭐'.repeat(Math.floor(diary.rating)), slideX + 20, cardY + cardH - 16);
+      ctx.restore();
+    }
+
+    // Progress bar at bottom
+    const barH = 4;
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillRect(slideX, cardY + cardH - barH, cardW, barH);
+    const pbGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
+    pbGrad.addColorStop(0, colorPair[0]);
+    pbGrad.addColorStop(1, colorPair[1]);
+    ctx.fillStyle = pbGrad;
+    ctx.fillRect(slideX, cardY + cardH - barH, cardW * progress, barH);
+
+    // Watermark
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `${Math.round(W * 0.022)}px Inter, sans-serif`;
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('✨ AIGC 旅游动画 · AI Generated Travel Memory', slideX + 10, H - 10);
+    ctx.restore();
+  };
+
+  const startAnimation = () => {
+    if (!canvasRef.current || diaries.length === 0) return;
+    setPlaying(true);
+    let idx = 0, startTime = null, DURATION = 3000;
+
+    const animate = (ts) => {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
+      const diary = diaries[idx % diaries.length];
+      const colorPair = CARD_COLORS[idx % CARD_COLORS.length];
+
+      drawFrame(canvasRef.current, diary, progress, colorPair);
+      setCurrentIdx(idx % diaries.length);
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        idx++;
+        startTime = null;
+        if (idx < diaries.length) {
+          animFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          setPlaying(false);
+        }
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  const stopAnimation = () => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    setPlaying(false);
+  };
+
+  useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); }, []);
+
+  return (
+    <div className="card p-6">
+      <AlgoHeader
+        name="AIGC 旅游记忆动画生成"
+        desc="基于用户日记数据，利用 Canvas API 实时渲染动态旅游记忆卡片序列。每帧计算粒子轨迹、卡片滑入缓动、文字淡入时序和进度条动画，生成个性化的旅游回忆视频帧。"
+        complexity={{ time: 'O(d × fps)，d=日记数', space: 'O(1) Canvas 帧缓冲' }}
+        where="frontend/src/pages/AlgoDemo.jsx → AIGCAnimationDemo"
+      />
+
+      {!loaded ? (
+        <div className="text-center py-8 text-gray-400">加载日记数据中...</div>
+      ) : diaries.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          <div className="text-3xl mb-2">📝</div>
+          <p>暂无日记数据，请先在日记页面发布几篇日记</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={playing ? stopAnimation : startAnimation}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                playing ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gradient-to-r from-orange-400 to-pink-500 text-white hover:opacity-90'
+              }`}>
+              {playing ? '⏹ 停止动画' : '▶ 生成旅游动画'}
+            </button>
+            {playing && (
+              <span className="text-sm text-gray-500">
+                正在播放：{diaries[currentIdx]?.title || '旅行记忆'} ({currentIdx + 1}/{diaries.length})
+              </span>
+            )}
+            <span className="text-xs text-gray-400 ml-auto">共 {diaries.length} 篇日记 · 每张 3s</span>
+          </div>
+
+          <canvas ref={canvasRef} width={560} height={360}
+            className="w-full rounded-2xl shadow-lg border border-gray-100"
+            style={{ background: '#f8fafc', display: 'block' }} />
+
+          <div className="grid grid-cols-4 gap-2">
+            {diaries.slice(0, 8).map((d, i) => (
+              <div key={d.id}
+                className={`px-3 py-2 rounded-xl text-xs transition-all ${
+                  i === currentIdx && playing ? 'bg-orange-100 border border-orange-300 text-orange-700 font-semibold' : 'bg-gray-50 text-gray-500'
+                }`}>
+                {d.title?.slice(0, 8) || '日记'}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

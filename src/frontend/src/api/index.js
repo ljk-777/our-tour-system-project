@@ -24,6 +24,7 @@ export const getSpotById = (id) => api.get(`/spots/${id}`);
 
 // 路线相关
 export const shortestPath = (data) => api.post('/routes/shortest', data);
+export const aStarPath = (data) => api.post('/routes/astar', data);
 export const multiPointPath = (data) => api.post('/routes/multi', data);
 export const nearbySearch = (params) => api.get('/routes/nearby', { params });
 export const getGraphStats = () => api.get('/routes/graph-stats');

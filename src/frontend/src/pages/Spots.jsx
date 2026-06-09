@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { getSpots, searchSpots, amapPoiSearch } from '../api/index.js';
+import { getSpots, searchSpots, amapPoiSearch, autocompleteSpots } from '../api/index.js';
 import SpotCard from '../components/SpotCard.jsx';
 
 const CITIES = ['全部', '北京', '上海', '杭州', '成都', '西安', '云南', '广州', '武汉', '南京'];
@@ -21,6 +21,10 @@ export default function Spots() {
   const [searchQ, setSearchQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [dataSource, setDataSource] = useState('local');
+  const [suggests, setSuggests] = useState([]);
+  const [showSuggests, setShowSuggests] = useState(false);
+  const suggestTimer = useRef(null);
+  const searchBoxRef = useRef(null);
 
   const city = searchParams.get('city') || '';
   const type = searchParams.get('type') || '';
@@ -49,8 +53,32 @@ export default function Spots() {
       .finally(() => setLoading(false));
   }, [city, dataSource, type]);
 
+  const handleSearchQChange = (value) => {
+    setSearchQ(value);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (!value.trim() || dataSource === 'amap') { setSuggests([]); setShowSuggests(false); return; }
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const res = await autocompleteSpots(value.trim());
+        const items = res.data.data || [];
+        setSuggests(items);
+        setShowSuggests(items.length > 0);
+      } catch { setSuggests([]); }
+    }, 200);
+  };
+
+  const handleSuggestSelect = (item) => {
+    setSearchQ(item.name);
+    setSuggests([]); setShowSuggests(false);
+    setLoading(true);
+    searchSpots({ q: item.name, mode: 'prefix' })
+      .then(res => { setSpots(res.data.data || []); setTotal(res.data.data?.length || 0); })
+      .finally(() => setLoading(false));
+  };
+
   const handleSearch = async (event) => {
     event.preventDefault();
+    setSuggests([]); setShowSuggests(false);
     if (!searchQ.trim()) return;
 
     setLoading(true);
@@ -125,18 +153,46 @@ export default function Spots() {
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '0 16px' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.3 }}>
-            <circle cx="11" cy="11" r="7" stroke="#000" strokeWidth="2.2"/>
-            <path d="M16.5 16.5L21 21" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
-          </svg>
-          <input
-            type="text"
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            placeholder={dataSource === 'local' ? '搜索景点名称、城市...' : '搜索真实景点、餐饮、酒店...'}
-            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.88rem', color: '#1d1d1f', padding: '11px 0', fontFamily: 'Inter, sans-serif' }}
-          />
+        <div ref={searchBoxRef} style={{ flex: 1, position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '0 16px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.3 }}>
+              <circle cx="11" cy="11" r="7" stroke="#000" strokeWidth="2.2"/>
+              <path d="M16.5 16.5L21 21" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+            <input
+              type="text"
+              value={searchQ}
+              onChange={(e) => handleSearchQChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowSuggests(false), 150)}
+              onFocus={() => suggests.length > 0 && setShowSuggests(true)}
+              placeholder={dataSource === 'local' ? '搜索景点名称、城市... (Trie实时联想)' : '搜索真实景点、餐饮、酒店...'}
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.88rem', color: '#1d1d1f', padding: '11px 0', fontFamily: 'Inter, sans-serif' }}
+            />
+          </div>
+          {showSuggests && suggests.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, marginTop: 4,
+              background: '#fff', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden',
+            }}>
+              <div style={{ padding: '6px 12px 4px', fontSize: '0.7rem', color: '#aeaeb2', fontFamily: 'Inter, sans-serif', letterSpacing: '0.05em' }}>
+                Trie 前缀联想
+              </div>
+              {suggests.map(item => (
+                <button key={item.id} type="button" onMouseDown={() => handleSuggestSelect(item)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px',
+                  background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                  transition: 'background 0.15s',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <span style={{ fontSize: '0.85rem', color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>{item.name}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#aeaeb2', marginLeft: 'auto', fontFamily: 'Inter, sans-serif' }}>{item.city} · {item.type}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button style={{ padding: '0 18px', background: 'linear-gradient(135deg,#f59e0b,#f97316)', color: '#fff', border: 'none', borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>搜索</button>
         <button type="button" onClick={resetFilters} style={{ padding: '0 14px', background: 'rgba(255,255,255,0.7)', color: '#86868b', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, fontSize: '0.85rem', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>清除</button>
