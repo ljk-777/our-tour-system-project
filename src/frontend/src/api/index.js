@@ -21,6 +21,8 @@ export const searchSpots = (params) => api.get('/spots/search', { params });
 export const autocompleteSpots = (q) => api.get('/spots/autocomplete', { params: { q } });
 export const recommendSpots = (params) => api.get('/spots/recommend', { params });
 export const getSpotById = (id) => api.get(`/spots/${id}`);
+export const recommendFoods = (params) => api.get('/foods/recommend', { params });
+export const searchFoods = (params) => api.get('/foods/search', { params });
 
 // 路线相关
 export const shortestPath = (data) => api.post('/routes/shortest', data);

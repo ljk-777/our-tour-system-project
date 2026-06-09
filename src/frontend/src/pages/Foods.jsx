@@ -1,328 +1,490 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { getSpots, searchSpots } from '../api/index.js';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowDownUp,
+  MapPin,
+  Navigation,
+  Search,
+  SlidersHorizontal,
+  Soup,
+  Star,
+  Utensils,
+} from 'lucide-react';
+import { getSpots, recommendFoods, searchFoods } from '../api/index.js';
 
-const HERO_SLIDES = [
-  {
-    bg: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1920&q=85',
-    tag: '点心', city: '上海', desc: '鲜汁四溢的精致蒸笼',
-  },
-  {
-    bg: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=85',
-    tag: '亚洲菜', city: '成都', desc: '色彩丰富的地道风味',
-  },
-  {
-    bg: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=1920&q=85',
-    tag: '热菜', city: '重庆', desc: '麻辣鲜香的巴蜀滋味',
-  },
-  {
-    bg: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=85',
-    tag: '精致料理', city: '北京', desc: '匠心烹制的味觉盛宴',
-  },
-  {
-    bg: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=1920&q=85',
-    tag: '街头小吃', city: '西安', desc: '烟火气十足的市井美食',
-  },
+const CUISINES = ['全部', '烤鸭', '火锅', '清真', '小吃', '老字号', '川菜', '粤菜', '杭帮菜', '面食'];
+
+const SORT_OPTIONS = [
+  { key: 'popularity', label: '热度', icon: SlidersHorizontal },
+  { key: 'rating', label: '评价', icon: Star },
+  { key: 'distance', label: '距离', icon: Navigation },
 ];
 
-const CITIES = ['全部', '北京', '上海', '成都', '西安', '杭州', '重庆', '桂林', '昆明', '丽江', '南京'];
-const TAGS   = ['全部', '老字号', '必吃', '火锅', '面食', '小吃', '海鲜', '网红', '清真'];
+const HERO_IMAGES = [
+  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1800&q=85',
+  'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1800&q=85',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1800&q=85',
+];
 
-const CITY_EMOJI = { 北京:'🏛️', 上海:'🌆', 成都:'🐼', 西安:'🏯', 杭州:'🌊', 重庆:'🌶️', 桂林:'🗻', 昆明:'☀️', 丽江:'🏔️', 南京:'🦆' };
+function getOriginLabel(origin) {
+  return `${origin.name}${origin.city ? ` · ${origin.city}` : ''}`;
+}
+
+function getTypeText(type) {
+  if (type === 'campus') return '学校';
+  if (type === 'scenic') return '景点';
+  return '地点';
+}
+
+function formatDistance(distanceKm) {
+  if (distanceKm === null || distanceKm === undefined) return '未选地点';
+  if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`;
+  return `${distanceKm.toFixed(1)} km`;
+}
+
+function getAmapUrl(food) {
+  if (!food?.lat || !food?.lng) return '#';
+  return `https://uri.amap.com/marker?position=${food.lng},${food.lat}&name=${encodeURIComponent(food.name)}`;
+}
 
 export default function Foods() {
-  const [searchParams] = useSearchParams();
-  const [foods,    setFoods]    = useState([]);
-  const [total,    setTotal]    = useState(0);
-  const [loading,  setLoading]  = useState(true);
-  const [city,     setCity]     = useState(searchParams.get('city') || '全部');
-  const [tagFilter,setTagFilter]= useState('全部');
-  const [searchQ,  setSearchQ]  = useState('');
-  const [offset,   setOffset]   = useState(0);
-  const LIMIT = 18;
+  const [origins, setOrigins] = useState([]);
+  const [originQuery, setOriginQuery] = useState('');
+  const [selectedOriginIds, setSelectedOriginIds] = useState([]);
+  const [cuisine, setCuisine] = useState('全部');
+  const [sortBy, setSortBy] = useState('popularity');
+  const [query, setQuery] = useState('');
+  const [foods, setFoods] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [meta, setMeta] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [originLoading, setOriginLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [heroIndex, setHeroIndex] = useState(0);
 
-  useEffect(() => { setOffset(0); }, [city, tagFilter]);
-  useEffect(() => { load(); }, [city, tagFilter, offset]);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const params = { type: 'restaurant', limit: LIMIT, offset };
-      if (city !== '全部') params.city = city;
-      const res = await getSpots(params);
-      let data = res.data.data || [];
-      if (tagFilter !== '全部') data = data.filter(f => (f.tags||[]).includes(tagFilter));
-      setFoods(data);
-      setTotal(res.data.total || 0);
-    } catch { setFoods([]); }
-    finally { setLoading(false); }
-  };
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQ.trim()) { load(); return; }
-    setLoading(true);
-    try {
-      const res = await searchSpots({ q: searchQ, mode: 'fulltext' });
-      const data = (res.data.data || []).filter(s => s.type === 'restaurant');
-      setFoods(data); setTotal(data.length);
-    } catch { setFoods([]); }
-    finally { setLoading(false); }
-  };
-
-  /* Hero 背景轮播 */
-  const [slideIdx, setSlideIdx] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setSlideIdx(i => (i + 1) % HERO_SLIDES.length), 4500);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setHeroIndex((index) => (index + 1) % HERO_IMAGES.length), 5000);
+    return () => clearInterval(timer);
   }, []);
 
-  const getRatingColor = (r) => r >= 4.7 ? '#f97316' : r >= 4.4 ? '#1a73e8' : '#34a853';
-  const slide = HERO_SLIDES[slideIdx];
+  useEffect(() => {
+    let mounted = true;
+    async function loadOrigins() {
+      setOriginLoading(true);
+      try {
+        const res = await getSpots({ limit: 500, offset: 0 });
+        const list = (res.data.data || [])
+          .filter((spot) => ['scenic', 'campus'].includes(spot.type) && spot.lat && spot.lng)
+          .slice(0, 220);
+        if (mounted) {
+          setOrigins(list);
+          setSelectedOriginIds([]);
+        }
+      } catch {
+        if (mounted) setOrigins([]);
+      } finally {
+        if (mounted) setOriginLoading(false);
+      }
+    }
+    loadOrigins();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(10);
+    loadFoods();
+  }, [selectedOriginIds, cuisine, sortBy]);
+
+  const selectedOrigins = useMemo(
+    () => origins.filter((origin) => selectedOriginIds.includes(origin.id)),
+    [origins, selectedOriginIds]
+  );
+
+  const filteredOrigins = useMemo(() => {
+    const text = originQuery.trim().toLowerCase();
+    const base = text
+      ? origins.filter((origin) =>
+          `${origin.name} ${origin.city} ${getTypeText(origin.type)}`.toLowerCase().includes(text)
+        )
+      : origins;
+    return base.slice(0, 24);
+  }, [originQuery, origins]);
+
+  async function loadFoods(nextQuery = query) {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        originIds: selectedOriginIds.join(','),
+        cuisine,
+        sortBy,
+        limit: 10,
+        includeAll: true,
+      };
+      const res = nextQuery.trim()
+        ? await searchFoods({ ...params, q: nextQuery.trim() })
+        : await recommendFoods(params);
+      setFoods(res.data.data || []);
+      setVisibleCount(10);
+      setMeta(res.data);
+    } catch {
+      setFoods([]);
+      setMeta(null);
+      setError('美食推荐暂时不可用');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleOrigin(id) {
+    setSelectedOriginIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-4)
+    );
+  }
+
+  function handleSearch(event) {
+    event.preventDefault();
+    setVisibleCount(10);
+    loadFoods(query);
+  }
+
+  const visibleFoods = foods.slice(0, visibleCount);
+  const hasMoreFoods = visibleCount < foods.length;
 
   return (
-    <div className="glass-bg">
-
-      {/* ── Hero 动态背景 ── */}
-      <div style={{ position: 'relative', height: 380, overflow: 'hidden', marginTop: '-52px' }}>
-
-        {/* 交叉淡入背景层 */}
-        {HERO_SLIDES.map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `url(${s.bg})`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-            opacity: i === slideIdx ? 1 : 0,
-            transition: 'opacity 1.4s cubic-bezier(0.4,0,0.2,1)',
-            willChange: 'opacity',
-          }} />
-        ))}
-
-        {/* 深色渐变遮罩 */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(160deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.72) 100%)',
-        }} />
-
-        {/* 内容 */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 2,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', padding: '52px 24px 0',
-        }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            background: 'rgba(249,115,22,0.2)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(249,115,22,0.4)', borderRadius: 99,
-            padding: '5px 14px', marginBottom: 18,
-            fontSize: '0.68rem', fontWeight: 700, color: '#fbbf24',
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-            transition: 'opacity 0.6s ease',
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-            {slide.city} · {slide.tag}
-          </div>
-
-          <h1 style={{
-            fontFamily: 'Inter, -apple-system, sans-serif',
-            fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
-            fontWeight: 800, color: '#fff',
-            letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 10,
-            textShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          }}>
-            探索中国<br />
-            <span style={{ background: 'linear-gradient(90deg,#fbbf24,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              美食地图
-            </span>
-          </h1>
-
-          <p style={{
-            fontFamily: 'Inter, sans-serif', fontWeight: 300,
-            fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)',
-            letterSpacing: '0.01em', marginBottom: 22,
-            transition: 'opacity 0.6s ease',
-          }}>
-            {slide.desc} · MinHeap TopK 精选
-          </p>
-
-          {/* 搜索框 */}
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 480 }}>
-            <div style={{
-              flex: 1, display: 'flex', alignItems: 'center',
-              background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)',
-              borderRadius: 99, padding: '0 18px', gap: 10,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-              transition: 'box-shadow 0.2s ease',
+    <div style={{ minHeight: '100vh', background: '#f7f8fb', paddingBottom: 72 }}>
+      <section style={{ position: 'relative', minHeight: 330, overflow: 'hidden' }}>
+        {HERO_IMAGES.map((image, index) => (
+          <div
+            key={image}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: index === heroIndex ? 1 : 0,
+              transition: 'opacity 1.2s ease',
             }}
-              onFocusCapture={e => e.currentTarget.style.boxShadow = '0 8px 40px rgba(0,0,0,0.4)'}
-              onBlurCapture={e => e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.35 }}>
-                <circle cx="11" cy="11" r="7" stroke="#000" strokeWidth="2.2"/>
-                <path d="M16.5 16.5L21 21" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
-              </svg>
-              <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                placeholder="搜索餐厅、菜系、城市..."
-                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.9rem', color: '#202124', padding: '13px 0', fontFamily: 'Inter, sans-serif' }} />
+          />
+        ))}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(12,18,28,0.58)' }} />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 1180,
+            margin: '0 auto',
+            padding: '84px 24px 40px',
+            color: '#fff',
+          }}
+        >
+          <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+            <Utensils size={18} />
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' }}>FOOD TOP 10</span>
+          </div>
+          <h1 style={{ fontSize: 'clamp(2.1rem, 6vw, 4rem)', lineHeight: 1.04, fontWeight: 900, margin: 0 }}>
+            美食推荐
+          </h1>
+          <p style={{ maxWidth: 620, marginTop: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7 }}>
+            选择游览景点或学校后，按热度、评价、距离筛出前 10 家餐厅。
+          </p>
+        </div>
+      </section>
+
+      <main style={{ maxWidth: 1180, margin: '-44px auto 0', padding: '0 24px', position: 'relative', zIndex: 2 }}>
+        <section
+          style={{
+            background: '#fff',
+            border: '1px solid rgba(15,23,42,0.08)',
+            borderRadius: 8,
+            boxShadow: '0 14px 38px rgba(15,23,42,0.12)',
+            padding: 18,
+            marginBottom: 18,
+          }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(220px,0.7fr)', gap: 14 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, color: '#0f172a', fontWeight: 800 }}>
+                <MapPin size={18} />
+                选择游览景点 / 学校
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #d8dee9', borderRadius: 8, padding: '9px 12px', marginBottom: 10 }}>
+                <Search size={16} color="#64748b" />
+                <input
+                  value={originQuery}
+                  onChange={(event) => setOriginQuery(event.target.value)}
+                  placeholder="搜索景点、学校、城市..."
+                  style={{ border: 0, outline: 0, flex: 1, fontSize: 14, background: 'transparent' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 116, overflow: 'auto' }}>
+                {originLoading ? (
+                  <span style={{ color: '#64748b', fontSize: 13 }}>加载地点中...</span>
+                ) : (
+                  filteredOrigins.map((origin) => {
+                    const active = selectedOriginIds.includes(origin.id);
+                    return (
+                      <button
+                        key={origin.id}
+                        onClick={() => toggleOrigin(origin.id)}
+                        style={{
+                          border: `1px solid ${active ? '#2563eb' : '#d8dee9'}`,
+                          background: active ? '#eff6ff' : '#fff',
+                          color: active ? '#1d4ed8' : '#334155',
+                          borderRadius: 8,
+                          padding: '7px 10px',
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {getOriginLabel(origin)}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-            <button type="submit" style={{
-              background: 'linear-gradient(135deg,#f59e0b,#f97316)', color: '#fff',
-              fontWeight: 700, fontSize: '0.85rem', padding: '0 20px', borderRadius: 99,
-              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              boxShadow: '0 4px 16px rgba(249,115,22,0.45)',
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              Search
+
+            <div style={{ background: '#f8fafc', borderRadius: 8, padding: 14 }}>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 10 }}>已选地点</div>
+              {selectedOrigins.length === 0 ? (
+                <div style={{ color: '#94a3b8', fontSize: 13 }}>不选地点时不计算距离排序</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {selectedOrigins.map((origin) => (
+                    <div key={origin.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13 }}>
+                      <span style={{ color: '#0f172a', fontWeight: 700 }}>{origin.name}</span>
+                      <span style={{ color: '#64748b' }}>{getTypeText(origin.type)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0,1fr) auto',
+            gap: 14,
+            alignItems: 'start',
+            marginBottom: 18,
+          }}
+        >
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10, background: '#fff', border: '1px solid rgba(15,23,42,0.08)', borderRadius: 8, padding: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1 }}>
+              <Search size={18} color="#64748b" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="输入美食、菜系、饭店或窗口名称..."
+                style={{ border: 0, outline: 0, flex: 1, fontSize: 14 }}
+              />
+            </div>
+            <button
+              type="submit"
+              style={{
+                border: 0,
+                background: '#f97316',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '0 16px',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              搜索
             </button>
           </form>
+
+          <button
+            onClick={() => {
+              setQuery('');
+              loadFoods('');
+            }}
+            style={{
+              border: '1px solid #d8dee9',
+              background: '#fff',
+              color: '#334155',
+              borderRadius: 8,
+              padding: '12px 16px',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            推荐
+          </button>
+        </section>
+
+        <section style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+          {SORT_OPTIONS.map(({ key, label, icon: Icon }) => {
+            const active = sortBy === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  border: `1px solid ${active ? '#2563eb' : '#d8dee9'}`,
+                  background: active ? '#eff6ff' : '#fff',
+                  color: active ? '#1d4ed8' : '#334155',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            );
+          })}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13, marginLeft: 4 }}>
+            <ArrowDownUp size={15} />
+            MinHeap TopK
+          </span>
+        </section>
+
+        <section style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {CUISINES.map((item) => {
+            const active = cuisine === item;
+            return (
+              <button
+                key={item}
+                onClick={() => setCuisine(item)}
+                style={{
+                  border: `1px solid ${active ? '#f97316' : '#d8dee9'}`,
+                  background: active ? '#fff7ed' : '#fff',
+                  color: active ? '#ea580c' : '#475569',
+                  borderRadius: 8,
+                  padding: '7px 11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </section>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, color: '#64748b', fontSize: 13 }}>
+          <span>
+            {loading
+              ? '正在计算...'
+              : `展示 ${Math.min(visibleCount, foods.length)} / ${foods.length} 家 · 前 ${meta?.rankedCount ?? 10} 已排序 · 候选 ${meta?.totalCandidates ?? 0}${meta?.totalMatches !== undefined ? ` · 命中 ${meta.totalMatches}` : ''}`}
+          </span>
+          <span>{meta?.algorithm || 'MinHeap TopK O(N log K)'}</span>
         </div>
 
-        {/* 底部指示器 */}
-        <div style={{
-          position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 3, display: 'flex', gap: 6,
-        }}>
-          {HERO_SLIDES.map((_, i) => (
-            <div key={i} onClick={() => setSlideIdx(i)} style={{
-              width: i === slideIdx ? 20 : 5, height: 5, borderRadius: 99,
-              background: i === slideIdx ? '#fbbf24' : 'rgba(255,255,255,0.35)',
-              transition: 'all 0.5s cubic-bezier(0.34,1.56,0.64,1)', cursor: 'pointer',
-            }} />
-          ))}
-        </div>
-      </div>
+        {error && <div style={{ color: '#dc2626', marginBottom: 14 }}>{error}</div>}
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 32px 64px' }}>
-
-        {/* 城市筛选 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {CITIES.map(c => (
-            <button key={c} onClick={() => setCity(c)} style={{
-              padding: '6px 16px', borderRadius: 99, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
-              background: city === c ? '#f97316' : '#fff',
-              color: city === c ? '#fff' : '#5f6368',
-              border: `1px solid ${city === c ? '#f97316' : 'rgba(0,0,0,0.1)'}`,
-              boxShadow: city === c ? '0 2px 10px rgba(249,115,22,0.35)' : 'none',
-            }}>
-              {CITY_EMOJI[c] ? `${CITY_EMOJI[c]} ${c}` : c}
-            </button>
-          ))}
-        </div>
-
-        {/* 标签筛选 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
-          {TAGS.map(t => (
-            <button key={t} onClick={() => setTagFilter(t)} style={{
-              padding: '4px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease',
-              background: tagFilter === t ? 'rgba(249,115,22,0.12)' : 'transparent',
-              color: tagFilter === t ? '#f97316' : '#9aa0a6',
-              border: `1px solid ${tagFilter === t ? 'rgba(249,115,22,0.3)' : 'transparent'}`,
-            }}>
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* 结果数 */}
-        <div style={{ fontSize: '0.82rem', color: '#9aa0a6', marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
-          {loading ? '加载中...' : `共 ${foods.length} 家餐厅${city !== '全部' ? ` · ${city}` : ''}`}
-        </div>
-
-        {/* 餐厅卡片网格 */}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {[...Array(9)].map((_, i) => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 16 }} />)}
+            {[...Array(6)].map((_, index) => (
+              <div key={index} style={{ height: 290, borderRadius: 8, background: '#e2e8f0' }} />
+            ))}
           </div>
         ) : foods.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#9aa0a6' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 12 }}>🍽️</div>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>暂无餐厅数据</div>
-            <div style={{ fontSize: '0.85rem' }}>尝试切换城市或清除筛选条件</div>
+          <div style={{ textAlign: 'center', padding: '72px 0', color: '#64748b' }}>
+            <Soup size={44} strokeWidth={1.6} />
+            <div style={{ marginTop: 12, fontWeight: 800 }}>没有匹配的餐厅</div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {foods.map((food, i) => (
-              <Link key={food.id} to={`/spots/${food.id}`} style={{ textDecoration: 'none' }}>
-                <div className="glass-card" style={{
-                  borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  animationDelay: `${i * 0.03}s`,
+            {visibleFoods.map((food, index) => (
+              <article
+                key={food.id}
+                style={{
+                  background: '#fff',
+                  border: '1px solid rgba(15,23,42,0.08)',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 22px rgba(15,23,42,0.06)',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = ''; }}
-                >
-                  {/* 封面图 */}
-                  <div style={{ height: 150, background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', position: 'relative', overflow: 'hidden' }}>
-                    {food.imageUrl ? (
-                      <img src={food.imageUrl} alt={food.name} loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 0.35s ease' }}
-                        onLoad={e => e.target.style.opacity = '1'}
-                        onError={e => { e.target.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                        <span style={{ fontSize: '2.5rem' }}>{CITY_EMOJI[food.city] || '🍽️'}</span>
-                      </div>
-                    )}
-                    {/* 评分浮动在封面右下角 */}
-                    <div style={{
-                      position: 'absolute', bottom: 8, right: 8, zIndex: 1,
-                      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-                      borderRadius: 8, padding: '4px 10px',
-                      fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1rem',
-                      color: '#fbbf24',
-                    }}>
-                      {food.rating?.toFixed(1)}
-                    </div>
+              >
+                <Link to={`/spots/${food.id}`} style={{ display: 'block', height: 156, background: '#111827', position: 'relative', overflow: 'hidden' }}>
+                  {food.imageUrl && (
+                    <img
+                      src={food.imageUrl}
+                      alt={food.name}
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  )}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.56), transparent 60%)' }} />
+                  <div style={{ position: 'absolute', left: 12, bottom: 10, color: '#fff', fontWeight: 900 }}>
+                    {food.isTopRecommendation ? `#${food.topRank}` : '候选'}
                   </div>
+                  <div style={{ position: 'absolute', right: 10, bottom: 10, color: '#fbbf24', fontWeight: 900 }}>
+                    {Number(food.rating || 0).toFixed(1)}
+                  </div>
+                </Link>
 
-                  {/* 内容区 */}
-                  <div style={{ padding: '16px' }}>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: '#9aa0a6', marginBottom: 8 }}>
-                      {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
-                    </div>
-                    <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {food.description}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {(food.tags || []).slice(0, 3).map(tag => (
-                          <span key={tag} style={{
-                            fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                            background: 'rgba(249,115,22,0.1)', color: '#f97316',
-                          }}>{tag}</span>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
-                        🕐 {food.openHours || '营业中'}
-                      </div>
-                    </div>
+                <div style={{ padding: 14 }}>
+                  <Link to={`/spots/${food.id}`} style={{ color: '#0f172a', textDecoration: 'none' }}>
+                    <h3 style={{ margin: 0, fontSize: 17, lineHeight: 1.35, fontWeight: 900 }}>{food.name}</h3>
+                  </Link>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8, color: '#64748b', fontSize: 13 }}>
+                    <span>{formatDistance(food.distanceKm)}</span>
+                    <span>热度 {Math.round(food.popularityScore || 0)}</span>
+                  </div>
+                  <p style={{ color: '#475569', fontSize: 13, lineHeight: 1.6, minHeight: 42, margin: '10px 0 12px' }}>
+                    {food.description}
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                    {(food.tags || []).slice(0, 4).map((tag) => (
+                      <span key={tag} style={{ background: '#fff7ed', color: '#ea580c', borderRadius: 6, padding: '3px 7px', fontSize: 12, fontWeight: 800 }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: '#64748b', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {food.openHours || '营业时间以门店为准'}
+                    </span>
+                    <a
+                      href={getAmapUrl(food)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#2563eb', fontSize: 13, fontWeight: 900, textDecoration: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      高德
+                    </a>
                   </div>
                 </div>
-              </Link>
+              </article>
             ))}
           </div>
         )}
-
-        {/* 分页 */}
-        {total > LIMIT && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-            <button onClick={() => setOffset(Math.max(0, offset - LIMIT))} disabled={offset === 0}
-              style={{ padding: '8px 20px', borderRadius: 99, border: '1px solid rgba(0,0,0,0.1)', background: '#fff', cursor: offset === 0 ? 'not-allowed' : 'pointer', opacity: offset === 0 ? 0.4 : 1 }}>
-              ← 上一页
-            </button>
-            <span style={{ padding: '8px 16px', fontSize: '0.82rem', color: '#5f6368' }}>
-              {Math.floor(offset/LIMIT)+1} / {Math.ceil(total/LIMIT)}
-            </span>
-            <button onClick={() => setOffset(offset + LIMIT)} disabled={offset + LIMIT >= total}
-              style={{ padding: '8px 20px', borderRadius: 99, border: '1px solid rgba(0,0,0,0.1)', background: '#fff', cursor: offset+LIMIT>=total ? 'not-allowed' : 'pointer', opacity: offset+LIMIT>=total ? 0.4 : 1 }}>
-              下一页 →
+        {!loading && hasMoreFoods && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+            <button
+              onClick={() => setVisibleCount((count) => Math.min(count + 10, foods.length))}
+              style={{
+                border: '1px solid #d8dee9',
+                background: '#fff',
+                color: '#0f172a',
+                borderRadius: 8,
+                padding: '11px 22px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
+              }}
+            >
+              更多
             </button>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
