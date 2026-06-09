@@ -12,6 +12,7 @@ function mapDiary(row) {
     spotId: row.spot_id === null ? null : Number(row.spot_id),
     spotName: row.spot_name,
     coverImage: row.cover_image,
+    videoUrl: row.video_url || null,
     tags: row.tags || [],
     rating: row.rating === null ? null : Number(row.rating),
     visitDate: row.visit_date_text || row.visit_date,
@@ -115,12 +116,12 @@ async function create(data) {
       `
         INSERT INTO diaries (
           user_id, user_name, user_avatar, title, content, spot_id, spot_name,
-          cover_image, rating, visit_date, weather, mood, likes_count, views_count,
+          cover_image, video_url, rating, visit_date, weather, mood, likes_count, views_count,
           created_at, updated_at
         )
         VALUES (
           $1, $2, $3, $4, $5, $6, $7,
-          $8, $9, $10, $11, $12, 0, 0,
+          $8, $9, $10, $11, $12, $13, 0, 0,
           NOW(), NOW()
         )
         RETURNING id
@@ -134,6 +135,7 @@ async function create(data) {
         data.spotId ? Number(data.spotId) : null,
         data.spotName || null,
         data.coverImage || null,
+        data.videoUrl || null,
         data.rating ?? 0,
         data.visitDate || null,
         data.weather || null,

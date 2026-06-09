@@ -110,6 +110,7 @@ const schemaStatements = [
       title VARCHAR(200) NOT NULL,
       content TEXT NOT NULL,
       cover_image TEXT,
+      video_url TEXT,
       rating NUMERIC(2, 1) DEFAULT 0,
       visit_date DATE,
       weather VARCHAR(50),
@@ -120,6 +121,7 @@ const schemaStatements = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `,
+  `ALTER TABLE diaries ADD COLUMN IF NOT EXISTS video_url TEXT;`,
   `
     CREATE TABLE IF NOT EXISTS diary_tags (
       id BIGSERIAL PRIMARY KEY,

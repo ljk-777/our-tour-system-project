@@ -98,7 +98,7 @@ router.post('/', requireAuth, async (req, res, next) => {
   try {
     const {
       userName, userAvatar, title, content, spotId, spotName,
-      coverImage, tags, rating, visitDate, weather, mood,
+      coverImage, videoUrl, tags, rating, visitDate, weather, mood,
     } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: '标题和内容不能为空' });
 
@@ -106,7 +106,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       userId: req.user.id,  // ← FROM AUTH, NOT FROM BODY
       userName: userName || '旅行者',
       userAvatar,
-      title, content, spotId, spotName, coverImage, tags, rating, visitDate, weather, mood,
+      title, content, spotId, spotName, coverImage, videoUrl, tags, rating, visitDate, weather, mood,
     });
 
     res.json({ success: true, data: diary, message: '日记发布成功' });
