@@ -281,9 +281,10 @@ export default function Diary() {
   const requireAuth = useRequireAuth();
   const [diaries,    setDiaries]    = useState([]);
   const [loading,    setLoading]    = useState(true);
-  const [searchQ,    setSearchQ]    = useState('');
-  const [searchMode, setSearchMode] = useState('kmp');
-  const [sortBy,     setSortBy]     = useState('likes');
+  const [searchQ,      setSearchQ]      = useState('');
+  const [searchMode,   setSearchMode]   = useState('kmp');
+  const [destQ,        setDestQ]        = useState('');
+  const [sortBy,       setSortBy]       = useState('likes');
   const [showCreate, setShowCreate] = useState(false);
   const [form,       setForm]       = useState({
     title:'', content:'', spotName:'', tags:'',
@@ -297,11 +298,13 @@ export default function Diary() {
   const fileRef = useRef(null);
   const videoRef = useRef(null);
 
-  useEffect(() => { loadAll(); }, [sortBy]);
+  useEffect(() => { loadAll(); }, [sortBy, destQ]);
 
   const loadAll = () => {
     setLoading(true);
-    getDiaries({ sortBy, order:'desc' })
+    const params = { sortBy, order:'desc' };
+    if (destQ.trim()) params.spotName = destQ.trim();
+    getDiaries(params)
       .then(res => setDiaries(res.data.data || []))
       .catch(() => setDiaries([]))
       .finally(() => setLoading(false));
@@ -317,6 +320,11 @@ export default function Diary() {
     } catch {
       setDiaries([]);
     } finally { setLoading(false); }
+  };
+
+  const handleDestSearch = (e) => {
+    e.preventDefault();
+    loadAll();
   };
 
   const handleImageSelect = async (e) => {
@@ -630,10 +638,30 @@ export default function Diary() {
             )}
           </form>
 
+          {/* 目的地筛选 */}
+          <form onSubmit={handleDestSearch} style={{ display:'flex', gap:8, flex:'1 1 240px' }}>
+            <div style={{
+              flex:1, display:'flex', alignItems:'center', gap:8,
+              border:'1px solid rgba(0,0,0,0.12)', borderRadius:10, padding:'0 12px',
+              background:'#f9f9f9',
+            }}>
+              <span style={{ fontSize:'0.85rem', flexShrink:0 }}>📍</span>
+              <input value={destQ} onChange={e => setDestQ(e.target.value)}
+                placeholder="输入目的地筛选，如：北京、颐和园..."
+                style={{ flex:1, border:'none', outline:'none', fontSize:'0.84rem', color:'#1d1d1f',
+                  padding:'9px 0', background:'transparent', fontFamily:'Inter, sans-serif' }} />
+              {destQ && (
+                <button type="button" onClick={() => setDestQ('')} style={{
+                  background:'none', border:'none', color:'#aeaeb2', cursor:'pointer', fontSize:'0.8rem', flexShrink:0,
+                }}>✕</button>
+              )}
+            </div>
+          </form>
+
           {/* 排序 tab */}
           <div style={{ display:'flex', gap:6, alignItems:'center' }}>
             <span style={{ fontSize:'0.72rem', color:'#c7c7cc', fontFamily:'Inter, sans-serif' }}>排序</span>
-            {[['likes','最多点赞'],['views','最多浏览'],['createdAt','最新发布']].map(([k,l]) => (
+            {[['likes','最多点赞'],['views','最多浏览'],['rating','评分最高'],['createdAt','最新发布']].map(([k,l]) => (
               <button key={k} onClick={() => setSortBy(k)} style={{
                 padding:'5px 12px', borderRadius:8, fontSize:'0.75rem', fontWeight:500,
                 cursor:'pointer', fontFamily:'Inter, sans-serif',

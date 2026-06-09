@@ -38,22 +38,49 @@ export default function Foods() {
   const [city,     setCity]     = useState(searchParams.get('city') || '全部');
   const [tagFilter,setTagFilter]= useState('全部');
   const [searchQ,  setSearchQ]  = useState('');
+  const [sortBy,   setSortBy]   = useState('rating');
   const [offset,   setOffset]   = useState(0);
   const LIMIT = 18;
+  const TOP_K = 10;
 
-  useEffect(() => { setOffset(0); }, [city, tagFilter]);
-  useEffect(() => { load(); }, [city, tagFilter, offset]);
+  useEffect(() => { setOffset(0); }, [city, tagFilter, sortBy]);
+  useEffect(() => { load(); }, [city, tagFilter, sortBy, offset]);
+
+  // MinHeap TopK — 前端实现（O(N log K)），与后端 heap.js 算法一致
+  function topKClient(arr, k, keyFn) {
+    if (arr.length <= k) return [...arr].sort((a,b) => keyFn(b) - keyFn(a));
+    // 小顶堆维护 K 个最大值
+    const heap = [];
+    const up = (i) => { while (i > 0) { const p = (i-1)>>1; if (keyFn(heap[i]) > keyFn(heap[p])) { [heap[i],heap[p]]=[heap[p],heap[i]]; i=p; } else break; } };
+    const down = (i) => { const n=heap.length; while(true){ let s=i,l=2*i+1,r=2*i+2; if(l<n&&keyFn(heap[l])<keyFn(heap[s]))s=l; if(r<n&&keyFn(heap[r])<keyFn(heap[s]))s=r; if(s===i)break; [heap[i],heap[s]]=[heap[s],heap[i]];i=s; } };
+    for (const item of arr) {
+      if (heap.length < k) { heap.push(item); up(heap.length-1); }
+      else if (keyFn(item) > keyFn(heap[0])) { heap[0]=item; down(0); }
+    }
+    return heap.sort((a,b) => keyFn(b) - keyFn(a));
+  }
+
+  const applySort = (data) => {
+    const keyFn = sortBy === 'visitTime'
+      ? (f) => f.visitTime || 0
+      : (f) => f.rating || 0;
+    // TopK 前10用堆，剩余普通排序
+    const top = topKClient(data, TOP_K, keyFn);
+    const rest = data.filter(f => !top.includes(f)).sort((a,b) => keyFn(b) - keyFn(a));
+    return [...top, ...rest];
+  };
 
   const load = async () => {
     setLoading(true);
     try {
-      const params = { type: 'restaurant', limit: LIMIT, offset };
+      const params = { type: 'restaurant', limit: 9999, offset: 0 };
       if (city !== '全部') params.city = city;
       const res = await getSpots(params);
       let data = res.data.data || [];
       if (tagFilter !== '全部') data = data.filter(f => (f.tags||[]).includes(tagFilter));
-      setFoods(data);
-      setTotal(res.data.total || 0);
+      data = applySort(data);
+      setFoods(data.slice(offset, offset + LIMIT));
+      setTotal(data.length);
     } catch { setFoods([]); }
     finally { setLoading(false); }
   };
@@ -64,7 +91,8 @@ export default function Foods() {
     setLoading(true);
     try {
       const res = await searchSpots({ q: searchQ, mode: 'fulltext' });
-      const data = (res.data.data || []).filter(s => s.type === 'restaurant');
+      let data = (res.data.data || []).filter(s => s.type === 'restaurant');
+      data = applySort(data);
       setFoods(data); setTotal(data.length);
     } catch { setFoods([]); }
     finally { setLoading(false); }
@@ -194,6 +222,23 @@ export default function Foods() {
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 32px 64px' }}>
+
+        {/* 排序策略（MinHeap TopK）*/}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+          <span style={{ fontSize:'0.72rem', color:'#9aa0a6', fontFamily:'Inter, sans-serif', letterSpacing:'0.04em' }}>
+            ⛏️ MinHeap TopK 排序
+          </span>
+          {[['rating','评分最高'],['visitTime','最热门']].map(([k,l]) => (
+            <button key={k} onClick={() => setSortBy(k)} style={{
+              padding:'5px 14px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+              cursor:'pointer', fontFamily:'Inter, sans-serif', transition:'all 0.15s',
+              background: sortBy===k ? '#f97316' : '#fff',
+              color: sortBy===k ? '#fff' : '#5f6368',
+              border: `1px solid ${sortBy===k ? '#f97316' : 'rgba(0,0,0,0.1)'}`,
+              boxShadow: sortBy===k ? '0 2px 10px rgba(249,115,22,0.3)' : 'none',
+            }}>{l}</button>
+          ))}
+        </div>
 
         {/* 城市筛选 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>

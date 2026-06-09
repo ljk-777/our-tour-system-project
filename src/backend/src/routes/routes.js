@@ -20,11 +20,11 @@ router.get('/local-graphs', async (req, res, next) => {
 
 router.post('/shortest', async (req, res, next) => {
   try {
-    const { fromId, toId, mode = 'distance' } = req.body;
+    const { fromId, toId, mode = 'distance', vehicle = 'walk' } = req.body;
     if (!fromId || !toId) return res.status(400).json({ success: false, message: '缺少 fromId 或 toId' });
 
     const [spots, edges] = await Promise.all([spotRepo.getAll(), routeRepo.getAll()]);
-    const result = shortestPath(spots, edges, Number(fromId), Number(toId), mode);
+    const result = shortestPath(spots, edges, Number(fromId), Number(toId), mode, vehicle);
     if (!result.reachable) {
       return res.json({ success: false, message: '两点之间不可达，请检查节点 ID 是否存在于道路图中', reachable: false });
     }
@@ -53,13 +53,13 @@ router.post('/shortest', async (req, res, next) => {
 
 router.post('/multi', async (req, res, next) => {
   try {
-    const { waypointIds, mode = 'distance' } = req.body;
+    const { waypointIds, mode = 'distance', vehicle = 'walk' } = req.body;
     if (!waypointIds || waypointIds.length < 2) {
       return res.status(400).json({ success: false, message: '至少需要 2 个途经点' });
     }
 
     const [spots, edges] = await Promise.all([spotRepo.getAll(), routeRepo.getAll()]);
-    const result = multiPointPath(spots, edges, waypointIds.map(Number), mode);
+    const result = multiPointPath(spots, edges, waypointIds.map(Number), mode, vehicle);
     const spotMap = new Map(spots.map((spot) => [spot.id, spot]));
     const pathSpots = result.path.map((id) => {
       const spot = spotMap.get(id);

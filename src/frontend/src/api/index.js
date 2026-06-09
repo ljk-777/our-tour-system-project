@@ -40,6 +40,7 @@ export const generateDiaryDraft = (data) => api.post('/diaries/generate', data, 
 export const likeDiary    = (id)       => api.post(`/diaries/${id}/like`);
 export const unlikeDiary   = (id)       => api.post(`/diaries/${id}/unlike`);
 export const commentDiary = (id, data) => api.post(`/diaries/${id}/comment`, data);
+export const rateDiary    = (id, score) => api.post(`/diaries/${id}/rate`, { score });
 
 // 用户相关
 export const getUsers = () => api.get('/users');

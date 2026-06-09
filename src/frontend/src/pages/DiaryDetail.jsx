@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getDiaryById, likeDiary, unlikeDiary, commentDiary } from '../api/index.js';
+import { getDiaryById, likeDiary, unlikeDiary, commentDiary, rateDiary } from '../api/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const WEATHER_ICON = { '晴':'☀️','多云':'⛅','阴':'🌥️','雨':'🌧️','雪':'❄️','多云转晴':'🌤️' };
@@ -14,6 +14,10 @@ export default function DiaryDetail() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(0);
+  const [myRating, setMyRating] = useState(0);
+  const [diaryRating, setDiaryRating] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +39,9 @@ export default function DiaryDetail() {
           setLikes(d.likes || 0);
           setComments(Array.isArray(d.comments) ? d.comments : []);
           setLiked(likedDiaryIds?.has(d.id) || false);
+          setMyRating(d.myRating || 0);
+          setDiaryRating(d.rating || 0);
+          setRatingCount(d.ratingCount || 0);
         }
       })
       .catch(e => setError(e?.response?.data?.message || '加载失败'))
@@ -49,6 +56,16 @@ export default function DiaryDetail() {
       setLiked(true); setLikes(l => l + 1);
       try { await likeDiary(id); } catch {}
     }
+  };
+
+  const handleRate = async (score) => {
+    if (!user) return alert('请先登录后评分');
+    try {
+      const res = await rateDiary(id, score);
+      setMyRating(score);
+      setDiaryRating(res.data.rating || score);
+      setRatingCount(res.data.ratingCount || ratingCount + 1);
+    } catch {}
   };
 
   const handleComment = async (e) => {
@@ -168,6 +185,40 @@ export default function DiaryDetail() {
             <span className="flex items-center gap-1.5 text-sm text-gray-400">
               👁️ {diary.views || 0}
             </span>
+          </div>
+
+          {/* 用户评分区 */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-500">
+                读者评分
+                {ratingCount > 0 && (
+                  <span className="ml-2 font-normal text-gray-400">
+                    {diaryRating.toFixed(1)} 分 · {ratingCount} 人评
+                  </span>
+                )}
+              </span>
+              {myRating > 0 && (
+                <span className="text-xs text-orange-500">你的评分：{myRating} 星</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {[1,2,3,4,5].map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleRate(s)}
+                  onMouseEnter={() => setRatingHover(s)}
+                  onMouseLeave={() => setRatingHover(0)}
+                  className="text-2xl transition-transform hover:scale-125 focus:outline-none"
+                  title={`${s} 星`}
+                >
+                  {s <= (ratingHover || myRating) ? '⭐' : '☆'}
+                </button>
+              ))}
+              <span className="text-xs text-gray-400 ml-2">
+                {myRating ? `已评 ${myRating} 星，点击可重评` : '点击星星给本篇日记评分'}
+              </span>
+            </div>
           </div>
         </div>
 
