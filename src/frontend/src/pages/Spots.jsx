@@ -259,8 +259,8 @@ export default function Spots() {
               </span>
               <span style={{ fontSize: '0.72rem', color: '#9aa0a6', fontFamily: 'Inter, sans-serif' }}>
                 {forYouPersonalized
-                  ? `鍩轰簬浣犳敹钘忕殑 ${forYouTags.slice(0, 3).join('銆?) || '鏅偣'} 鍋忓ソ 路 MinHeap TopK`
-                  : '鐑棬绮鹃€? 路 MinHeap TopK'}
+                  ? `基于你收藏的 ${forYouTags.slice(0, 3).join('、') || '景点'} 偏好 · MinHeap TopK`
+                  : '热门精选 · MinHeap TopK'}
               </span>
             </div>
             <div
