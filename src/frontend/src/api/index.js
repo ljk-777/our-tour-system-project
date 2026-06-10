@@ -20,6 +20,7 @@ export const getTopK = (params) => api.get('/spots/topk', { params });
 export const searchSpots = (params) => api.get('/spots/search', { params });
 export const autocompleteSpots = (q) => api.get('/spots/autocomplete', { params: { q } });
 export const recommendSpots = (params) => api.get('/spots/recommend', { params });
+export const recommendForYou = (params) => api.get('/spots/for-you', { params });
 export const getSpotById = (id) => api.get(`/spots/${id}`);
 
 // 路线相关

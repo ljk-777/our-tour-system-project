@@ -40,11 +40,33 @@ export default function Foods() {
   const [searchQ,  setSearchQ]  = useState('');
   const [sortBy,   setSortBy]   = useState('rating');
   const [offset,   setOffset]   = useState(0);
+  const [userLoc,  setUserLoc]  = useState(null); // {lat, lng}
+  const [locStatus,setLocStatus]= useState('idle'); // idle|loading|granted|denied
   const LIMIT = 18;
   const TOP_K = 10;
 
+  // Haversine 距离（米）
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) { setLocStatus('denied'); return; }
+    setLocStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocStatus('granted'); setSortBy('distance'); },
+      () => setLocStatus('denied'),
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  };
+
   useEffect(() => { setOffset(0); }, [city, tagFilter, sortBy]);
-  useEffect(() => { load(); }, [city, tagFilter, sortBy, offset]);
+  useEffect(() => { load(); }, [city, tagFilter, sortBy, offset, userLoc]);
 
   // MinHeap TopK — 前端实现（O(N log K)），与后端 heap.js 算法一致
   function topKClient(arr, k, keyFn) {
@@ -61,6 +83,19 @@ export default function Foods() {
   }
 
   const applySort = (data) => {
+    if (sortBy === 'distance' && userLoc) {
+      const withDist = data.map(f => ({
+        ...f,
+        _distance: (f.lat != null && f.lng != null)
+          ? haversine(userLoc.lat, userLoc.lng, Number(f.lat), Number(f.lng))
+          : Infinity,
+      }));
+      // 距离越小越优先 -> keyFn 取负值，TopK 堆维护"最大值"即最近的 K 个
+      const keyFn = (f) => -f._distance;
+      const top = topKClient(withDist, TOP_K, keyFn);
+      const rest = withDist.filter(f => !top.includes(f)).sort((a,b) => a._distance - b._distance);
+      return [...top, ...rest];
+    }
     const keyFn = sortBy === 'visitTime'
       ? (f) => f.visitTime || 0
       : (f) => f.rating || 0;
@@ -238,6 +273,21 @@ export default function Foods() {
               boxShadow: sortBy===k ? '0 2px 10px rgba(249,115,22,0.3)' : 'none',
             }}>{l}</button>
           ))}
+          <button onClick={() => userLoc ? setSortBy('distance') : requestLocation()} style={{
+            padding:'5px 14px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+            cursor:'pointer', fontFamily:'Inter, sans-serif', transition:'all 0.15s',
+            background: sortBy==='distance' ? '#f97316' : '#fff',
+            color: sortBy==='distance' ? '#fff' : '#5f6368',
+            border: `1px solid ${sortBy==='distance' ? '#f97316' : 'rgba(0,0,0,0.1)'}`,
+            boxShadow: sortBy==='distance' ? '0 2px 10px rgba(249,115,22,0.3)' : 'none',
+          }}>
+            {locStatus === 'loading' ? '📍 定位中...' : '📍 距离最近'}
+          </button>
+          {locStatus === 'denied' && (
+            <span style={{ fontSize:'0.72rem', color:'#ef4444', fontFamily:'Inter, sans-serif' }}>
+              定位失败，请检查浏览器定位权限
+            </span>
+          )}
         </div>
 
         {/* 城市筛选 */}
@@ -327,6 +377,11 @@ export default function Foods() {
                     <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
                     <div style={{ fontSize: '0.78rem', color: '#9aa0a6', marginBottom: 8 }}>
                       {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
+                      {sortBy === 'distance' && Number.isFinite(food._distance) && (
+                        <span style={{ marginLeft: 8, color: '#f97316', fontWeight: 700 }}>
+                          · {food._distance >= 1000 ? `${(food._distance/1000).toFixed(1)}km` : `${Math.round(food._distance)}m`}
+                        </span>
+                      )}
                     </div>
                     <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {food.description}
