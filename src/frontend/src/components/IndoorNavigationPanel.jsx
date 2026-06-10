@@ -25,6 +25,17 @@ const ZOOM_LEVELS = [0.7, 1, 1.35, 1.8, 2.35, 3];
 const PIXEL_TO_METER = 0.045;
 const VERTICAL_TRANSFER_METERS = 18;
 
+const INDOOR_ALGORITHMS = [
+  { value: 'astar', label: 'A* 优先', desc: '启发式搜索，减少无关走廊探索' },
+  { value: 'dijkstra', label: 'Dijkstra', desc: '全图最短路，适合作为对照' },
+];
+
+const ROUTE_PREFERENCES = [
+  { value: 'shortest', label: '最短路线', desc: '只按通行距离计算' },
+  { value: 'fewerStairs', label: '少爬楼梯', desc: '提高楼梯跨层代价' },
+  { value: 'accessible', label: '无障碍优先', desc: '优先电梯，尽量避开楼梯' },
+];
+
 const FLOOR_IMAGES = {
   '1F': firstFloorImage,
   '2F': secondFloorImage,
@@ -50,8 +61,13 @@ export default function IndoorNavigationPanel() {
   const [facilityOriginId, setFacilityOriginId] = useState(() => graph.selectableNodes[0]?.id || '');
   const [facilityCategory, setFacilityCategory] = useState('all');
   const [facilityRadius, setFacilityRadius] = useState(120);
+  const [algorithm, setAlgorithm] = useState('astar');
+  const [preference, setPreference] = useState('shortest');
 
-  const route = useMemo(() => shortestIndoorPath(graph, startId, endId), [endId, graph, startId]);
+  const route = useMemo(
+    () => shortestIndoorPath(graph, startId, endId, { algorithm, preference }),
+    [algorithm, endId, graph, preference, startId]
+  );
   const nearbyFacilities = useMemo(() => findNearbyIndoorFacilities(graph, facilityOriginId, {
     category: facilityCategory,
     radius: facilityRadius,
@@ -72,6 +88,7 @@ export default function IndoorNavigationPanel() {
   const routeDescription = useRouteDescription(descriptionPayload);
 
   return (
+    <>
     <section className="grid gap-0 overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-xl lg:grid-cols-[360px_1fr]">
       <aside className="space-y-5 border-b border-gray-100 bg-white p-5 lg:border-b-0 lg:border-r">
         <div>
@@ -108,16 +125,45 @@ export default function IndoorNavigationPanel() {
           </Field>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <Field label="算法策略">
+          <div className="grid gap-2">
+            {INDOOR_ALGORITHMS.map((item) => (
+              <PreferenceButton
+                key={item.value}
+                active={algorithm === item.value}
+                label={item.label}
+                desc={item.desc}
+                onClick={() => setAlgorithm(item.value)}
+              />
+            ))}
+          </div>
+        </Field>
+
+        <Field label="路线偏好">
+          <div className="grid gap-2">
+            {ROUTE_PREFERENCES.map((item) => (
+              <PreferenceButton
+                key={item.value}
+                active={preference === item.value}
+                label={item.label}
+                desc={item.desc}
+                onClick={() => setPreference(item.value)}
+              />
+            ))}
+          </div>
+        </Field>
+
+        <div className="grid grid-cols-4 gap-2">
           <Metric icon={Footprints} value={`${route.distance}m`} label="距离" />
           <Metric icon={Clock3} value={formatSeconds(route.seconds)} label="时间" />
-          <Metric icon={Layers} value={`${graph.nodes.length}`} label="节点" />
+          <Metric icon={Layers} value={`${route.floorChanges}`} label="跨层" />
+          <Metric icon={Route} value={`${route.nodesExplored}`} label="探索" />
         </div>
 
         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
           <div className="font-semibold">当前模型</div>
           <div className="mt-1">
-            五层手动路网：{graph.nodes.length} 个点，{graph.edges.length} 条边。卫生间 {graph.counts.toilet} 个，开水间 {graph.counts.water} 个，均独立命名并参与导航。
+            五层手动路网：{graph.nodes.length} 个点，{graph.edges.length} 条边。当前使用 {route.algorithmLabel}，偏好为{preferenceLabel(preference)}。
           </div>
         </div>
 
@@ -197,6 +243,54 @@ export default function IndoorNavigationPanel() {
         <RouteDescriptionCard result={routeDescription} />
       </div>
     </section>
+    <IndoorNavigationAdvantages />
+    </>
+  );
+}
+
+function PreferenceButton({ active, label, desc, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border px-3 py-2 text-left transition ${
+        active ? 'border-blue-300 bg-blue-50 text-blue-900 shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-600 hover:bg-blue-50'
+      }`}
+    >
+      <div className="text-sm font-black">{label}</div>
+      <div className="mt-0.5 text-xs opacity-70">{desc}</div>
+    </button>
+  );
+}
+
+function IndoorNavigationAdvantages() {
+  return (
+    <section className="mt-5 rounded-[24px] border border-blue-100 bg-white p-5 shadow-sm">
+      <div className="text-lg font-black text-gray-900">室内导航算法优化优势</div>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <AdvantageCard
+          title="A* 搜索更快"
+          text="在 Dijkstra 的全局最短路基础上加入楼层和平面距离启发函数，优先搜索更接近终点的节点，减少无关走廊探索。"
+        />
+        <AdvantageCard
+          title="偏好动态边权"
+          text="把楼梯、电梯、跨层通行转换为不同代价，支持最短路线、少爬楼梯、无障碍优先，而不是只按物理距离硬算。"
+        />
+        <AdvantageCard
+          title="结果可解释"
+          text="路径输出真实距离、预计时间、跨层次数和探索节点数，既能导航，也方便和 Dijkstra 做课程设计中的算法对比。"
+        />
+      </div>
+    </section>
+  );
+}
+
+function AdvantageCard({ title, text }) {
+  return (
+    <div className="rounded-2xl bg-blue-50/70 p-4">
+      <div className="text-sm font-black text-blue-900">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-blue-800">{text}</p>
+    </div>
   );
 }
 
@@ -471,7 +565,7 @@ function buildIndoorRouteDescriptionPayload(graph, route) {
   return {
     scene: 'indoor',
     mapName: '教学实验综合楼',
-    strategy: '室内最短路径',
+    strategy: `${route.algorithmLabel || '室内导航'} · ${preferenceLabel(route.preference)}`,
     start: start?.name || '当前位置',
     end: end?.name || '目标点',
     distance: route.distance,
@@ -840,38 +934,63 @@ function getDegree(edges) {
 }
 
 /**
- * Dijkstra shortest path for the manually modeled indoor graph.
- * Time complexity: O(V^2 + E) with linear minimum-distance selection.
+ * Dijkstra/A* route search over the manually modeled indoor graph.
+ * Time complexity: O(V^2 + E) with linear open-set selection.
  */
-function shortestIndoorPath(graph, startId, endId) {
-  const dist = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+function shortestIndoorPath(graph, startId, endId, { algorithm = 'astar', preference = 'shortest' } = {}) {
+  const gScore = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+  const fScore = new Map(graph.nodes.map((node) => [node.id, Infinity]));
   const prev = new Map();
   const prevEdge = new Map();
   const visited = new Set();
   const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
+  const endNode = graph.nodeMap.get(endId);
+
   for (const edge of graph.edges) {
-    adjacency.get(edge.from)?.push({ ...edge, to: edge.to });
+    adjacency.get(edge.from)?.push({ ...edge, from: edge.from, to: edge.to });
     adjacency.get(edge.to)?.push({ ...edge, from: edge.to, to: edge.from });
   }
 
-  if (!dist.has(startId) || !dist.has(endId)) return { path: [], steps: [], edgeKeys: [], distance: 0, seconds: 0 };
+  const empty = {
+    path: [],
+    steps: [],
+    edgeKeys: [],
+    distance: 0,
+    cost: 0,
+    seconds: 0,
+    floorChanges: 0,
+    nodesExplored: 0,
+    algorithm,
+    algorithmLabel: algorithmLabel(algorithm),
+    preference,
+  };
+  if (!gScore.has(startId) || !gScore.has(endId) || !endNode) return empty;
 
-  dist.set(startId, 0);
+  gScore.set(startId, 0);
+  fScore.set(startId, heuristicCost(graph.nodeMap.get(startId), endNode, preference, algorithm));
+
   while (visited.size < graph.nodes.length) {
     let current = null;
     let best = Infinity;
-    for (const [id, value] of dist.entries()) {
+    const scoreMap = algorithm === 'astar' ? fScore : gScore;
+    for (const [id, value] of scoreMap.entries()) {
       if (!visited.has(id) && value < best) {
         current = id;
         best = value;
       }
     }
-    if (!current || current === endId) break;
+    if (!current || current === endId || !Number.isFinite(best)) break;
     visited.add(current);
+
     for (const edge of adjacency.get(current) || []) {
-      const next = best + edge.dist;
-      if (next < dist.get(edge.to)) {
-        dist.set(edge.to, next);
+      const from = graph.nodeMap.get(edge.from);
+      const to = graph.nodeMap.get(edge.to);
+      const edgeCost = indoorEdgeCost(edge, from, to, preference);
+      if (!Number.isFinite(edgeCost)) continue;
+      const next = gScore.get(current) + edgeCost;
+      if (next < gScore.get(edge.to)) {
+        gScore.set(edge.to, next);
+        fScore.set(edge.to, next + heuristicCost(to, endNode, preference, algorithm));
         prev.set(edge.to, current);
         prevEdge.set(edge.to, edge);
       }
@@ -888,16 +1007,70 @@ function shortestIndoorPath(graph, startId, endId) {
     if (edge) steps.unshift(edge);
     current = prev.get(current);
   }
-  if (path[0] !== startId) return { path: [], steps: [], edgeKeys: [], distance: 0, seconds: 0 };
+  if (path[0] !== startId) return empty;
 
-  const distance = Math.round(dist.get(endId));
+  const distance = Math.round(steps.reduce((sum, edge) => sum + Number(edge.dist || 0), 0));
+  const floorChanges = steps.filter((edge) => edge.kind === 'vertical').length;
+  const verticalPenaltySeconds = steps.reduce((sum, edge) => {
+    const from = graph.nodeMap.get(edge.from);
+    const to = graph.nodeMap.get(edge.to);
+    if (edge.kind !== 'vertical') return sum;
+    return sum + (from?.type === 'elevator' || to?.type === 'elevator' ? 20 : 35);
+  }, 0);
+
   return {
     path,
     steps,
     edgeKeys: path.slice(1).map((id, index) => edgeKey(path[index], id)),
     distance,
-    seconds: Math.round(distance / 1.15),
+    cost: Math.round(gScore.get(endId)),
+    seconds: Math.round(distance / 1.15 + verticalPenaltySeconds),
+    floorChanges,
+    nodesExplored: visited.size,
+    algorithm,
+    algorithmLabel: algorithmLabel(algorithm),
+    preference,
   };
+}
+
+function indoorEdgeCost(edge, from, to, preference) {
+  if (!from || !to) return Infinity;
+  let cost = Number(edge.dist || 1);
+  if (edge.kind !== 'vertical') return cost;
+
+  const usesElevator = from.type === 'elevator' || to.type === 'elevator';
+  const usesStair = from.type === 'stair' || to.type === 'stair';
+
+  if (preference === 'fewerStairs') {
+    if (usesStair) cost += 55;
+    if (usesElevator) cost += 12;
+  } else if (preference === 'accessible') {
+    if (usesStair) cost += 240;
+    if (usesElevator) cost += 6;
+  } else {
+    cost += usesElevator ? 8 : 14;
+  }
+  return cost;
+}
+
+function heuristicCost(node, endNode, preference, algorithm) {
+  if (algorithm !== 'astar' || !node || !endNode) return 0;
+  const planar = Math.hypot(node.x - endNode.x, node.y - endNode.y) * PIXEL_TO_METER;
+  const floorGap = Math.abs(floorNumber(node.floor) - floorNumber(endNode.floor));
+  const vertical = floorGap * (preference === 'accessible' ? 22 : preference === 'fewerStairs' ? 28 : 18);
+  return planar + vertical;
+}
+
+function algorithmLabel(algorithm) {
+  return algorithm === 'astar' ? 'A* 启发式搜索' : 'Dijkstra 全图最短路';
+}
+
+function preferenceLabel(preference) {
+  return ({
+    shortest: '最短路线',
+    fewerStairs: '少爬楼梯',
+    accessible: '无障碍优先',
+  })[preference] || '最短路线';
 }
 
 function compactIndoorPath(path, nodeMap) {

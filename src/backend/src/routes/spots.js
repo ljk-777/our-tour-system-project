@@ -2,9 +2,14 @@ const express = require('express');
 const router = express.Router();
 const spotRepo = require('../repositories/spotRepository');
 const favRepo  = require('../repositories/favoritesRepository');
-const { topK } = require('../algorithms/heap');
+const { MinHeap, topK } = require('../algorithms/heap');
 const { Trie, FullTextIndex } = require('../algorithms/trie');
 const { requireAuth } = require('../middleware/auth');
+
+const RECOMMEND_TYPES = new Set(['all', 'scenic', 'campus']);
+const RECOMMEND_SORTS = new Set(['popularity', 'rating', 'interest']);
+const DEFAULT_RECOMMEND_LIMIT = 10;
+const MAX_RECOMMEND_LIMIT = 30;
 
 async function buildSpotIndexes() {
   const allSpots = await spotRepo.getAll();
@@ -18,6 +23,121 @@ async function buildSpotIndexes() {
   });
 
   return { allSpots, trie, ftIndex };
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function parseCsv(value) {
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function clampRecommendLimit(value) {
+  const n = Number(value || DEFAULT_RECOMMEND_LIMIT);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_RECOMMEND_LIMIT;
+  return Math.min(Math.floor(n), MAX_RECOMMEND_LIMIT);
+}
+
+function getPopularityScore(spot) {
+  const tags = new Set(spot.tags || []);
+  let score = Number(spot.rating || 0) * 20;
+  if (spot.type === 'scenic') score += 8;
+  if (spot.type === 'campus') score += 6;
+  if (tags.has('世界遗产')) score += 12;
+  if (tags.has('顶尖学府')) score += 12;
+  if (tags.has('历史')) score += 6;
+  if (tags.has('文化')) score += 5;
+  if (tags.has('自然')) score += 5;
+  if (tags.has('美丽校园')) score += 5;
+  if (tags.has('地标')) score += 4;
+  if (Number(spot.visitTime || 0) >= 3) score += 3;
+  if (Number(spot.entranceFee || 0) === 0) score += 2;
+  return score;
+}
+
+function getInterestScore(spot, interests) {
+  if (interests.length === 0) return 0;
+  const fields = [
+    spot.name,
+    spot.type === 'campus' ? '高校 学校 大学 校园' : '景点 景区 旅游',
+    spot.city,
+    spot.province,
+    spot.description,
+    ...(spot.tags || []),
+  ]
+    .filter(Boolean)
+    .map(normalizeText);
+
+  return interests.reduce((score, interest) => {
+    const needle = normalizeText(interest);
+    if (!needle) return score;
+    const matched = fields.some((field) => field.includes(needle) || needle.includes(field));
+    return score + (matched ? 18 : 0);
+  }, 0);
+}
+
+function scoreSpot(spot, sortBy, interests) {
+  if (sortBy === 'rating') return Number(spot.rating || 0);
+  if (sortBy === 'interest') {
+    return getInterestScore(spot, interests) + getPopularityScore(spot) * 0.25;
+  }
+  return getPopularityScore(spot);
+}
+
+function compareRecommendations(a, b, sortBy, interests) {
+  const diff = scoreSpot(b, sortBy, interests) - scoreSpot(a, sortBy, interests);
+  if (diff !== 0) return diff;
+  const ratingDiff = Number(b.rating || 0) - Number(a.rating || 0);
+  if (ratingDiff !== 0) return ratingDiff;
+  return Number(a.id) - Number(b.id);
+}
+
+/**
+ * Select recommendation TopK with a MinHeap.
+ * Time complexity: O(N log K), where N is candidates and K is requested limit.
+ */
+function selectRecommendationTopK(items, limit, sortBy, interests) {
+  const heap = new MinHeap((a, b) => compareRecommendations(b, a, sortBy, interests));
+  for (const item of items) {
+    if (heap.size < limit) {
+      heap.push(item);
+    } else if (compareRecommendations(item, heap.peek(), sortBy, interests) < 0) {
+      heap.pop();
+      heap.push(item);
+    }
+  }
+  return heap.data.sort((a, b) => compareRecommendations(a, b, sortBy, interests));
+}
+
+function buildRecommendationResult(items, limit, sortBy, interests, includeAll) {
+  const topItems = selectRecommendationTopK(items, limit, sortBy, interests).map((item, index) => ({
+    ...item,
+    topRank: index + 1,
+    isTopRecommendation: true,
+    popularityScore: getPopularityScore(item),
+    interestScore: getInterestScore(item, interests),
+  }));
+
+  if (!includeAll) return topItems;
+
+  const topIds = new Set(topItems.map((item) => item.id));
+  const rest = items
+    .filter((item) => !topIds.has(item.id))
+    .sort((a, b) => compareRecommendations(a, b, sortBy, interests))
+    .map((item) => ({
+      ...item,
+      topRank: null,
+      isTopRecommendation: false,
+      popularityScore: getPopularityScore(item),
+      interestScore: getInterestScore(item, interests),
+    }));
+
+  return [...topItems, ...rest];
 }
 
 router.get('/', async (req, res, next) => {
@@ -87,15 +207,31 @@ router.get('/autocomplete', async (req, res, next) => {
 
 router.get('/recommend', async (req, res, next) => {
   try {
-    const { city, tags, type = 'scenic', limit = 8 } = req.query;
-    let pool = (await spotRepo.getAll()).filter((spot) => spot.type === type || spot.type === 'campus');
-    if (city) pool = pool.filter((spot) => spot.city === city);
-    if (tags) {
-      const tagList = tags.split(',');
-      pool = pool.filter((spot) => spot.tags && tagList.some((tag) => spot.tags.includes(tag)));
+    const type = RECOMMEND_TYPES.has(req.query.type) ? req.query.type : 'all';
+    const sortBy = RECOMMEND_SORTS.has(req.query.sortBy) ? req.query.sortBy : 'popularity';
+    const interests = parseCsv(req.query.interests || req.query.tags);
+    const limit = clampRecommendLimit(req.query.limit);
+    const includeAll = req.query.includeAll === 'true';
+
+    let pool = (await spotRepo.getAll()).filter((spot) => ['scenic', 'campus'].includes(spot.type));
+    if (type !== 'all') pool = pool.filter((spot) => spot.type === type);
+    if (req.query.city) pool = pool.filter((spot) => spot.city === req.query.city);
+    if (interests.length > 0 && sortBy === 'interest') {
+      pool = pool.filter((spot) => getInterestScore(spot, interests) > 0);
     }
-    const result = topK(pool, Number(limit));
-    res.json({ success: true, data: result });
+
+    const data = buildRecommendationResult(pool, limit, sortBy, interests, includeAll);
+    res.json({
+      success: true,
+      algorithm: 'MinHeap TopK O(N log K)',
+      sortBy,
+      type,
+      city: req.query.city || '',
+      interests,
+      totalCandidates: pool.length,
+      rankedCount: Math.min(limit, pool.length),
+      data,
+    });
   } catch (error) {
     next(error);
   }
