@@ -66,6 +66,42 @@ export default function Foods() {
     const timer = setInterval(() => setHeroIndex((index) => (index + 1) % HERO_IMAGES.length), 5000);
     return () => clearInterval(timer);
   }, []);
+  const [searchParams] = useSearchParams();
+  const [foods,    setFoods]    = useState([]);
+  const [total,    setTotal]    = useState(0);
+  const [loading,  setLoading]  = useState(true);
+  const [city,     setCity]     = useState(searchParams.get('city') || '全部');
+  const [tagFilter,setTagFilter]= useState('全部');
+  const [searchQ,  setSearchQ]  = useState('');
+  const [sortBy,   setSortBy]   = useState('rating');
+  const [offset,   setOffset]   = useState(0);
+  const [userLoc,  setUserLoc]  = useState(null); // {lat, lng}
+  const [locStatus,setLocStatus]= useState('idle'); // idle|loading|granted|denied
+  const LIMIT = 18;
+  const TOP_K = 10;
+
+  // Haversine 距离（米）
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) { setLocStatus('denied'); return; }
+    setLocStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocStatus('granted'); setSortBy('distance'); },
+      () => setLocStatus('denied'),
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  };
+
+  useEffect(() => { setOffset(0); }, [city, tagFilter, sortBy]);
+  useEffect(() => { load(); }, [city, tagFilter, sortBy, offset, userLoc]);
 
   useEffect(() => {
     let mounted = true;
@@ -96,6 +132,28 @@ export default function Foods() {
     setVisibleCount(10);
     loadFoods();
   }, [selectedOriginIds, cuisine, sortBy]);
+  const applySort = (data) => {
+    if (sortBy === 'distance' && userLoc) {
+      const withDist = data.map(f => ({
+        ...f,
+        _distance: (f.lat != null && f.lng != null)
+          ? haversine(userLoc.lat, userLoc.lng, Number(f.lat), Number(f.lng))
+          : Infinity,
+      }));
+      // 距离越小越优先 -> keyFn 取负值，TopK 堆维护"最大值"即最近的 K 个
+      const keyFn = (f) => -f._distance;
+      const top = topKClient(withDist, TOP_K, keyFn);
+      const rest = withDist.filter(f => !top.includes(f)).sort((a,b) => a._distance - b._distance);
+      return [...top, ...rest];
+    }
+    const keyFn = sortBy === 'visitTime'
+      ? (f) => f.visitTime || 0
+      : (f) => f.rating || 0;
+    // TopK 前10用堆，剩余普通排序
+    const top = topKClient(data, TOP_K, keyFn);
+    const rest = data.filter(f => !top.includes(f)).sort((a,b) => keyFn(b) - keyFn(a));
+    return [...top, ...rest];
+  };
 
   const selectedOrigins = useMemo(
     () => origins.filter((origin) => selectedOriginIds.includes(origin.id)),
@@ -349,6 +407,32 @@ export default function Foods() {
             MinHeap TopK
           </span>
         </section>
+          {[['rating','评分最高'],['visitTime','最热门']].map(([k,l]) => (
+            <button key={k} onClick={() => setSortBy(k)} style={{
+              padding:'5px 14px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+              cursor:'pointer', fontFamily:'Inter, sans-serif', transition:'all 0.15s',
+              background: sortBy===k ? '#f97316' : '#fff',
+              color: sortBy===k ? '#fff' : '#5f6368',
+              border: `1px solid ${sortBy===k ? '#f97316' : 'rgba(0,0,0,0.1)'}`,
+              boxShadow: sortBy===k ? '0 2px 10px rgba(249,115,22,0.3)' : 'none',
+            }}>{l}</button>
+          ))}
+          <button onClick={() => userLoc ? setSortBy('distance') : requestLocation()} style={{
+            padding:'5px 14px', borderRadius:8, fontSize:'0.78rem', fontWeight:600,
+            cursor:'pointer', fontFamily:'Inter, sans-serif', transition:'all 0.15s',
+            background: sortBy==='distance' ? '#f97316' : '#fff',
+            color: sortBy==='distance' ? '#fff' : '#5f6368',
+            border: `1px solid ${sortBy==='distance' ? '#f97316' : 'rgba(0,0,0,0.1)'}`,
+            boxShadow: sortBy==='distance' ? '0 2px 10px rgba(249,115,22,0.3)' : 'none',
+          }}>
+            {locStatus === 'loading' ? '📍 定位中...' : '📍 距离最近'}
+          </button>
+          {locStatus === 'denied' && (
+            <span style={{ fontSize:'0.72rem', color:'#ef4444', fontFamily:'Inter, sans-serif' }}>
+              定位失败，请检查浏览器定位权限
+            </span>
+          )}
+        </div>
 
         <section style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
           {CUISINES.map((item) => {
@@ -459,6 +543,33 @@ export default function Foods() {
                     >
                       高德
                     </a>
+                  {/* 内容区 */}
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#202124', marginBottom: 3 }}>{food.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#9aa0a6', marginBottom: 8 }}>
+                      {CITY_EMOJI[food.city] || '📍'} {food.city} · {food.province?.replace('省','').replace('市','').replace('自治区','')}
+                      {sortBy === 'distance' && Number.isFinite(food._distance) && (
+                        <span style={{ marginLeft: 8, color: '#f97316', fontWeight: 700 }}>
+                          · {food._distance >= 1000 ? `${(food._distance/1000).toFixed(1)}km` : `${Math.round(food._distance)}m`}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: '#5f6368', lineHeight: 1.6, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {food.description}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {(food.tags || []).slice(0, 3).map(tag => (
+                          <span key={tag} style={{
+                            fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                            background: 'rgba(249,115,22,0.1)', color: '#f97316',
+                          }}>{tag}</span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#9aa0a6', whiteSpace: 'nowrap' }}>
+                        🕐 {food.openHours || '营业中'}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </article>
