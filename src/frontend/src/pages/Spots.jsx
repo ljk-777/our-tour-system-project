@@ -11,8 +11,9 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
-import { amapPoiSearch, autocompleteSpots, recommendSpots, searchSpots } from '../api/index.js';
+import { amapPoiSearch, autocompleteSpots, recommendForYou, recommendSpots, searchSpots } from '../api/index.js';
 import SpotCard from '../components/SpotCard.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const CITIES = ['全部', '北京', '上海', '杭州', '成都', '西安', '云南', '广州', '武汉', '南京'];
 const TYPES = [
@@ -30,6 +31,7 @@ const INTERESTS = ['历史', '文化', '自然', '高校', '博物馆', '古镇'
 const LIMIT = 16;
 
 export default function Spots() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [spots, setSpots] = useState([]);
   const [total, setTotal] = useState(0);
@@ -42,6 +44,9 @@ export default function Spots() {
   const [sortBy, setSortBy] = useState('popularity');
   const [interests, setInterests] = useState(['历史', '自然']);
   const [visibleCount, setVisibleCount] = useState(LIMIT);
+  const [forYou, setForYou] = useState([]);
+  const [forYouTags, setForYouTags] = useState([]);
+  const [forYouPersonalized, setForYouPersonalized] = useState(false);
   const suggestTimer = useRef(null);
   const searchBoxRef = useRef(null);
 
@@ -103,6 +108,26 @@ export default function Spots() {
     });
     setSortBy('interest');
   }
+
+  useEffect(() => {
+    if (!user) {
+      setForYou([]);
+      setForYouTags([]);
+      setForYouPersonalized(false);
+      return;
+    }
+    recommendForYou({ limit: 4 })
+      .then((res) => {
+        setForYou(res.data.data || []);
+        setForYouTags(res.data.preferredTags || []);
+        setForYouPersonalized(!!res.data.personalized);
+      })
+      .catch(() => {
+        setForYou([]);
+        setForYouTags([]);
+        setForYouPersonalized(false);
+      });
+  }, [user]);
 
   const handleSearchQChange = (value) => {
     setSearchQ(value);
@@ -225,6 +250,33 @@ export default function Spots() {
             </button>
           ))}
         </div>
+
+        {user && forYou.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>
+                鉁? 涓轰綘鎺ㄨ崘
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#9aa0a6', fontFamily: 'Inter, sans-serif' }}>
+                {forYouPersonalized
+                  ? `鍩轰簬浣犳敹钘忕殑 ${forYouTags.slice(0, 3).join('銆?) || '鏅偣'} 鍋忓ソ 路 MinHeap TopK`
+                  : '鐑棬绮鹃€? 路 MinHeap TopK'}
+              </span>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gridAutoRows: '160px',
+                gap: 14,
+              }}
+            >
+              {forYou.map((spot, i) => (
+                <SpotCard key={spot.id} spot={spot} index={i} animDelay={i * 40} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSearch} className="flex gap-2 mb-6">
           <div ref={searchBoxRef} style={{ flex: 1, position: 'relative' }}>
