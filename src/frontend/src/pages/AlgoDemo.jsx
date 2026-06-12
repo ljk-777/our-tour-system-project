@@ -271,20 +271,20 @@ function TrieDemo() {
 
 /* ====== Dijkstra 演示 ====== */
 function DijkstraDemo() {
-  const [fromId, setFromId] = useState(1);
-  const [toId, setToId] = useState(4);
+  const [fromId, setFromId] = useState(3);
+  const [toId, setToId] = useState(16);
   const [mode, setMode] = useState('distance');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const EXAMPLES = [
+    { label: '🏛️ 天坛公园 → 国家博物馆', from: 3, to: 16 },
+    { label: '🏛️ 故宫 → 天坛公园',    from: 1, to: 3  },
     { label: '故宫 → 颐和园',       from: 1,   to: 4   },
     { label: '西湖 → 灵隐寺',       from: 36,  to: 38  },
     { label: '北大西门 → 未名湖',    from: 202, to: 205 },
     { label: '北大图书馆 → 博雅塔',  from: 201, to: 206 },
-    { label: '🏛️ 天坛公园 → 国家博物馆', from: 3, to: 16 },
-    { label: '🏛️ 故宫 → 天坛公园',    from: 1, to: 3  },
   ];
 
   const run = async () => {
@@ -662,16 +662,16 @@ function KMPDemo() {
 
 /* ====== 2-opt 多点路径演示 ====== */
 function TwoOptDemo() {
-  const [spots, setSpots] = useState('1,4,36,38');
+  const [spots, setSpots] = useState('1,3,16,14');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const EXAMPLES = [
+    { label: '🏛️ 天坛周边路线（故宫·天坛·国博·大栅栏）', ids: '1,3,16,14' },
     { label: '北京景点环线', ids: '1,4,2,5,6' },
     { label: '西湖 + 杭州景点', ids: '36,38,39,40' },
     { label: '北大校园巡游', ids: '201,202,205,206,210' },
-    { label: '🏛️ 天坛周边路线（故宫·天坛·国博·大栅栏）', ids: '1,3,16,14' },
   ];
 
   const run = async () => {
@@ -849,8 +849,8 @@ function escapeHtml(str) {
 
 /* ====== A* 启发搜索演示 ====== */
 function AStarDemo() {
-  const [fromId, setFromId] = useState(1);
-  const [toId, setToId] = useState(4);
+  const [fromId, setFromId] = useState(3);
+  const [toId, setToId] = useState(237);
   const [mode, setMode] = useState('distance');
   const [dijResult, setDijResult] = useState(null);
   const [astarResult, setAstarResult] = useState(null);
@@ -858,10 +858,10 @@ function AStarDemo() {
   const [error, setError] = useState('');
 
   const EXAMPLES = [
+    { label: '🏛️ 天坛公园 → 北京协和医院', from: 3, to: 237 },
     { label: '故宫 → 颐和园',    from: 1,   to: 4   },
     { label: '西湖 → 灵隐寺',    from: 36,  to: 38  },
     { label: '北大图书馆 → 博雅塔', from: 201, to: 206 },
-    { label: '🏛️ 天坛公园 → 北京协和医院', from: 3, to: 237 },
   ];
 
   const run = async () => {
