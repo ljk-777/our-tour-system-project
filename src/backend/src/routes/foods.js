@@ -70,11 +70,11 @@ function compareForDisplay(a, b, sortBy) {
  * Time complexity: O(N log K), where N is candidate count and K is limit.
  */
 function selectTopK(items, limit, sortBy) {
-  const heap = new MinHeap((a, b) => getSortValue(a, sortBy) - getSortValue(b, sortBy));
+  const heap = new MinHeap((a, b) => compareForDisplay(b, a, sortBy));
   for (const item of items) {
     if (heap.size < limit) {
       heap.push(item);
-    } else if (getSortValue(item, sortBy) > getSortValue(heap.peek(), sortBy)) {
+    } else if (compareForDisplay(item, heap.peek(), sortBy) < 0) {
       heap.pop();
       heap.push(item);
     }
@@ -94,6 +94,7 @@ function buildRankedResult(items, limit, sortBy, includeAll) {
   const topIds = new Set(topItems.map((item) => item.id));
   const rest = items
     .filter((item) => !topIds.has(item.id))
+    .sort((a, b) => compareForDisplay(a, b, sortBy))
     .map((item) => ({
       ...item,
       topRank: null,
