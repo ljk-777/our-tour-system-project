@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { getSpots, recommendFoods, searchFoods } from '../api/index.js';
 
-const CUISINES = ['全部', '烤鸭', '火锅', '清真', '小吃', '老字号', '川菜', '粤菜', '杭帮菜', '面食'];
+const CUISINES = ['全部', '北京菜', '北京烤鸭', '火锅', '清真', '小吃', '老字号', '川菜', '粤菜', '杭帮菜'];
 
 const SORT_OPTIONS = [
   { key: 'popularity', label: '热度', icon: SlidersHorizontal },
@@ -93,7 +93,6 @@ export default function Foods() {
   }, []);
 
   useEffect(() => {
-    setVisibleCount(10);
     loadFoods();
   }, [selectedOriginIds, cuisine, sortBy]);
 
@@ -118,7 +117,7 @@ export default function Foods() {
     try {
       const params = {
         originIds: selectedOriginIds.join(','),
-        cuisine,
+        cuisine: cuisine === '全部' ? '' : cuisine,
         sortBy,
         limit: 10,
         includeAll: true,
@@ -188,7 +187,7 @@ export default function Foods() {
             美食推荐
           </h1>
           <p style={{ maxWidth: 620, marginTop: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7 }}>
-            选择游览景点或学校后，按热度、评价、距离筛出前 10 家餐厅。
+            选择游览景点或学校后，按热度、评价、距离筛出前 10 家餐厅，更多结果继续保持同一排序。
           </p>
         </div>
       </section>
@@ -250,7 +249,7 @@ export default function Foods() {
             <div style={{ background: '#f8fafc', borderRadius: 8, padding: 14 }}>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 10 }}>已选地点</div>
               {selectedOrigins.length === 0 ? (
-                <div style={{ color: '#94a3b8', fontSize: 13 }}>不选地点时不计算距离排序</div>
+                <div style={{ color: '#94a3b8', fontSize: 13 }}>默认不选地点；距离排序会按未选地点处理</div>
               ) : (
                 <div style={{ display: 'grid', gap: 8 }}>
                   {selectedOrigins.map((origin) => (
@@ -280,7 +279,7 @@ export default function Foods() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="输入美食、菜系、饭店或窗口名称..."
+                placeholder="输入烤鸭、火锅、聚宝源、窗口名称..."
                 style={{ border: 0, outline: 0, flex: 1, fontSize: 14 }}
               />
             </div>
@@ -373,12 +372,7 @@ export default function Foods() {
           })}
         </section>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, color: '#64748b', fontSize: 13 }}>
-          <span>
-            {loading
-              ? '正在计算...'
-              : `展示 ${Math.min(visibleCount, foods.length)} / ${foods.length} 家 · 前 ${meta?.rankedCount ?? 10} 已排序 · 候选 ${meta?.totalCandidates ?? 0}${meta?.totalMatches !== undefined ? ` · 命中 ${meta.totalMatches}` : ''}`}
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 14, color: '#64748b', fontSize: 13 }}>
           <span>{meta?.algorithm || 'MinHeap TopK O(N log K)'}</span>
         </div>
 
@@ -397,7 +391,7 @@ export default function Foods() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {visibleFoods.map((food, index) => (
+            {visibleFoods.map((food) => (
               <article
                 key={food.id}
                 style={{
@@ -465,6 +459,7 @@ export default function Foods() {
             ))}
           </div>
         )}
+
         {!loading && hasMoreFoods && (
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
             <button
