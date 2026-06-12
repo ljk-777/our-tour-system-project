@@ -295,6 +295,12 @@ const Earth = ({ radius = 5, controlsRef }) => {
   const groupRef = useRef(null);
   const cloudRef = useRef(null);
 
+  // ── 晨昏线（day/night terminator）── 固定的「太阳方向」（世界坐标）
+  const sunDirWorld = useMemo(() => new THREE.Vector3(1, 0.35, 0.55).normalize(), []);
+  const terminatorUniforms = useMemo(() => ({
+    sunDir: { value: new THREE.Vector3(1, 0, 0) },
+  }), []);
+
   const selectedTraveler = useAppStore(s => s.selectedTraveler);
   const aiRoute          = useAppStore(s => s.aiRoute);
   const aiPlaying        = useAppStore(s => s.aiPlaying);
@@ -452,6 +458,16 @@ const Earth = ({ radius = 5, controlsRef }) => {
     }
 
     if (cloudRef.current) cloudRef.current.rotation.y += 0.00046;
+
+    // ── 晨昏线：把世界坐标的太阳方向旋转到地球自身坐标系（抵消 group 的 Y 轴自转）──
+    const ry = groupRef.current.rotation.y;
+    const cosR = Math.cos(-ry), sinR = Math.sin(-ry);
+    const { x: sx, y: sy, z: sz } = sunDirWorld;
+    terminatorUniforms.sunDir.value.set(
+      sx * cosR + sz * sinR,
+      sy,
+      -sx * sinR + sz * cosR,
+    );
   });
 
   return (
@@ -469,8 +485,36 @@ const Earth = ({ radius = 5, controlsRef }) => {
         />
       </mesh>
 
+      {/* 晨昏线：随地球自转的昼夜分界叠加层 */}
+      <mesh renderOrder={2} scale={1.003}>
+        <sphereGeometry args={[radius, 64, 64]} />
+        <shaderMaterial
+          transparent
+          depthWrite={false}
+          side={THREE.FrontSide}
+          uniforms={terminatorUniforms}
+          vertexShader={`
+            varying vec3 vObjNormal;
+            void main() {
+              vObjNormal = normal;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform vec3 sunDir;
+            varying vec3 vObjNormal;
+            void main() {
+              float sunFactor = dot(normalize(vObjNormal), normalize(sunDir));
+              float nightMix = smoothstep(0.25, -0.25, sunFactor);
+              vec3 nightColor = vec3(0.01, 0.02, 0.06);
+              gl_FragColor = vec4(nightColor, nightMix * 0.65);
+            }
+          `}
+        />
+      </mesh>
+
       {/* 云层 */}
-      <mesh ref={cloudRef} renderOrder={2}>
+      <mesh ref={cloudRef} renderOrder={3}>
         <sphereGeometry args={[radius * 1.007, 80, 80]} />
         <meshStandardMaterial
           map={cloudsMap}

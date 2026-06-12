@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, likeDiary, unlikeDiary, commentDiary } from '../api/index.js';
+import { getDiaries, searchDiaries, createDiary, generateDiaryDraft, generateMemoryVideo, likeDiary, unlikeDiary, commentDiary } from '../api/index.js';
 import { PERMISSIONS, useAuth } from '../context/AuthContext.jsx';
 import { useRequireAuth } from '../components/AuthGuard.jsx';
 
@@ -40,6 +40,266 @@ function compressImage(file, size = 600) {
 function HL({ html, style }) {
   if (!html || !html.includes('<mark>')) return <span style={style}>{html}</span>;
   return <span style={style} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+/* ── AIGC 旅行回忆动画：基于 Canvas API 渲染日记卡片序列 ── */
+const AIGC_CARD_COLORS = [
+  ['#f97316','#fbbf24'], ['#06b6d4','#3b82f6'], ['#8b5cf6','#ec4899'],
+  ['#10b981','#06b6d4'], ['#f43f5e','#f97316'], ['#84cc16','#10b981'],
+];
+
+function AIGCMemoryAnimation({ diaries }) {
+  const canvasRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState('');
+
+  const generateVideo = async () => {
+    setVideoLoading(true);
+    setVideoError('');
+    setVideoUrl('');
+    try {
+      const ids = diaries.slice(0, 5).map((d) => d.id);
+      const res = await generateMemoryVideo({ diaryIds: ids });
+      setVideoUrl(res.data?.data?.url || '');
+    } catch (e) {
+      setVideoError(e.response?.data?.message || '视频生成失败，请稍后重试');
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+
+  const drawFrame = (canvas, diary, progress, colorPair) => {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // Background gradient (animated)
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, colorPair[0] + '33');
+    grad.addColorStop(1, colorPair[1] + '22');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Animated particles
+    ctx.save();
+    for (let i = 0; i < 20; i++) {
+      const x = ((i * 137 + progress * 80) % W);
+      const y = ((i * 89 + progress * 50) % H);
+      const r = 2 + (i % 4);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = colorPair[0] + Math.floor(40 + 40 * Math.sin(progress * 0.05 + i)).toString(16).padStart(2,'0');
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Card (slide in from right)
+    const slideX = W * 0.1 + (progress > 0.1 ? 0 : (0.1 - progress) / 0.1 * W * 0.5);
+    const cardW = W * 0.8, cardH = H * 0.65;
+    const cardY = H * 0.175;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(slideX, cardY, cardW, cardH, 20);
+    ctx.fill();
+    ctx.restore();
+
+    // Color header bar
+    const barGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
+    barGrad.addColorStop(0, colorPair[0]);
+    barGrad.addColorStop(1, colorPair[1]);
+    ctx.fillStyle = barGrad;
+    ctx.beginPath();
+    ctx.roundRect(slideX, cardY, cardW, 54, [20, 20, 0, 0]);
+    ctx.fill();
+
+    // Title
+    const titleAlpha = Math.min(1, (progress - 0.15) / 0.15);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, titleAlpha);
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(W * 0.042)}px Inter, sans-serif`;
+    ctx.textBaseline = 'middle';
+    const title = (diary.title || '旅行记忆').slice(0, 14);
+    ctx.fillText(title, slideX + 20, cardY + 27);
+    ctx.restore();
+
+    // Spot name chip
+    if (diary.spotName) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, titleAlpha);
+      ctx.fillStyle = colorPair[0] + '22';
+      ctx.beginPath();
+      ctx.roundRect(slideX + 20, cardY + 64, 120, 24, 12);
+      ctx.fill();
+      ctx.fillStyle = colorPair[0];
+      ctx.font = `${Math.round(W * 0.028)}px Inter, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📍 ' + diary.spotName.slice(0, 8), slideX + 28, cardY + 76);
+      ctx.restore();
+    }
+
+    // Content preview
+    const contentAlpha = Math.min(1, (progress - 0.3) / 0.2);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, contentAlpha);
+    ctx.fillStyle = '#374151';
+    ctx.font = `${Math.round(W * 0.03)}px Inter, sans-serif`;
+    ctx.textBaseline = 'top';
+    const content = (diary.content || '').slice(0, 60) + (diary.content?.length > 60 ? '...' : '');
+    const words = content.split('');
+    let line = '', lines = [], lineW = cardW - 40;
+    for (const ch of words) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > lineW) { lines.push(line); line = ch; }
+      else line = test;
+    }
+    if (line) lines.push(line);
+    lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, slideX + 20, cardY + 100 + i * 26));
+    ctx.restore();
+
+    // Rating stars
+    const starsAlpha = Math.min(1, (progress - 0.5) / 0.2);
+    if (diary.rating > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, starsAlpha);
+      ctx.font = `${Math.round(W * 0.032)}px sans-serif`;
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('⭐'.repeat(Math.floor(diary.rating)), slideX + 20, cardY + cardH - 16);
+      ctx.restore();
+    }
+
+    // Progress bar at bottom
+    const barH = 4;
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillRect(slideX, cardY + cardH - barH, cardW, barH);
+    const pbGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
+    pbGrad.addColorStop(0, colorPair[0]);
+    pbGrad.addColorStop(1, colorPair[1]);
+    ctx.fillStyle = pbGrad;
+    ctx.fillRect(slideX, cardY + cardH - barH, cardW * progress, barH);
+
+    // Watermark
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `${Math.round(W * 0.022)}px Inter, sans-serif`;
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('✨ AIGC 旅游动画 · AI Generated Travel Memory', slideX + 10, H - 10);
+    ctx.restore();
+  };
+
+  const startAnimation = () => {
+    if (!canvasRef.current || diaries.length === 0) return;
+    setPlaying(true);
+    let idx = 0, startTime = null, DURATION = 3000;
+
+    const animate = (ts) => {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
+      const diary = diaries[idx % diaries.length];
+      const colorPair = AIGC_CARD_COLORS[idx % AIGC_CARD_COLORS.length];
+
+      drawFrame(canvasRef.current, diary, progress, colorPair);
+      setCurrentIdx(idx % diaries.length);
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        idx++;
+        startTime = null;
+        if (idx < diaries.length) {
+          animFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          setPlaying(false);
+        }
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  const stopAnimation = () => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    setPlaying(false);
+  };
+
+  useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); }, []);
+
+  if (diaries.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-400">
+        <div className="text-3xl mb-2">📝</div>
+        <p>暂无日记数据，发布几篇日记后即可生成回忆动画</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <button onClick={playing ? stopAnimation : startAnimation}
+          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+            playing ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gradient-to-r from-orange-400 to-pink-500 text-white hover:opacity-90'
+          }`}>
+          {playing ? '⏹ 停止动画' : '▶ 生成旅游动画'}
+        </button>
+        {playing && (
+          <span className="text-sm text-gray-500">
+            正在播放：{diaries[currentIdx]?.title || '旅行记忆'} ({currentIdx + 1}/{diaries.length})
+          </span>
+        )}
+        <span className="text-xs text-gray-400 ml-auto">共 {diaries.length} 篇日记 · 每张 3s</span>
+      </div>
+
+      <canvas ref={canvasRef} width={560} height={360}
+        className="w-full rounded-2xl shadow-lg border border-gray-100"
+        style={{ background: '#f8fafc', display: 'block' }} />
+
+      <div className="grid grid-cols-4 gap-2">
+        {diaries.slice(0, 8).map((d, i) => (
+          <div key={d.id}
+            className={`px-3 py-2 rounded-xl text-xs transition-all ${
+              i === currentIdx && playing ? 'bg-orange-100 border border-orange-300 text-orange-700 font-semibold' : 'bg-gray-50 text-gray-500'
+            }`}>
+            {d.title?.slice(0, 8) || '日记'}
+          </div>
+        ))}
+      </div>
+
+      {/* ── 服务端生成 MP4 回忆视频（ffmpeg Ken Burns 效果） ── */}
+      <div className="pt-2 border-t border-gray-100">
+        <div className="flex items-center gap-3 flex-wrap mt-3">
+          <button onClick={generateVideo} disabled={videoLoading}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90 disabled:opacity-60">
+            {videoLoading ? '⏳ 正在生成视频…' : '🎬 生成 MP4 回忆视频'}
+          </button>
+          <span className="text-xs text-gray-400">
+            服务端 ffmpeg 实时渲染（Ken Burns 缩放 + 标题字幕），取前 {Math.min(diaries.length, 5)} 篇日记
+          </span>
+        </div>
+
+        {videoError && (
+          <p className="text-sm text-red-500 mt-2">{videoError}</p>
+        )}
+
+        {videoUrl && (
+          <div className="mt-3">
+            <video src={videoUrl} controls className="w-full rounded-2xl shadow-lg border border-gray-100" style={{ maxHeight: 360 }} />
+            <a href={videoUrl} download className="inline-block mt-2 text-sm text-blue-600 hover:underline">
+              ⬇ 下载视频
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* ── 单条日记行（可点击进入详情页） ──────────────────────────── */
@@ -295,6 +555,7 @@ export default function Diary() {
   const [submitting,  setSubmitting]  = useState(false);
   const [generating,  setGenerating]  = useState(false);
   const [aiDraft,     setAiDraft]     = useState('');
+  const [showAigc,    setShowAigc]    = useState(false);
   const fileRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -449,11 +710,41 @@ export default function Diary() {
           display:'inline-flex', alignItems:'center', gap:8,
           fontSize:'0.72rem', color:'#aeaeb2',
           fontFamily:'SF Mono, Fira Code, monospace', letterSpacing:'0.03em',
-          marginBottom:36,
+          marginBottom:20,
         }}>
           <span style={{ color:'#c7c7cc' }}>KMP 精确匹配</span>
           <span>·</span>
           <span style={{ color:'#c7c7cc' }}>倒排索引全文检索</span>
+        </div>
+
+        {/* ── AIGC 旅行回忆动画 */}
+        <div style={{ marginBottom:36 }}>
+          <button onClick={() => setShowAigc(!showAigc)} style={{
+            display:'flex', alignItems:'center', gap:8,
+            background:'transparent', color:'#1d1d1f',
+            border:'1.5px solid rgba(0,0,0,0.12)',
+            borderRadius:12, padding:'9px 18px', fontSize:'0.85rem',
+            fontWeight:600, cursor:'pointer', fontFamily:'Inter, sans-serif',
+            transition:'all 0.2s ease',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(0,0,0,0.04)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='transparent'; }}
+          >
+            ✨ {showAigc ? '收起 AI 旅行回忆动画' : '生成 AI 旅行回忆动画'}
+          </button>
+          {showAigc && (
+            <div className="card p-6" style={{ marginTop:16 }}>
+              <div style={{ marginBottom:16 }}>
+                <h3 style={{ fontFamily:'Inter, sans-serif', fontSize:'1.05rem', fontWeight:700, color:'#1d1d1f', marginBottom:6 }}>
+                  AIGC 旅行回忆动画
+                </h3>
+                <p style={{ fontSize:'0.8rem', color:'#9aa0a6', lineHeight:1.6 }}>
+                  基于热门日记数据，利用 Canvas API 实时渲染动态旅游记忆卡片序列：每帧计算粒子轨迹、卡片滑入缓动、文字淡入时序与进度条动画。
+                </p>
+              </div>
+              <AIGCMemoryAnimation diaries={visibleDiaries.slice(0, 12)} />
+            </div>
+          )}
         </div>
 
         {/* ── 发布日记表单（白底，无盒子，用细线分隔）*/}
