@@ -1,5 +1,6 @@
 const DEFAULT_BASE_URL = 'https://api.deepseek.com';
 const DEFAULT_MODEL = 'deepseek-chat';
+const DEFAULT_AIGC_MODEL = 'gpt-5.5';
 
 function getConfig() {
   const apiKey = process.env.DIARY_AI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
@@ -45,6 +46,26 @@ function buildPrompt(input) {
     `标签：${tags || '未填写'}`,
     `用户输入：${notes || '未填写'}`,
   ].join('\n');
+}
+
+function getAigcConfig() {
+  const apiKey = process.env.AIGC_API_KEY
+    || process.env.DIARY_AIGC_API_KEY
+    || process.env.DIARY_AI_API_KEY
+    || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    const error = new Error('AIGC 短片脚本服务未配置，请设置 AIGC_API_KEY');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  return {
+    apiKey,
+    baseUrl: process.env.AIGC_BASE_URL || process.env.DIARY_AI_BASE_URL || DEFAULT_BASE_URL,
+    model: process.env.AIGC_MODEL || process.env.DIARY_AIGC_MODEL || DEFAULT_AIGC_MODEL,
+    wireApi: process.env.AIGC_WIRE_API || 'responses',
+    disableStorage: `${process.env.AIGC_DISABLE_RESPONSE_STORAGE || ''}`.toLowerCase() === 'true',
+  };
 }
 
 async function requestCompletion({ apiKey, baseUrl, model }, prompt, temperature = 0.75, systemContent) {
@@ -104,6 +125,121 @@ async function generateDiaryDraft(input) {
     `${prompt}\n\n上一版没有围绕“${spotName}”写作，不合格。请重写，正文必须自然出现“${spotName}”，且不要出现其他未提供的景点或城市。`,
     0.25,
   );
+}
+
+function getApiUrl(baseUrl, path) {
+  const normalized = baseUrl.replace(/\/$/, '');
+  if (normalized.endsWith('/v1')) return `${normalized}${path}`;
+  return `${normalized}/v1${path}`;
+}
+
+function extractResponsesText(payload) {
+  if (payload?.output_text) return payload.output_text.trim();
+  const parts = [];
+  (payload?.output || []).forEach((item) => {
+    (item?.content || []).forEach((content) => {
+      if (content?.text) parts.push(content.text);
+      if (content?.type === 'output_text' && content?.text) parts.push(content.text);
+    });
+  });
+  return parts.join('\n').trim();
+}
+
+async function requestResponses(config, prompt, images = []) {
+  const content = [
+    { type: 'input_text', text: prompt },
+    ...images.slice(0, 6).map((image) => ({ type: 'input_image', image_url: image })),
+  ];
+
+  const body = {
+    model: config.model,
+    input: [{ role: 'user', content }],
+    temperature: 0.45,
+    max_output_tokens: 1400,
+  };
+  if (config.disableStorage) body.store = false;
+
+  const response = await fetch(getApiUrl(config.baseUrl, '/responses'), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    const error = new Error(`AIGC 脚本生成失败：${response.status}${detail ? ` ${detail.slice(0, 180)}` : ''}`);
+    error.statusCode = 502;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const text = extractResponsesText(payload);
+  if (!text) {
+    const error = new Error('AIGC 模型未返回有效脚本');
+    error.statusCode = 502;
+    throw error;
+  }
+  return text;
+}
+
+function buildVideoScriptPrompt(input) {
+  const imageCount = Math.max(1, Math.min(Number(input.imageCount) || 1, 9));
+  return [
+    '你是旅游短片 AIGC 导演。请根据日记信息和上传图片，生成适合本地 Canvas 短片生成器使用的中文 JSON 分镜脚本。',
+    '只输出 JSON，不要 Markdown，不要解释。',
+    'JSON 格式必须为：',
+    '{"title":"...","style":"campus|landscape|architecture|night","intro":"...","outro":"...","voiceover":"...","shots":[{"caption":"...","motion":"push|pull|panLeft|panRight|tiltUp|float","prompt":"...","visualTags":["..."]}]}',
+    `shots 数量必须正好是 ${imageCount} 个，每个 caption 控制在 12 到 28 个中文字符。`,
+    'style 必须从 campus、landscape、architecture、night 中选择一个。',
+    'motion 只能从 push、pull、panLeft、panRight、tiltUp、float 中选择。',
+    '如果图片可见，请结合图片主体生成字幕；如果无法识图，则严格依据日记文字生成，不要编造具体事实。',
+    'prompt 用英文，面向后续真实图生视频模型，突出场景、镜头、光线和氛围。',
+    '',
+    `标题：${trimText(input.title, 80) || '未填写'}`,
+    `地点：${trimText(input.spotName, 80) || '未填写'}`,
+    `天气：${trimText(input.weather, 20) || '未填写'}`,
+    `心情：${trimText(input.mood, 20) || '未填写'}`,
+    `正文：${trimText(input.content, 1200) || '未填写'}`,
+  ].join('\n');
+}
+
+function normalizeVideoScript(script, input) {
+  const imageCount = Math.max(1, Math.min(Number(input.imageCount) || 1, 9));
+  const allowedStyles = new Set(['campus', 'landscape', 'architecture', 'night']);
+  const allowedMotions = new Set(['push', 'pull', 'panLeft', 'panRight', 'tiltUp', 'float']);
+  const fallbackTitle = trimText(input.title, 80) || trimText(input.spotName, 80) || '旅行日记';
+  const rawShots = Array.isArray(script?.shots) ? script.shots : [];
+  const shots = Array.from({ length: imageCount }, (_, index) => {
+    const raw = rawShots[index] || {};
+    return {
+      caption: trimText(raw.caption, 42) || `${fallbackTitle}的第 ${index + 1} 个瞬间`,
+      motion: allowedMotions.has(raw.motion) ? raw.motion : ['push', 'panRight', 'float', 'tiltUp'][index % 4],
+      prompt: trimText(raw.prompt, 500),
+      visualTags: Array.isArray(raw.visualTags) ? raw.visualTags.slice(0, 6).map(tag => trimText(tag, 32)).filter(Boolean) : [],
+    };
+  });
+
+  return {
+    title: trimText(script?.title, 80) || fallbackTitle,
+    style: allowedStyles.has(script?.style) ? script.style : 'campus',
+    intro: trimText(script?.intro, 80) || [trimText(input.spotName, 80), trimText(input.weather, 20), trimText(input.mood, 20)].filter(Boolean).join(' · '),
+    outro: trimText(script?.outro, 80) || '把下一站，也写进日记',
+    voiceover: trimText(script?.voiceover, 500),
+    shots,
+  };
+}
+
+async function generateDiaryVideoScript(input) {
+  const config = getAigcConfig();
+  const images = Array.isArray(input.images) ? input.images.filter(Boolean) : [];
+  const prompt = buildVideoScriptPrompt({ ...input, imageCount: input.imageCount || images.length || 1 });
+  const content = config.wireApi === 'responses'
+    ? await requestResponses(config, prompt, images)
+    : await requestCompletion(config, prompt, 0.45, '你是旅游短片 AIGC 导演，输出必须是可解析 JSON。');
+  return normalizeVideoScript(parseJsonObject(content), { ...input, imageCount: input.imageCount || images.length || 1 });
 }
 
 function buildGroupTripPrompt(input) {
@@ -186,9 +322,29 @@ function parseJsonObject(text) {
     return JSON.parse(raw);
   } catch {
     const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      return JSON.parse(raw.slice(start, end + 1));
+    if (start >= 0) {
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+      for (let index = start; index < raw.length; index += 1) {
+        const char = raw[index];
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (char === '\\') {
+            escaped = true;
+          } else if (char === '"') {
+            inString = false;
+          }
+          continue;
+        }
+        if (char === '"') inString = true;
+        if (char === '{') depth += 1;
+        if (char === '}') depth -= 1;
+        if (depth === 0) {
+          return JSON.parse(raw.slice(start, index + 1));
+        }
+      }
     }
     throw new Error('AI 返回内容不是合法 JSON');
   }
@@ -228,6 +384,7 @@ async function generateGroupChatReply(input) {
 
 module.exports = {
   generateDiaryDraft,
+  generateDiaryVideoScript,
   generateGroupTripSuggestion,
   analyzeGroupConflictWithAi,
   generateGroupChatReply,

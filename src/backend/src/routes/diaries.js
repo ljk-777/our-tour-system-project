@@ -3,7 +3,7 @@ const router = express.Router();
 const diaryRepo = require('../repositories/diaryRepository');
 const { searchInItems } = require('../algorithms/kmp');
 const { FullTextIndex } = require('../algorithms/trie');
-const { generateDiaryDraft } = require('../services/diaryAiService');
+const { generateDiaryDraft, generateDiaryVideoScript } = require('../services/diaryAiService');
 const { generateMemoryVideo } = require('../services/memoryVideoService');
 const { auth, requireAuth } = require('../middleware/auth');
 
@@ -16,22 +16,29 @@ async function buildDiaryIndex() {
   return { allDiaries, ftIndex };
 }
 
+function filterDiaries(diaries, { tag, spotName }) {
+  let result = diaries;
+  if (tag) result = result.filter((d) => d.tags && d.tags.includes(tag));
+  if (spotName) result = result.filter((d) => d.spotName && d.spotName.includes(spotName));
+  return result;
+}
+
+function sortDiaries(diaries, sortBy = 'createdAt', order = 'desc') {
+  const direction = order === 'asc' ? 1 : -1;
+  return [...diaries].sort((a, b) => {
+    if (sortBy === 'likes') return ((a.likes || 0) - (b.likes || 0)) * direction;
+    if (sortBy === 'views') return ((a.views || 0) - (b.views || 0)) * direction;
+    if (sortBy === 'rating') return ((a.rating || 0) - (b.rating || 0)) * direction;
+    return (new Date(a.createdAt) - new Date(b.createdAt)) * direction;
+  });
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const { userId, spotId, tag, spotName, sortBy = 'createdAt', order = 'desc', limit = 10, offset = 0 } = req.query;
     let { data: result, total } = await diaryRepo.findAll({ userId, spotId, limit: 9999, offset: 0 });
 
-    if (tag)      result = result.filter((d) => d.tags && d.tags.includes(tag));
-    if (spotName) result = result.filter((d) => d.spotName && d.spotName.includes(spotName));
-
-    result.sort((a, b) => {
-      if (sortBy === 'likes')   return order === 'desc' ? b.likes - a.likes : a.likes - b.likes;
-      if (sortBy === 'views')   return order === 'desc' ? b.views - a.views : a.views - b.views;
-      if (sortBy === 'rating')  return order === 'desc' ? (b.rating||0) - (a.rating||0) : (a.rating||0) - (b.rating||0);
-      return order === 'desc'
-        ? new Date(b.createdAt) - new Date(a.createdAt)
-        : new Date(a.createdAt) - new Date(b.createdAt);
-    });
+    result = sortDiaries(filterDiaries(result, { tag, spotName }), sortBy, order);
 
     total = result.length;
     result = result.slice(Number(offset), Number(offset) + Number(limit));
@@ -43,17 +50,21 @@ router.get('/', async (req, res, next) => {
 
 router.get('/search', async (req, res, next) => {
   try {
-    const { q, mode = 'kmp' } = req.query;
+    const { q, mode = 'kmp', tag, spotName, sortBy = 'createdAt', order = 'desc', limit = 10, offset = 0 } = req.query;
     if (!q) return res.json({ success: true, data: [] });
 
     const { allDiaries, ftIndex } = await buildDiaryIndex();
-    const result = mode === 'kmp'
+    let result = mode === 'kmp'
       ? searchInItems(allDiaries, q, ['title', 'content', 'spotName'])
       : ftIndex.search(q);
+    result = sortDiaries(filterDiaries(result, { tag, spotName }), sortBy, order);
+    const total = result.length;
+    result = result.slice(Number(offset), Number(offset) + Number(limit));
 
     res.json({
       success: true,
       data: result,
+      total,
       mode,
       query: q,
       algorithm: mode === 'kmp' ? 'KMP' : 'InvertedIndex',
@@ -82,6 +93,33 @@ router.post('/generate', async (req, res, next) => {
     });
 
     res.json({ success: true, data: { content: draft } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/video-script', async (req, res, next) => {
+  try {
+    const { title, content, spotName, weather, mood, images, imageCount } = req.body;
+    const safeImages = Array.isArray(images)
+      ? images.filter((image) => typeof image === 'string' && image.startsWith('data:image/')).slice(0, 6)
+      : [];
+
+    if (!title && !content && !spotName && safeImages.length === 0) {
+      return res.status(400).json({ success: false, message: '请先填写日记信息或上传图片' });
+    }
+
+    const script = await generateDiaryVideoScript({
+      title,
+      content,
+      spotName,
+      weather,
+      mood,
+      images: safeImages,
+      imageCount: imageCount || safeImages.length || 1,
+    });
+
+    res.json({ success: true, data: script });
   } catch (error) {
     next(error);
   }
@@ -125,7 +163,7 @@ router.post('/', requireAuth, async (req, res, next) => {
   try {
     const {
       userName, userAvatar, title, content, spotId, spotName,
-      coverImage, videoUrl, tags, rating, visitDate, weather, mood,
+      coverImage, videoUrl, media, tags, rating, visitDate, weather, mood,
     } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: '标题和内容不能为空' });
 
@@ -133,7 +171,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       userId: req.user.id,  // ← FROM AUTH, NOT FROM BODY
       userName: userName || '旅行者',
       userAvatar,
-      title, content, spotId, spotName, coverImage, videoUrl, tags, rating, visitDate, weather, mood,
+      title, content, spotId, spotName, coverImage, videoUrl, media, tags, rating, visitDate, weather, mood,
     });
 
     res.json({ success: true, data: diary, message: '日记发布成功' });

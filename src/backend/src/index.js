@@ -18,7 +18,7 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '80mb' }));
 app.use('/api/memory-videos', express.static(path.join(__dirname, '../public/memory-videos')));
 const { auth } = require('./middleware/auth');
 app.use(auth);
