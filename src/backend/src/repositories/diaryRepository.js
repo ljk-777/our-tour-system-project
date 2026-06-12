@@ -13,6 +13,7 @@ function mapDiary(row) {
     spotName: row.spot_name,
     coverImage: row.cover_image,
     videoUrl: row.video_url || null,
+    media: Array.isArray(row.media) ? row.media : [],
     tags: row.tags || [],
     rating: row.rating === null ? null : Number(row.rating),
     ratingCount: Number(row.rating_count || 0),
@@ -32,6 +33,7 @@ const baseSelect = `
     d.*,
     d.visit_date::text AS visit_date_text,
     COALESCE(tags.tags, '{}'::text[]) AS tags,
+    COALESCE(media.media, '[]'::json) AS media,
     COALESCE(comments.comments, '[]'::json) AS comments
   FROM diaries d
   LEFT JOIN (
@@ -39,6 +41,24 @@ const baseSelect = `
     FROM diary_tags
     GROUP BY diary_id
   ) tags ON tags.diary_id = d.id
+  LEFT JOIN (
+    SELECT
+      diary_id,
+      json_agg(
+        json_build_object(
+          'id', id,
+          'type', media_type,
+          'url', url,
+          'thumbnailUrl', thumbnail_url,
+          'source', source,
+          'style', style,
+          'sortOrder', sort_order
+        )
+        ORDER BY sort_order, id
+      ) AS media
+    FROM diary_media
+    GROUP BY diary_id
+  ) media ON media.diary_id = d.id
   LEFT JOIN (
     SELECT
       diary_id,
@@ -148,6 +168,13 @@ async function create(data) {
     for (const tag of data.tags || []) {
       await client.query('INSERT INTO diary_tags (diary_id, tag) VALUES ($1, $2)', [newDiaryId, tag]);
     }
+    for (const [index, item] of normalizeMedia(data.media, data.coverImage, data.videoUrl).entries()) {
+      await client.query(
+        `INSERT INTO diary_media (diary_id, media_type, url, thumbnail_url, source, style, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [newDiaryId, item.type, item.url, item.thumbnailUrl || null, item.source || 'upload', item.style || null, index]
+      );
+    }
 
     return newDiaryId;
   });
@@ -205,6 +232,17 @@ async function update(id, data) {
       await client.query('DELETE FROM diary_tags WHERE diary_id = $1', [Number(id)]);
       for (const tag of data.tags) {
         await client.query('INSERT INTO diary_tags (diary_id, tag) VALUES ($1, $2)', [Number(id), tag]);
+      }
+    }
+
+    if (data.media) {
+      await client.query('DELETE FROM diary_media WHERE diary_id = $1', [Number(id)]);
+      for (const [index, item] of normalizeMedia(data.media, merged.coverImage, merged.videoUrl).entries()) {
+        await client.query(
+          `INSERT INTO diary_media (diary_id, media_type, url, thumbnail_url, source, style, sort_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [Number(id), item.type, item.url, item.thumbnailUrl || null, item.source || 'upload', item.style || null, index]
+        );
       }
     }
   });
@@ -337,6 +375,29 @@ async function getMyRating(userId, diaryId) {
     [Number(diaryId), Number(userId)]
   );
   return rows[0]?.score ?? null;
+}
+
+function normalizeMedia(media = [], coverImage, videoUrl) {
+  const result = [];
+  const seen = new Set();
+  const pushItem = (item) => {
+    const type = item?.type === 'video' ? 'video' : item?.type === 'image' ? 'image' : null;
+    const url = `${item?.url || ''}`.trim();
+    if (!type || !url || seen.has(`${type}:${url}`)) return;
+    seen.add(`${type}:${url}`);
+    result.push({
+      type,
+      url,
+      thumbnailUrl: item.thumbnailUrl || null,
+      source: item.source === 'aigc' ? 'aigc' : 'upload',
+      style: item.style || null,
+    });
+  };
+
+  if (Array.isArray(media)) media.forEach(pushItem);
+  if (coverImage) pushItem({ type: 'image', url: coverImage });
+  if (videoUrl) pushItem({ type: 'video', url: videoUrl });
+  return result.slice(0, 12);
 }
 
 module.exports = {

@@ -124,6 +124,22 @@ const schemaStatements = [
   `ALTER TABLE diaries ADD COLUMN IF NOT EXISTS video_url TEXT;`,
   `ALTER TABLE diaries ADD COLUMN IF NOT EXISTS rating_count INTEGER NOT NULL DEFAULT 0;`,
   `
+    CREATE TABLE IF NOT EXISTS diary_media (
+      id BIGSERIAL PRIMARY KEY,
+      diary_id BIGINT NOT NULL REFERENCES diaries(id) ON DELETE CASCADE,
+      media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('image', 'video')),
+      url TEXT NOT NULL,
+      thumbnail_url TEXT,
+      source VARCHAR(30) NOT NULL DEFAULT 'upload',
+      style VARCHAR(50),
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `,
+  `ALTER TABLE diary_media ADD COLUMN IF NOT EXISTS source VARCHAR(30) NOT NULL DEFAULT 'upload';`,
+  `ALTER TABLE diary_media ADD COLUMN IF NOT EXISTS style VARCHAR(50);`,
+  `CREATE INDEX IF NOT EXISTS idx_diary_media_diary_id ON diary_media(diary_id, sort_order);`,
+  `
     CREATE TABLE IF NOT EXISTS diary_ratings (
       diary_id BIGINT NOT NULL REFERENCES diaries(id) ON DELETE CASCADE,
       user_id  BIGINT NOT NULL REFERENCES users(id)   ON DELETE CASCADE,

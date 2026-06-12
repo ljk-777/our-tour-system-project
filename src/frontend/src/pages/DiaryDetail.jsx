@@ -6,6 +6,16 @@ import { useAuth } from '../context/AuthContext.jsx';
 const WEATHER_ICON = { '晴':'☀️','多云':'⛅','阴':'🌥️','雨':'🌧️','雪':'❄️','多云转晴':'🌤️' };
 const MOOD_ICON    = { '愉悦':'😊','激动':'🤩','满足':'😌','宁静':'😶','震撼':'😲','感动':'🥹','自由':'🤸','虔诚':'🙏' };
 
+function getDiaryMedia(diary) {
+  const media = Array.isArray(diary?.media) ? diary.media.filter(item => item?.url) : [];
+  if (media.length > 0) return media;
+
+  const fallback = [];
+  if (diary?.coverImage) fallback.push({ type: 'image', url: diary.coverImage });
+  if (diary?.videoUrl) fallback.push({ type: 'video', url: diary.videoUrl });
+  return fallback;
+}
+
 export default function DiaryDetail() {
   const { id } = useParams();
   const { user, likedDiaryIds } = useAuth();
@@ -120,6 +130,7 @@ export default function DiaryDetail() {
   );
 
   const formattedDate = diary.visitDate || (diary.createdAt ? new Date(diary.createdAt).toLocaleDateString('zh-CN') : '');
+  const media = getDiaryMedia(diary);
 
   return (
     <div className="glass-bg">
@@ -153,11 +164,25 @@ export default function DiaryDetail() {
             {formattedDate && <span>📅 {formattedDate}</span>}
           </div>
 
-          {/* 封面视频 */}
-          {diary.videoUrl && (
-            <video src={diary.videoUrl} controls
-              className="w-full rounded-xl mb-4"
-              style={{ maxHeight: 260 }} />
+          {media.length > 0 && (
+            <div className="grid gap-3 mb-4">
+              {media.map((item, index) => item.type === 'video' ? (
+                <div key={`${item.url}-${index}`} className="relative">
+                  <video src={item.url} controls
+                    className="w-full rounded-xl"
+                    style={{ maxHeight: 320, background: '#000' }} />
+                  {item.source === 'aigc' && (
+                    <span className="absolute left-3 top-3 rounded-full bg-orange-500 px-2 py-1 text-xs font-semibold text-white">
+                      AI 动画
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <img key={`${item.url}-${index}`} src={item.url} alt={`日记图片 ${index + 1}`}
+                  className="w-full rounded-xl"
+                  style={{ maxHeight: 480, objectFit: 'cover' }} />
+              ))}
+            </div>
           )}
 
           {/* Full content */}
