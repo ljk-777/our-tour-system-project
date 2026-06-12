@@ -30,6 +30,7 @@ const SECTIONS = [
       { to: '/plaza',   label: '动态广场' },
       { to: '/profile', label: '旅行者社区' },
       { to: '/globe',   label: '🌍 3D 星球' },
+      { to: '/algo',    label: '⚙️ 算法演示' },
     ],
   },
 ];

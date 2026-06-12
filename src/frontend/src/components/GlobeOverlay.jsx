@@ -4,6 +4,7 @@ import { Search, Map, Compass, BookOpen, Navigation, X, Calendar, Sparkles, User
 import { useAppStore } from '@/store/useAppStore';
 import { Link } from 'react-router-dom';
 import { TOP_TRAVELERS, CITY_COORDS, GLOBE_MARKERS } from '@/data/globeData';
+import { getDiaries, getSpots } from '@/api/index.js';
 
 const TABS = [
   { id: 'explore',    icon: Compass,    label: '探索' },
@@ -582,27 +583,36 @@ const h2r = (hex, a) => {
 };
 
 /* ── Canvas 流星弹幕层（性能优先版 — 零 shadowBlur）──────── */
-function DanmuLayer({ active }) {
+function DanmuLayer({ active, cityMessages = [] }) {
   const canvasRef = useRef(null);
-  const S = useRef({ bullets:[], queue:[], animId:null, spawnId:null });
+  const S = useRef({ bullets:[], queue:[], cityQueue:[], animId:null, spawnId:null });
+  const cityMsgsRef = useRef(cityMessages);
+  cityMsgsRef.current = cityMessages;
 
+  // 30% 概率优先从「当前城市真实日记」消息池取词，否则用通用文案
   const nextMsg = (s) => {
+    const cityMsgs = cityMsgsRef.current;
+    if (cityMsgs.length && Math.random() < 0.3) {
+      if (!s.cityQueue.length) s.cityQueue = [...cityMsgs].sort(() => Math.random() - 0.5);
+      return { text: s.cityQueue.shift().text, real: true };
+    }
     if (!s.queue.length) s.queue = [...DANMU_MSGS].sort(() => Math.random() - 0.5);
-    return s.queue.shift();
+    return { text: s.queue.shift(), real: false };
   };
 
   const makeBullet = (canvas, s, opts = {}) => {
     const W = canvas.width, H = canvas.height;
     const isMsg = opts.type !== 'star';
-    const color = DANMU_COLORS[Math.floor(Math.random() * DANMU_COLORS.length)];
+    const msg = isMsg ? nextMsg(s) : null;
+    const color = msg?.real ? '#fde68a' : DANMU_COLORS[Math.floor(Math.random() * DANMU_COLORS.length)];
     return {
       x:       opts.startX ?? W + 30,
       y:       H * 0.03 + Math.random() * H * 0.54,
       speed:   isMsg ? 85 + Math.random() * 55 : 210 + Math.random() * 160,
-      tailLen: isMsg ? 110 + Math.random() * 55 : 55 + Math.random() * 80,
+      tailLen: isMsg ? (msg?.real ? 150 + Math.random() * 60 : 110 + Math.random() * 55) : 55 + Math.random() * 80,
       headR:   isMsg ? 2.5 : 1.4 + Math.random(),
       color, isMsg,
-      text:    isMsg ? nextMsg(s) : '',
+      text:    isMsg ? msg.text : '',
       fontSize:isMsg ? 13 + Math.floor(Math.random() * 4) : 0,
       alpha:0, dying:false,
       // 轻量粒子：只存坐标+alpha，不存颜色（复用父级color）
@@ -750,10 +760,39 @@ function DanmuLayer({ active }) {
 export default function GlobeOverlay() {
   const { activeTab, setActiveTab, selectedMarker, setSelectedMarker, setFocusedCity, focusedCity } = useAppStore();
 
+  // ── 真实日记数据：用于弹幕内容 + 城市联动 ──────────────
+  const [diaries, setDiaries] = useState([]);
+  const [spotCityMap, setSpotCityMap] = useState({});
+
+  useEffect(() => {
+    getDiaries({ limit: 100, sortBy: 'likes', order: 'desc' })
+      .then(res => setDiaries(res.data?.data || []))
+      .catch(() => {});
+    getSpots({ limit: 999 })
+      .then(res => {
+        const map = {};
+        (res.data?.data || []).forEach(spot => { map[spot.name] = spot.city; });
+        setSpotCityMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 当前聚焦城市相关的真实日记（按点赞数排序）
+  const cityDiaries = focusedCity
+    ? diaries.filter(d => d.spotName && spotCityMap[d.spotName] === focusedCity.title)
+    : [];
+
+  const cityMessages = cityDiaries.map(d => ({
+    text: `📝「${(d.title || '旅行日记').slice(0, 16)}」· ${d.spotName} ❤${d.likes || 0}`,
+    diaryId: d.id,
+  }));
+
+  const topCityDiary = cityDiaries[0];
+
   return (
     <>
     {/* ── 流星弹幕层（fixed 覆盖全屏，z-index 高于地球）── */}
-    <DanmuLayer active={!!focusedCity} />
+    <DanmuLayer active={!!focusedCity} cityMessages={cityMessages} />
 
     <div className="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between">
 
@@ -815,6 +854,14 @@ export default function GlobeOverlay() {
                     规划路线
                   </Link>
                 </div>
+                {topCityDiary && (
+                  <Link to={`/diary/${topCityDiary.id}`}
+                    className="mt-1 flex items-center gap-2 px-3 py-2 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 rounded-xl text-xs text-amber-200 transition-colors">
+                    <span className="shrink-0">📝 真实游记</span>
+                    <span className="truncate flex-1">「{topCityDiary.title}」· {topCityDiary.spotName}</span>
+                    <span className="shrink-0">❤{topCityDiary.likes || 0}</span>
+                  </Link>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

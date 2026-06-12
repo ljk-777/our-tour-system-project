@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { searchSpots, shortestPath, aStarPath, getTopK, multiPointPath, getGraphStats, getDiaries } from '../api/index.js';
+import { useState } from 'react';
+import { searchSpots, shortestPath, aStarPath, getTopK, multiPointPath, getSpots } from '../api/index.js';
 
 /**
  * 算法演示页 — 课程验收专用
@@ -7,16 +7,11 @@ import { searchSpots, shortestPath, aStarPath, getTopK, multiPointPath, getGraph
  */
 export default function AlgoDemo() {
   const [activeAlgo, setActiveAlgo] = useState('trie');
-  const [stats, setStats] = useState(null);
 
   // Compression tab state
   const [compressText, setCompressText] = useState('北京邮电大学沙河校区位于北京市昌平区，校园环境优美。这里有教学楼、图书馆、宿舍和食堂，学生们每天都在这里学习和生活。');
   const [compressResult, setCompressResult] = useState(null);
   const [compressLoading, setCompressLoading] = useState(false);
-
-  useEffect(() => {
-    getGraphStats().then(r => setStats(r.data.data)).catch(() => {});
-  }, []);
 
   const runCompressionBenchmark = async () => {
     if (!compressText.trim()) return;
@@ -117,24 +112,6 @@ export default function AlgoDemo() {
         <p className="text-gray-500 text-sm">课程设计核心算法交互演示 · 可用于现场验收答辩</p>
       </div>
 
-      {/* 图谱统计 */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {[
-            { icon:'🗺️', label:'图中节点数',  value: stats.totalNodes,  color:'text-blue-600' },
-            { icon:'🛤️', label:'道路边数',    value: stats.totalEdges,  color:'text-teal-600' },
-            { icon:'📍', label:'景点总数',    value: stats.totalSpots,  color:'text-orange-600' },
-            { icon:'⚡', label:'核心算法数',  value: 7,                 color:'text-purple-600' },
-          ].map(s => (
-            <div key={s.label} className="card p-4 text-center">
-              <div className="text-2xl mb-1">{s.icon}</div>
-              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="grid lg:grid-cols-4 gap-6">
         {/* 侧边：算法列表 */}
         <div className="lg:col-span-1">
@@ -176,7 +153,6 @@ export default function AlgoDemo() {
           {activeAlgo === 'topk'        && <TopKDemo />}
           {activeAlgo === 'kmp'         && <KMPDemo />}
           {activeAlgo === 'compression' && renderCompression()}
-          {activeAlgo === 'aigc'        && <AIGCAnimationDemo />}
         </div>
       </div>
     </div>
@@ -191,23 +167,47 @@ const ALGOS = [
   { key: 'topk',        name: 'MinHeap TopK',      icon: '⛏️' },
   { key: 'kmp',         name: 'KMP 字符串匹配',    icon: '🔎' },
   { key: 'compression', name: '无损压缩',          icon: '📦' },
-  { key: 'aigc',        name: 'AIGC 旅游动画',     icon: '🎬' },
 ];
 
 /* ====== Trie 演示 ====== */
+const MODE_EXAMPLES = {
+  prefix: [
+    { label: '"故" → 前缀匹配故宫/故居', q: '故' },
+    { label: '"颐和" → 颐和园', q: '颐和' },
+    { label: '"北京邮电" → 北京邮电大学', q: '北京邮电' },
+  ],
+  fulltext: [
+    { label: '历史文化 → 倒排索引 AND 检索', q: '历史文化' },
+    { label: '皇家园林 → 颐和园等皇家园林', q: '皇家园林' },
+    { label: '胡同文化 → 什刹海等老北京街区', q: '胡同文化' },
+  ],
+  fuzzy: [
+    { label: '"故宫博物馆"（错字）→ 容错匹配"故宫博物院"', q: '故宫博物馆' },
+    { label: '"天坛公院"（错字）→ 容错匹配"天坛公园"', q: '天坛公院' },
+    { label: '"颐和圆"（错字）→ 容错匹配"颐和园"', q: '颐和圆' },
+  ],
+};
+
 function TrieDemo() {
   const [q, setQ] = useState('故');
   const [mode, setMode] = useState('prefix');
   const [result, setResult] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const run = async () => {
-    if (!q) return;
+  const run = async (overrideQ, overrideMode) => {
+    const queryQ = overrideQ ?? q;
+    const queryMode = overrideMode ?? mode;
+    if (!queryQ) return;
     setLoading(true);
     try {
-      const res = await searchSpots({ q, mode });
+      const res = await searchSpots({ q: queryQ, mode: queryMode });
       setResult(res.data.data || []);
     } finally { setLoading(false); }
+  };
+
+  const runExample = (ex) => {
+    setQ(ex.q);
+    run(ex.q, mode);
   };
 
   return (
@@ -226,16 +226,27 @@ function TrieDemo() {
           </button>
         ))}
       </div>
+
+      {/* 示例查询（每种模式至少 3 个） */}
+      <div className="flex flex-wrap gap-2 mb-3 text-xs">
+        {MODE_EXAMPLES[mode].map(ex => (
+          <button key={ex.label} onClick={() => runExample(ex)}
+            className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
+            {ex.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-2 mb-4">
         <input value={q} onChange={e => setQ(e.target.value)}
           placeholder="输入关键词（如：故宫、西湖、北大）"
           onKeyDown={e => e.key === 'Enter' && run()}
           className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-        <button onClick={run} disabled={loading} className="btn-primary text-sm">
+        <button onClick={() => run()} disabled={loading} className="btn-primary text-sm">
           {loading ? '运行中...' : '▶ 执行'}
         </button>
       </div>
-      {result.length > 0 && (
+      {result.length > 0 ? (
         <div>
           <p className="text-xs text-gray-400 mb-2">返回 {result.length} 条结果（算法：{mode}）</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -247,6 +258,12 @@ function TrieDemo() {
             ))}
           </div>
         </div>
+      ) : (
+        <p className="text-xs text-gray-400">
+          {mode === 'fulltext' && '提示：倒排索引按字分词并取多词交集（AND），可尝试"皇家园林""历史文化"等组合词。'}
+          {mode === 'fuzzy' && '提示：模糊匹配基于编辑距离 ≤1，可尝试输入带错字的景点名，如"天坛公院"。'}
+          {mode === 'prefix' && '提示：Trie 前缀树按字逐层索引，输入前几个字即可联想全部匹配景点。'}
+        </p>
       )}
     </div>
   );
@@ -266,6 +283,8 @@ function DijkstraDemo() {
     { label: '西湖 → 灵隐寺',       from: 36,  to: 38  },
     { label: '北大西门 → 未名湖',    from: 202, to: 205 },
     { label: '北大图书馆 → 博雅塔',  from: 201, to: 206 },
+    { label: '🏛️ 天坛公园 → 国家博物馆', from: 3, to: 16 },
+    { label: '🏛️ 故宫 → 天坛公园',    from: 1, to: 3  },
   ];
 
   const run = async () => {
@@ -359,18 +378,54 @@ function DijkstraDemo() {
 }
 
 /* ====== TopK 演示 ====== */
+const TOPK_CITIES = ['全部', '北京', '上海', '杭州', '成都', '西安', '云南', '广州', '武汉', '南京'];
+
 function TopKDemo() {
   const [k, setK] = useState(5);
   const [type, setType] = useState('scenic');
+  const [city, setCity] = useState('全部');
   const [result, setResult] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [bench, setBench] = useState(null);
+  const [benchLoading, setBenchLoading] = useState(false);
 
   const run = async () => {
-    setLoading(true);
+    setLoading(true); setBench(null);
     try {
-      const res = await getTopK({ k, type });
+      const params = { k, type };
+      if (city !== '全部') params.city = city;
+      const res = await getTopK(params);
       setResult(res.data.data || []);
     } finally { setLoading(false); }
+  };
+
+  // 性能对比：MinHeap TopK O(N log K) vs 全量排序 O(N log N)
+  const runBenchmark = async () => {
+    setBenchLoading(true);
+    try {
+      const params = { limit: 300, type };
+      if (city !== '全部') params.city = city;
+      const res = await getSpots(params);
+      const pool = res.data.data || [];
+
+      const t1 = performance.now();
+      const heapTop = clientTopK(pool, k);
+      const t2 = performance.now();
+
+      const sortTop = [...pool].sort((a, b) => b.rating - a.rating).slice(0, k);
+      const t3 = performance.now();
+
+      const sameResult = JSON.stringify(heapTop.map(s => s.id).sort((a, b) => a - b)) ===
+        JSON.stringify(sortTop.map(s => s.id).sort((a, b) => a - b));
+
+      setBench({
+        poolSize: pool.length,
+        heapTime: t2 - t1,
+        sortTime: t3 - t2,
+        sameResult,
+        heapNames: heapTop.map(s => s.name),
+      });
+    } finally { setBenchLoading(false); }
   };
 
   return (
@@ -395,12 +450,41 @@ function TopKDemo() {
             <option value="campus">高校</option>
           </select>
         </div>
-        <div className="flex items-end">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">城市</label>
+          <select value={city} onChange={e => setCity(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+            {TOPK_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="flex items-end gap-2">
           <button onClick={run} disabled={loading} className="btn-primary text-sm">
             {loading ? '运行中...' : '▶ 运行 TopK 堆'}
           </button>
+          <button onClick={runBenchmark} disabled={benchLoading}
+            className="px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors disabled:opacity-50">
+            {benchLoading ? '对比中...' : '⚡ 对比全排序'}
+          </button>
         </div>
       </div>
+
+      {bench && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-purple-50 rounded-xl p-3 text-center">
+            <div className="font-bold text-purple-600 text-lg">{bench.heapTime.toFixed(3)} ms</div>
+            <div className="text-gray-400 text-xs mt-0.5">MinHeap TopK · O(N log K)</div>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <div className="font-bold text-gray-600 text-lg">{bench.sortTime.toFixed(3)} ms</div>
+            <div className="text-gray-400 text-xs mt-0.5">Array.sort 全排序 · O(N log N)</div>
+          </div>
+          <div className="bg-green-50 rounded-xl p-3 text-center">
+            <div className="font-bold text-green-600 text-lg">N={bench.poolSize}</div>
+            <div className="text-gray-400 text-xs mt-0.5">{bench.sameResult ? '✅ 结果一致' : '⚠️ 结果不同'}</div>
+          </div>
+        </div>
+      )}
+
       {result.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-gray-400 mb-2">从全部景点中取出评分最高的 {result.length} 个：</p>
@@ -425,15 +509,73 @@ function TopKDemo() {
   );
 }
 
+/* ====== 客户端 MinHeap TopK（与 backend/src/algorithms/heap.js 逻辑一致，用于性能对比演示）====== */
+class DemoMinHeap {
+  constructor(compare) { this.data = []; this.compare = compare; }
+  get size() { return this.data.length; }
+  peek() { return this.data[0] || null; }
+  push(item) {
+    this.data.push(item);
+    let i = this.data.length - 1;
+    while (i > 0) {
+      const p = Math.floor((i - 1) / 2);
+      if (this.compare(this.data[i], this.data[p]) < 0) { [this.data[i], this.data[p]] = [this.data[p], this.data[i]]; i = p; }
+      else break;
+    }
+  }
+  pop() {
+    const top = this.data[0];
+    const last = this.data.pop();
+    if (this.data.length > 0) {
+      this.data[0] = last;
+      let i = 0, n = this.data.length;
+      while (true) {
+        let smallest = i, l = 2 * i + 1, r = 2 * i + 2;
+        if (l < n && this.compare(this.data[l], this.data[smallest]) < 0) smallest = l;
+        if (r < n && this.compare(this.data[r], this.data[smallest]) < 0) smallest = r;
+        if (smallest === i) break;
+        [this.data[i], this.data[smallest]] = [this.data[smallest], this.data[i]];
+        i = smallest;
+      }
+    }
+    return top;
+  }
+}
+
+function clientTopK(items, k) {
+  if (k <= 0 || !items.length) return [];
+  const heap = new DemoMinHeap((a, b) => a.rating - b.rating);
+  for (const item of items) {
+    if (heap.size < k) heap.push(item);
+    else if (item.rating > heap.peek().rating) { heap.pop(); heap.push(item); }
+  }
+  return heap.data.sort((a, b) => b.rating - a.rating);
+}
+
 /* ====== KMP 演示 ====== */
+const KMP_EXAMPLES = [
+  { label: '日记检索：故宫/天坛', text: '今天去了故宫博物院，天气晴朗，游客很多。参观了太和殿、中和殿，感受了皇家气派。离开故宫后去了天坛，继续体验北京历史文化。', pattern: '故宫' },
+  { label: '多次出现：西湖之旅', text: '在西湖游玩了一整天，西湖的景色太美了，傍晚的西湖更加迷人，难怪人人都爱西湖。', pattern: '西湖' },
+  { label: '失败函数对比：重复子串', text: 'ababcabababcababd', pattern: 'abab' },
+  { label: '无匹配：关键词不存在', text: '今天天气很好，我们去了颐和园和圆明园，玩得很开心。', pattern: '故宫' },
+];
+
 function KMPDemo() {
-  const [text, setText] = useState('今天去了故宫博物院，天气晴朗，游客很多。参观了太和殿、中和殿，感受了皇家气派。离开故宫后去了天坛，继续体验北京历史文化。');
-  const [pattern, setPattern] = useState('故宫');
+  const [text, setText] = useState(KMP_EXAMPLES[0].text);
+  const [pattern, setPattern] = useState(KMP_EXAMPLES[0].pattern);
   const [result, setResult] = useState(null);
 
-  const runKMP = () => {
-    const matches = kmpSearch(text, pattern);
-    setResult({ matches, text, pattern });
+  const runKMP = (overrideText, overridePattern) => {
+    const t = overrideText ?? text;
+    const p = overridePattern ?? pattern;
+    const matches = kmpSearch(t, p);
+    setResult({ matches, text: t, pattern: p });
+  };
+
+  const runExample = (ex) => {
+    setText(ex.text);
+    setPattern(ex.pattern);
+    runKMP(ex.text, ex.pattern);
   };
 
   const highlighted = result ? highlightMatches(result.text, result.pattern, result.matches) : null;
@@ -447,6 +589,27 @@ function KMPDemo() {
         complexity={{ time: 'O(m+n)', space: 'O(m)' }}
         where="backend/src/algorithms/kmp.js"
       />
+
+      {/* 项目实际应用场景说明 */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-gray-700">
+        <p className="font-semibold text-blue-700 mb-1">📌 在本项目中的实际应用</p>
+        <p>
+          旅行日记的「KMP 精确搜索」（<code className="bg-white px-1 rounded">/diaries/search?mode=kmp</code>）使用本算法在标题与正文中定位关键词，
+          命中位置由 <code className="bg-white px-1 rounded">highlightMatch</code> 包裹为 <code className="bg-white px-1 rounded">&lt;mark&gt;</code> 标签，
+          前端 <code className="bg-white px-1 rounded">日记页 HL 组件</code> 渲染高亮，相比逐字暴力比对（O(m×n)）效率更高，适合长日记正文的实时检索。
+        </p>
+      </div>
+
+      {/* 示例（≥3 组对比） */}
+      <div className="flex flex-wrap gap-2 mb-3 text-xs">
+        {KMP_EXAMPLES.map(ex => (
+          <button key={ex.label} onClick={() => runExample(ex)}
+            className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
+            {ex.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-3">
         <label className="text-xs text-gray-500 mb-1 block">文本串</label>
         <textarea value={text} onChange={e => setText(e.target.value)} rows={3}
@@ -460,7 +623,7 @@ function KMPDemo() {
             className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
         </div>
         <div className="flex items-end">
-          <button onClick={runKMP} className="btn-primary text-sm">▶ 运行 KMP</button>
+          <button onClick={() => runKMP()} className="btn-primary text-sm">▶ 运行 KMP</button>
         </div>
       </div>
 
@@ -508,6 +671,7 @@ function TwoOptDemo() {
     { label: '北京景点环线', ids: '1,4,2,5,6' },
     { label: '西湖 + 杭州景点', ids: '36,38,39,40' },
     { label: '北大校园巡游', ids: '201,202,205,206,210' },
+    { label: '🏛️ 天坛周边路线（故宫·天坛·国博·大栅栏）', ids: '1,3,16,14' },
   ];
 
   const run = async () => {
@@ -697,6 +861,7 @@ function AStarDemo() {
     { label: '故宫 → 颐和园',    from: 1,   to: 4   },
     { label: '西湖 → 灵隐寺',    from: 36,  to: 38  },
     { label: '北大图书馆 → 博雅塔', from: 201, to: 206 },
+    { label: '🏛️ 天坛公园 → 北京协和医院', from: 3, to: 237 },
   ];
 
   const run = async () => {
@@ -802,239 +967,6 @@ function AStarDemo() {
                 </span>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ====== AIGC 旅游动画演示 ====== */
-function AIGCAnimationDemo() {
-  const canvasRef = useRef(null);
-  const animFrameRef = useRef(null);
-  const [diaries, setDiaries] = useState([]);
-  const [playing, setPlaying] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    getDiaries({ limit: 12, offset: 0, sortBy: 'likes', order: 'desc' })
-      .then(res => { setDiaries(res.data.data || []); setLoaded(true); })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  const CARD_COLORS = [
-    ['#f97316','#fbbf24'], ['#06b6d4','#3b82f6'], ['#8b5cf6','#ec4899'],
-    ['#10b981','#06b6d4'], ['#f43f5e','#f97316'], ['#84cc16','#10b981'],
-  ];
-
-  const drawFrame = (canvas, diary, progress, colorPair) => {
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-
-    // Background gradient (animated)
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, colorPair[0] + '33');
-    grad.addColorStop(1, colorPair[1] + '22');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    // Animated particles
-    ctx.save();
-    for (let i = 0; i < 20; i++) {
-      const x = ((i * 137 + progress * 80) % W);
-      const y = ((i * 89 + progress * 50) % H);
-      const r = 2 + (i % 4);
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = colorPair[0] + Math.floor(40 + 40 * Math.sin(progress * 0.05 + i)).toString(16).padStart(2,'0');
-      ctx.fill();
-    }
-    ctx.restore();
-
-    // Card (slide in from right)
-    const slideX = W * 0.1 + (progress > 0.1 ? 0 : (0.1 - progress) / 0.1 * W * 0.5);
-    const cardW = W * 0.8, cardH = H * 0.65;
-    const cardY = H * 0.175;
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.15)';
-    ctx.shadowBlur = 30;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(slideX, cardY, cardW, cardH, 20);
-    ctx.fill();
-    ctx.restore();
-
-    // Color header bar
-    const barGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
-    barGrad.addColorStop(0, colorPair[0]);
-    barGrad.addColorStop(1, colorPair[1]);
-    ctx.fillStyle = barGrad;
-    ctx.beginPath();
-    ctx.roundRect(slideX, cardY, cardW, 54, [20, 20, 0, 0]);
-    ctx.fill();
-
-    // Title
-    const titleAlpha = Math.min(1, (progress - 0.15) / 0.15);
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, titleAlpha);
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.round(W * 0.042)}px Inter, sans-serif`;
-    ctx.textBaseline = 'middle';
-    const title = (diary.title || '旅行记忆').slice(0, 14);
-    ctx.fillText(title, slideX + 20, cardY + 27);
-    ctx.restore();
-
-    // Spot name chip
-    if (diary.spotName) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, titleAlpha);
-      ctx.fillStyle = colorPair[0] + '22';
-      ctx.beginPath();
-      ctx.roundRect(slideX + 20, cardY + 64, 120, 24, 12);
-      ctx.fill();
-      ctx.fillStyle = colorPair[0];
-      ctx.font = `${Math.round(W * 0.028)}px Inter, sans-serif`;
-      ctx.textBaseline = 'middle';
-      ctx.fillText('📍 ' + diary.spotName.slice(0, 8), slideX + 28, cardY + 76);
-      ctx.restore();
-    }
-
-    // Content preview
-    const contentAlpha = Math.min(1, (progress - 0.3) / 0.2);
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, contentAlpha);
-    ctx.fillStyle = '#374151';
-    ctx.font = `${Math.round(W * 0.03)}px Inter, sans-serif`;
-    ctx.textBaseline = 'top';
-    const content = (diary.content || '').slice(0, 60) + (diary.content?.length > 60 ? '...' : '');
-    const words = content.split('');
-    let line = '', lines = [], lineW = cardW - 40;
-    for (const ch of words) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > lineW) { lines.push(line); line = ch; }
-      else line = test;
-    }
-    if (line) lines.push(line);
-    lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, slideX + 20, cardY + 100 + i * 26));
-    ctx.restore();
-
-    // Rating stars
-    const starsAlpha = Math.min(1, (progress - 0.5) / 0.2);
-    if (diary.rating > 0) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, starsAlpha);
-      ctx.font = `${Math.round(W * 0.032)}px sans-serif`;
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('⭐'.repeat(Math.floor(diary.rating)), slideX + 20, cardY + cardH - 16);
-      ctx.restore();
-    }
-
-    // Progress bar at bottom
-    const barH = 4;
-    ctx.fillStyle = '#e5e7eb';
-    ctx.fillRect(slideX, cardY + cardH - barH, cardW, barH);
-    const pbGrad = ctx.createLinearGradient(slideX, 0, slideX + cardW, 0);
-    pbGrad.addColorStop(0, colorPair[0]);
-    pbGrad.addColorStop(1, colorPair[1]);
-    ctx.fillStyle = pbGrad;
-    ctx.fillRect(slideX, cardY + cardH - barH, cardW * progress, barH);
-
-    // Watermark
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = `${Math.round(W * 0.022)}px Inter, sans-serif`;
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('✨ AIGC 旅游动画 · AI Generated Travel Memory', slideX + 10, H - 10);
-    ctx.restore();
-  };
-
-  const startAnimation = () => {
-    if (!canvasRef.current || diaries.length === 0) return;
-    setPlaying(true);
-    let idx = 0, startTime = null, DURATION = 3000;
-
-    const animate = (ts) => {
-      if (!startTime) startTime = ts;
-      const elapsed = ts - startTime;
-      const progress = Math.min(elapsed / DURATION, 1);
-      const diary = diaries[idx % diaries.length];
-      const colorPair = CARD_COLORS[idx % CARD_COLORS.length];
-
-      drawFrame(canvasRef.current, diary, progress, colorPair);
-      setCurrentIdx(idx % diaries.length);
-
-      if (progress < 1) {
-        animFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        idx++;
-        startTime = null;
-        if (idx < diaries.length) {
-          animFrameRef.current = requestAnimationFrame(animate);
-        } else {
-          setPlaying(false);
-        }
-      }
-    };
-    animFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  const stopAnimation = () => {
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    setPlaying(false);
-  };
-
-  useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); }, []);
-
-  return (
-    <div className="card p-6">
-      <AlgoHeader
-        name="AIGC 旅游记忆动画生成"
-        desc="基于用户日记数据，利用 Canvas API 实时渲染动态旅游记忆卡片序列。每帧计算粒子轨迹、卡片滑入缓动、文字淡入时序和进度条动画，生成个性化的旅游回忆视频帧。"
-        complexity={{ time: 'O(d × fps)，d=日记数', space: 'O(1) Canvas 帧缓冲' }}
-        where="frontend/src/pages/AlgoDemo.jsx → AIGCAnimationDemo"
-      />
-
-      {!loaded ? (
-        <div className="text-center py-8 text-gray-400">加载日记数据中...</div>
-      ) : diaries.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <div className="text-3xl mb-2">📝</div>
-          <p>暂无日记数据，请先在日记页面发布几篇日记</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <button onClick={playing ? stopAnimation : startAnimation}
-              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                playing ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gradient-to-r from-orange-400 to-pink-500 text-white hover:opacity-90'
-              }`}>
-              {playing ? '⏹ 停止动画' : '▶ 生成旅游动画'}
-            </button>
-            {playing && (
-              <span className="text-sm text-gray-500">
-                正在播放：{diaries[currentIdx]?.title || '旅行记忆'} ({currentIdx + 1}/{diaries.length})
-              </span>
-            )}
-            <span className="text-xs text-gray-400 ml-auto">共 {diaries.length} 篇日记 · 每张 3s</span>
-          </div>
-
-          <canvas ref={canvasRef} width={560} height={360}
-            className="w-full rounded-2xl shadow-lg border border-gray-100"
-            style={{ background: '#f8fafc', display: 'block' }} />
-
-          <div className="grid grid-cols-4 gap-2">
-            {diaries.slice(0, 8).map((d, i) => (
-              <div key={d.id}
-                className={`px-3 py-2 rounded-xl text-xs transition-all ${
-                  i === currentIdx && playing ? 'bg-orange-100 border border-orange-300 text-orange-700 font-semibold' : 'bg-gray-50 text-gray-500'
-                }`}>
-                {d.title?.slice(0, 8) || '日记'}
-              </div>
-            ))}
           </div>
         </div>
       )}

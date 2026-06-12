@@ -11,3 +11,4 @@ records/
 # Local AI assistant configs
 .claude/settings.local.json
 .trae/
+src/backend/public/memory-videos/

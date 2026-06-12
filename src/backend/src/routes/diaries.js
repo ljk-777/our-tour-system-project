@@ -4,6 +4,7 @@ const diaryRepo = require('../repositories/diaryRepository');
 const { searchInItems } = require('../algorithms/kmp');
 const { FullTextIndex } = require('../algorithms/trie');
 const { generateDiaryDraft } = require('../services/diaryAiService');
+const { generateMemoryVideo } = require('../services/memoryVideoService');
 const { auth, requireAuth } = require('../middleware/auth');
 
 router.use(auth);
@@ -81,6 +82,25 @@ router.post('/generate', async (req, res, next) => {
     });
 
     res.json({ success: true, data: { content: draft } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/memory-video', async (req, res, next) => {
+  try {
+    const { diaryIds } = req.body;
+    let diaries;
+    if (Array.isArray(diaryIds) && diaryIds.length) {
+      const found = await Promise.all(diaryIds.map((id) => diaryRepo.findById(id)));
+      diaries = found.filter(Boolean);
+    } else {
+      const { data } = await diaryRepo.findAll({ limit: 5, offset: 0 });
+      diaries = data;
+    }
+
+    const result = await generateMemoryVideo(diaries);
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }
