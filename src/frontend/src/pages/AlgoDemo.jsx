@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { searchSpots, shortestPath, aStarPath, getTopK, multiPointPath, getSpots } from '../api/index.js';
+import { useEffect, useMemo, useState } from 'react';
+import { searchSpots, getTopK, getSpots, getLocalRouteGraphs } from '../api/index.js';
 
 /**
  * 算法演示页 — 课程验收专用
@@ -270,7 +270,7 @@ function TrieDemo() {
 }
 
 /* ====== Dijkstra 演示 ====== */
-function DijkstraDemo() {
+function LegacyDijkstraDemo() {
   const [fromId, setFromId] = useState(3);
   const [toId, setToId] = useState(16);
   const [mode, setMode] = useState('distance');
@@ -408,20 +408,20 @@ function TopKDemo() {
       const res = await getSpots(params);
       const pool = res.data.data || [];
 
-      const t1 = performance.now();
-      const heapTop = clientTopK(pool, k);
-      const t2 = performance.now();
-
-      const sortTop = [...pool].sort((a, b) => b.rating - a.rating).slice(0, k);
-      const t3 = performance.now();
+      const rounds = benchmarkRounds(pool.length);
+      const heapBench = benchmarkOperation(() => clientTopK(pool, k), rounds);
+      const sortBench = benchmarkOperation(() => [...pool].sort((a, b) => b.rating - a.rating).slice(0, k), rounds);
+      const heapTop = heapBench.value;
+      const sortTop = sortBench.value;
 
       const sameResult = JSON.stringify(heapTop.map(s => s.id).sort((a, b) => a - b)) ===
         JSON.stringify(sortTop.map(s => s.id).sort((a, b) => a - b));
 
       setBench({
         poolSize: pool.length,
-        heapTime: t2 - t1,
-        sortTime: t3 - t2,
+        rounds,
+        heapTime: heapBench.average,
+        sortTime: sortBench.average,
         sameResult,
         heapNames: heapTop.map(s => s.name),
       });
@@ -471,11 +471,11 @@ function TopKDemo() {
       {bench && (
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-purple-50 rounded-xl p-3 text-center">
-            <div className="font-bold text-purple-600 text-lg">{bench.heapTime.toFixed(3)} ms</div>
+            <div className="font-bold text-purple-600 text-lg">{formatBenchmarkMs(bench.heapTime)}</div>
             <div className="text-gray-400 text-xs mt-0.5">MinHeap TopK · O(N log K)</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-3 text-center">
-            <div className="font-bold text-gray-600 text-lg">{bench.sortTime.toFixed(3)} ms</div>
+            <div className="font-bold text-gray-600 text-lg">{formatBenchmarkMs(bench.sortTime)}</div>
             <div className="text-gray-400 text-xs mt-0.5">Array.sort 全排序 · O(N log N)</div>
           </div>
           <div className="bg-green-50 rounded-xl p-3 text-center">
@@ -550,6 +550,33 @@ function clientTopK(items, k) {
     else if (item.rating > heap.peek().rating) { heap.pop(); heap.push(item); }
   }
   return heap.data.sort((a, b) => b.rating - a.rating);
+}
+
+function benchmarkRounds(size) {
+  if (size < 200) return 3000;
+  if (size < 1000) return 1000;
+  return 300;
+}
+
+function benchmarkOperation(fn, rounds) {
+  let value;
+  const start = performance.now();
+  for (let index = 0; index < rounds; index += 1) {
+    value = fn();
+  }
+  const total = performance.now() - start;
+  return {
+    value,
+    total,
+    average: total / Math.max(1, rounds),
+  };
+}
+
+function formatBenchmarkMs(value) {
+  if (!Number.isFinite(value)) return '--';
+  if (value <= 0) return '< 0.001 ms';
+  if (value < 0.001) return `${(value * 1000).toFixed(2)} μs`;
+  return `${value.toFixed(3)} ms`;
 }
 
 /* ====== KMP 演示 ====== */
@@ -661,7 +688,7 @@ function KMPDemo() {
 }
 
 /* ====== 2-opt 多点路径演示 ====== */
-function TwoOptDemo() {
+function LegacyTwoOptDemo() {
   const [spots, setSpots] = useState('1,3,16,14');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -848,7 +875,7 @@ function escapeHtml(str) {
 }
 
 /* ====== A* 启发搜索演示 ====== */
-function AStarDemo() {
+function LegacyAStarDemo() {
   const [fromId, setFromId] = useState(3);
   const [toId, setToId] = useState(237);
   const [mode, setMode] = useState('distance');
@@ -972,4 +999,748 @@ function AStarDemo() {
       )}
     </div>
   );
+}
+
+function DijkstraDemo() {
+  const { graph, loading: graphLoading, error: graphError } = useTempleGraph();
+  const landmarks = useMemo(() => getTempleLandmarks(graph), [graph]);
+  const examples = useMemo(() => buildTemplePairExamples(landmarks), [landmarks]);
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [mode, setMode] = useState('distance');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!graph || fromId || toId) return;
+    setFromId(landmarks[0]?.id || graph.nodes[0]?.id || '');
+    setToId(landmarks[1]?.id || graph.nodes[1]?.id || '');
+  }, [graph, landmarks, fromId, toId]);
+
+  const run = () => {
+    if (!graph) return setError('没有加载到数据库里的天坛路网图');
+    const route = templeShortestPath(graph, Number(fromId), Number(toId), mode);
+    setResult(route.reachable ? route : null);
+    setError(route.reachable ? '' : '天坛路网中这两个节点不可达，请换一个入口或景点节点');
+  };
+
+  return (
+    <div className="card p-6">
+      <AlgoHeader
+        name="Dijkstra 最短路径：天坛数据库路网"
+        desc="从数据库 local_route_graphs 读取天坛路网，用道路边权计算入口、景点、服务设施之间的最短路径。"
+        complexity={{ time: 'O((V+E) log V)', space: 'O(V+E)' }}
+        where="local_route_graphs / local_route_nodes / local_route_edges"
+      />
+      <TempleGraphStatus graph={graph} loading={graphLoading} error={graphError} />
+      <TemplePairControls
+        examples={examples}
+        fromId={fromId}
+        toId={toId}
+        setFromId={setFromId}
+        setToId={setToId}
+        mode={mode}
+        setMode={setMode}
+        onRun={run}
+        buttonText="执行 Dijkstra"
+        color="blue"
+      />
+      {error && <div className="text-red-600 text-sm bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</div>}
+      {result && (
+        <TempleRouteResult graph={graph} route={result} title={mode === 'distance' ? '最短距离结果' : '最短时间结果'} color="blue" />
+      )}
+    </div>
+  );
+}
+
+function TwoOptDemo() {
+  const { graph, loading: graphLoading, error: graphError } = useTempleGraph();
+  const landmarks = useMemo(() => getTempleLandmarks(graph), [graph]);
+  const [waypointText, setWaypointText] = useState('');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!graph || waypointText) return;
+    setWaypointText(landmarks.slice(0, 5).map((node) => node.id).join(','));
+  }, [graph, landmarks, waypointText]);
+
+  const run = () => {
+    if (!graph) return setError('没有加载到数据库里的天坛路网图');
+    const ids = waypointText.split(/[,，\s]+/).map(Number).filter((id) => Number.isFinite(id));
+    if (ids.length < 2) return setError('请至少输入 2 个天坛节点 ID');
+    const route = templeMultiPointPath(graph, ids, 'distance');
+    setResult(route.reachable ? route : null);
+    setError(route.reachable ? '' : '这些节点在天坛路网中无法组成完整游览路线');
+  };
+
+  const examples = [
+    { label: '中轴线游览', ids: landmarks.slice(0, 5).map((node) => node.id).join(',') },
+    { label: '入口到祈年殿片区', ids: landmarks.slice(1, 7).map((node) => node.id).join(',') },
+    { label: '服务设施补给线', ids: getTempleServiceNodes(graph).slice(0, 5).map((node) => node.id).join(',') },
+  ].filter((item) => item.ids);
+
+  return (
+    <div className="card p-6">
+      <AlgoHeader
+        name="2-opt 多点路径：天坛游览顺序"
+        desc="从天坛数据库路网中选多个目标点，先用最近邻构建游览顺序，再用 2-opt 尝试交换路段，减少总路网距离。"
+        complexity={{ time: 'O(n²) × Dijkstra', space: 'O(V+E)' }}
+        where="天坛 local_route_graphs + Dijkstra + 2-opt"
+      />
+      <TempleGraphStatus graph={graph} loading={graphLoading} error={graphError} />
+
+      <div className="flex flex-wrap gap-2 mb-3 text-xs">
+        {examples.map((example) => (
+          <button key={example.label} onClick={() => setWaypointText(example.ids)} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100">
+            {example.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-4">
+        <label className="text-xs text-gray-500 mb-1 block">天坛途经节点 ID（逗号分隔）</label>
+        <div className="flex gap-2">
+          <input value={waypointText} onChange={(event) => setWaypointText(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && run()} className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          <button onClick={run} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold">运行 2-opt</button>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">当前示例只使用数据库中的天坛节点，距离为道路路网距离。</p>
+      </div>
+
+      {error && <div className="text-red-600 text-sm bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</div>}
+      {result && <TempleRouteResult graph={graph} route={result} title="2-opt 优化后天坛游览路线" color="purple" />}
+    </div>
+  );
+}
+
+function AStarDemo() {
+  const { graph, loading: graphLoading, error: graphError } = useTempleGraph();
+  const landmarks = useMemo(() => getTempleLandmarks(graph), [graph]);
+  const examples = useMemo(() => buildTempleAStarExamples(graph, landmarks), [graph, landmarks]);
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [mode, setMode] = useState('distance');
+  const [dijkstraResult, setDijkstraResult] = useState(null);
+  const [astarResult, setAstarResult] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!graph || fromId || toId) return;
+    setFromId(examples[0]?.from || landmarks[0]?.id || graph.nodes[0]?.id || '');
+    setToId(examples[0]?.to || landmarks[2]?.id || landmarks[1]?.id || graph.nodes[1]?.id || '');
+  }, [graph, landmarks, examples, fromId, toId]);
+
+  const run = () => {
+    if (!graph) return setError('没有加载到数据库里的天坛路网图');
+    const dij = templeShortestPath(graph, Number(fromId), Number(toId), mode);
+    const astar = templeAStarPath(graph, Number(fromId), Number(toId), mode);
+    if (!dij.reachable || !astar.reachable) {
+      setDijkstraResult(null);
+      setAstarResult(null);
+      return setError('天坛路网中这两个节点不可达');
+    }
+    setError('');
+    setDijkstraResult(dij);
+    setAstarResult(astar);
+  };
+
+  return (
+    <div className="card p-6">
+      <AlgoHeader
+        name="A* vs Dijkstra：天坛路网搜索对比"
+        desc="A* 在同一张天坛数据库路网上运行，用节点坐标的欧氏距离作为启发函数，对比 Dijkstra 的全图扩展。"
+        complexity={{ time: 'O((V+E) log V)', space: 'O(V+E)' }}
+        where="天坛 local_route_graphs + coordinate heuristic"
+      />
+      <TempleGraphStatus graph={graph} loading={graphLoading} error={graphError} />
+      <TemplePairControls
+        examples={examples}
+        fromId={fromId}
+        toId={toId}
+        setFromId={setFromId}
+        setToId={setToId}
+        mode={mode}
+        setMode={setMode}
+        onRun={run}
+        buttonText="Dijkstra vs A* 对比"
+        color="amber"
+      />
+      {error && <div className="text-red-600 text-sm bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</div>}
+      {dijkstraResult && astarResult && (
+        <div className="space-y-4">
+          <TempleRouteMap graph={graph} route={astarResult} color="#f59e0b" />
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Dijkstra', data: dijkstraResult, color: 'blue' },
+              { label: 'A* 启发式', data: astarResult, color: 'amber' },
+            ].map((item) => (
+              <div key={item.label} className={`rounded-xl p-4 ${item.color === 'blue' ? 'bg-blue-50 border border-blue-100' : 'bg-amber-50 border border-amber-100'}`}>
+                <div className={`text-xs font-bold mb-3 ${item.color === 'blue' ? 'text-blue-600' : 'text-amber-600'}`}>{item.label}</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-500">路径长度</span><span className="font-semibold">{formatTempleDistance(item.data.totalDist)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">途经节点</span><span className="font-semibold">{item.data.path.length}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">探索节点</span><span className="font-semibold">{item.data.nodesExplored}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+            A* 在天坛图中实际探索 {astarResult.nodesExplored} 个节点，Dijkstra 探索 {dijkstraResult.nodesExplored} 个节点；两者路径一致时，A* 通常能更快靠近目标区域。
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function useTempleGraph() {
+  const [state, setState] = useState({ graph: null, loading: true, error: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    getLocalRouteGraphs()
+      .then((res) => {
+        if (cancelled) return;
+        const graphs = res.data?.data || [];
+        const graph = graphs.find((item) => String(item.name || '').includes('天坛'))
+          || graphs.find((item) => String(item.id || '').includes('tiantan'))
+          || graphs.find((item) => String(item.id || '') === 'spot-3');
+        setState({
+          graph: normalizeTempleGraph(graph),
+          loading: false,
+          error: graph ? '' : '数据库中没有找到名称包含“天坛”的本地路网图',
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ graph: null, loading: false, error: '读取数据库天坛路网失败，请确认后端已启动' });
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
+}
+
+function normalizeTempleGraph(graph) {
+  if (!graph) return null;
+  const nodes = (graph.nodes || []).map((node) => ({
+    ...node,
+    id: Number(node.id),
+    x: Number(node.x) || 0,
+    y: Number(node.y) || 0,
+  }));
+  const nodeSet = new Set(nodes.map((node) => node.id));
+  const edges = (graph.edges || [])
+    .map((edge) => ({
+      ...edge,
+      from: Number(edge.from),
+      to: Number(edge.to),
+      dist: Number(edge.dist) || 1,
+      congestion: Number(edge.congestion) || 1,
+      idealSpeedKmh: Number(edge.idealSpeedKmh) || 5,
+    }))
+    .filter((edge) => nodeSet.has(edge.from) && nodeSet.has(edge.to));
+  return { ...graph, nodes, edges, nodeMap: new Map(nodes.map((node) => [node.id, node])) };
+}
+
+function TempleGraphStatus({ graph, loading, error }) {
+  if (loading) return <div className="mb-4 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">正在读取数据库里的天坛路网...</div>;
+  if (error) return <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>;
+  return (
+    <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+      当前示例图：<strong>{graph.name}</strong>，节点 {graph.nodes.length} 个，边 {graph.edges.length} 条，来源：数据库。
+    </div>
+  );
+}
+
+function TemplePairControls({ examples, fromId, toId, setFromId, setToId, mode, setMode, onRun, buttonText, color }) {
+  const activeClass = color === 'amber' ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white';
+  const buttonClass = color === 'amber' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700';
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 mb-4 text-xs">
+        {examples.map((example) => (
+          <button key={example.label} onClick={() => { setFromId(example.from); setToId(example.to); }} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100">
+            {example.label}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <label className="text-xs text-gray-500">起点节点 ID
+          <input type="number" value={fromId} onChange={(event) => setFromId(event.target.value)} className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </label>
+        <label className="text-xs text-gray-500">终点节点 ID
+          <input type="number" value={toId} onChange={(event) => setToId(event.target.value)} className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </label>
+      </div>
+      <div className="flex gap-2 mb-4">
+        {[['distance', '最短距离'], ['time', '最短时间']].map(([value, label]) => (
+          <button key={value} onClick={() => setMode(value)} className={`px-4 py-1.5 rounded-lg text-sm ${mode === value ? activeClass : 'bg-gray-100 text-gray-600'}`}>
+            {label}
+          </button>
+        ))}
+        <button onClick={onRun} className={`ml-auto px-5 py-2 text-white rounded-xl text-sm font-semibold ${buttonClass}`}>{buttonText}</button>
+      </div>
+    </>
+  );
+}
+
+function TempleRouteResult({ graph, route, title, color }) {
+  return (
+    <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+      <TempleRouteMap graph={graph} route={route} color={color === 'purple' ? '#9333ea' : '#2563eb'} />
+      <div className="grid grid-cols-3 gap-3">
+        <MetricBox value={formatTempleDistance(route.totalDist)} label="路网距离" color={color} />
+        <MetricBox value={formatTempleDuration(route.totalTime)} label="预计时间" color="teal" />
+        <MetricBox value={route.path.length} label="途经节点" color="blue" />
+      </div>
+      <div>
+        <div className="text-xs text-gray-500 mb-2 font-medium">{title}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {(route.pathSpots || []).map((node, index) => (
+            <span key={`${node.id}-${index}`} className="flex items-center gap-1">
+              <span className={`${color === 'purple' ? 'bg-purple-600' : 'bg-blue-600'} text-white text-xs px-2.5 py-1 rounded-full`}>
+                {node.name || `节点${node.id}`}
+              </span>
+              {index < route.pathSpots.length - 1 && <span className="text-gray-400 text-xs">→</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricBox({ value, label, color }) {
+  const colorClass = ({ purple: 'text-purple-600', teal: 'text-teal-600', blue: 'text-blue-600' })[color] || 'text-blue-600';
+  return (
+    <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+      <div className={`font-bold text-lg ${colorClass}`}>{value}</div>
+      <div className="text-gray-400 text-xs">{label}</div>
+    </div>
+  );
+}
+
+function TempleRouteMap({ graph, route, color = '#2563eb' }) {
+  if (!graph) return null;
+  const size = graph.size || { width: 1000, height: 620 };
+  const shownEdges = graph.edges.slice(0, 520);
+  const routeSet = new Set(route?.path || []);
+  const pathPoints = (route?.path || []).map((id) => graph.nodeMap.get(id)).filter(Boolean);
+  const importantNodes = getTempleLandmarks(graph).slice(0, 28);
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-xl border border-blue-100 bg-sky-50">
+      <svg viewBox={`0 0 ${size.width} ${size.height}`} className="block w-full h-auto max-h-[360px]" role="img" aria-label={`${graph.name}算法演示路网图`}>
+        <rect width={size.width} height={size.height} fill="#e8f7f5" />
+        {shownEdges.map((edge, index) => {
+          const from = graph.nodeMap.get(edge.from);
+          const to = graph.nodeMap.get(edge.to);
+          if (!from || !to) return null;
+          return <line key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#9ca3af" strokeWidth="2" opacity="0.35" />;
+        })}
+        {pathPoints.length > 1 && (
+          <polyline points={pathPoints.map((node) => `${node.x},${node.y}`).join(' ')} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+        )}
+        {importantNodes.map((node) => (
+          <g key={node.id}>
+            <circle cx={node.x} cy={node.y} r={routeSet.has(node.id) ? 9 : 6} fill={routeSet.has(node.id) ? color : '#ffffff'} stroke="#2563eb" strokeWidth="3" />
+            <text x={node.x + 9} y={node.y - 7} fontSize="24" fill="#0f172a" fontWeight="700">{node.name}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="flex flex-wrap items-center gap-4 px-4 py-2 text-xs text-gray-500">
+        <span><i className="inline-block w-8 h-1 rounded bg-gray-400 opacity-50 mr-1" />数据库道路边</span>
+        <span><i className="inline-block w-8 h-1 rounded mr-1" style={{ background: color }} />当前算法路径</span>
+        <span>显示主要节点，实际参与计算节点 {graph.nodes.length} 个</span>
+      </div>
+    </div>
+  );
+}
+
+function getTempleLandmarks(graph) {
+  if (!graph) return [];
+  const majorWords = ['祈年殿', '圜丘', '皇穹宇', '回音壁', '丹陛桥', '斋宫', '神乐署', '七星石', '成贞门', '天门', '入口', '售票', '游客'];
+  const candidates = graph.nodes.filter((node) => (
+    !node.routingOnly && majorWords.some((word) => String(node.name || '').includes(word))
+  ));
+  return (candidates.length ? candidates : graph.nodes.filter((node) => !node.routingOnly)).slice(0, 40);
+}
+
+function getTempleServiceNodes(graph) {
+  if (!graph) return [];
+  const words = ['卫生间', '厕所', '商店', '餐', '茶', '咖啡', '售票', '服务', '游客'];
+  return graph.nodes.filter((node) => words.some((word) => String(node.name || '').includes(word))).slice(0, 20);
+}
+
+function buildTemplePairExamples(nodes) {
+  const list = nodes.slice(0, 8);
+  const pairs = [];
+  for (let index = 0; index < list.length - 1 && pairs.length < 4; index += 2) {
+    pairs.push({
+      label: `${list[index].name} → ${list[index + 1].name}`,
+      from: list[index].id,
+      to: list[index + 1].id,
+    });
+  }
+  if (pairs.length === 0 && list.length >= 2) pairs.push({ label: `${list[0].name} → ${list[1].name}`, from: list[0].id, to: list[1].id });
+  return pairs;
+}
+
+function buildTempleAStarExamples(graph, landmarks) {
+  if (!graph) return buildTemplePairExamples(landmarks);
+  const candidates = uniqueTempleCandidates(graph, landmarks).slice(0, 22);
+  const scored = [];
+  for (let i = 0; i < candidates.length; i += 1) {
+    for (let j = i + 1; j < candidates.length; j += 1) {
+      const from = candidates[i];
+      const to = candidates[j];
+      const straight = Math.hypot(from.x - to.x, from.y - to.y);
+      if (straight < Math.max(graph.size?.width || 1000, graph.size?.height || 600) * 0.18) continue;
+      const dij = templeShortestPath(graph, from.id, to.id, 'distance');
+      const astar = templeAStarPath(graph, from.id, to.id, 'distance');
+      if (!dij.reachable || !astar.reachable) continue;
+      if (Math.abs(dij.totalDist - astar.totalDist) > 2) continue;
+      const saved = dij.nodesExplored - astar.nodesExplored;
+      if (saved <= 0) continue;
+      scored.push({
+        from,
+        to,
+        saved,
+        dij,
+        direction: directionBucket(from, to),
+        areaKey: `${areaBucket(graph, from)}-${areaBucket(graph, to)}`,
+      });
+    }
+  }
+
+  scored.sort((a, b) => b.saved - a.saved || b.dij.nodesExplored - a.dij.nodesExplored);
+  const examples = pickDiverseTemplePairs(scored, 4).map((item) => ({
+    label: `${item.from.name} → ${item.to.name}（少搜 ${item.saved}）`,
+    from: item.from.id,
+    to: item.to.id,
+  }));
+  return examples.length ? examples : buildTemplePairExamples(landmarks);
+}
+
+function uniqueTempleCandidates(graph, landmarks) {
+  const demoNodes = graph.nodes.filter(isTempleDemoCandidate);
+  const nodes = demoNodes.length >= 8 ? demoNodes : graph.nodes.filter((node) => !node.routingOnly);
+  const landmarkNodes = landmarks.filter(isTempleDemoCandidate);
+  const gridRepresentatives = gridTempleRepresentatives(graph, nodes);
+  const picked = [
+    ...(landmarkNodes.length ? landmarkNodes : landmarks).slice(0, 12),
+    ...gridRepresentatives,
+    extremeNode(nodes, (node) => node.x),
+    extremeNode(nodes, (node) => -node.x),
+    extremeNode(nodes, (node) => node.y),
+    extremeNode(nodes, (node) => -node.y),
+    extremeNode(nodes, (node) => node.x + node.y),
+    extremeNode(nodes, (node) => -(node.x + node.y)),
+    extremeNode(nodes, (node) => node.x - node.y),
+    extremeNode(nodes, (node) => node.y - node.x),
+  ].filter(Boolean);
+  const seen = new Set();
+  return picked.filter((node) => {
+    if (seen.has(node.id)) return false;
+    seen.add(node.id);
+    return true;
+  });
+}
+
+function isTempleDemoCandidate(node) {
+  const name = String(node?.name || '');
+  if (!name || node.routingOnly) return false;
+  if (!/[\u4e00-\u9fff]/.test(name)) return false;
+  return !/(商店|超市|食堂|餐|咖啡|茶|卫生间|洗手间|厕所|售票|游客|服务|医院|大学|银行|书店|公司|便利|全家|紫光园|烤鸭|涮肉|火锅|面馆|Store|Shop|Coffee|Tea|Restaurant|Hospital|University|Bank|Bookstore|Company)/i.test(name);
+}
+
+function gridTempleRepresentatives(graph, nodes) {
+  const width = graph.size?.width || 1000;
+  const height = graph.size?.height || 620;
+  const cells = new Map();
+  for (const node of nodes) {
+    const col = Math.max(0, Math.min(2, Math.floor((node.x / width) * 3)));
+    const row = Math.max(0, Math.min(2, Math.floor((node.y / height) * 3)));
+    const key = `${col}-${row}`;
+    const centerX = ((col + 0.5) / 3) * width;
+    const centerY = ((row + 0.5) / 3) * height;
+    const score = Math.hypot(node.x - centerX, node.y - centerY);
+    const current = cells.get(key);
+    if (!current || score < current.score) cells.set(key, { node, score });
+  }
+  return Array.from(cells.values()).map((item) => item.node);
+}
+
+function pickDiverseTemplePairs(scored, limit) {
+  const picked = [];
+  const usedDirections = new Set();
+  const usedAreas = new Set();
+  const usedEndpoints = new Set();
+
+  const tryPick = (strict) => {
+    for (const item of scored) {
+      if (picked.length >= limit) break;
+      const endpointKey = [item.from.id, item.to.id].sort().join('-');
+      if (usedEndpoints.has(endpointKey)) continue;
+      if (strict && usedDirections.has(item.direction)) continue;
+      if (strict && usedAreas.has(item.areaKey)) continue;
+      if (strict && picked.some((pickedItem) => pickedItem.from.id === item.from.id || pickedItem.to.id === item.to.id)) continue;
+      picked.push(item);
+      usedDirections.add(item.direction);
+      usedAreas.add(item.areaKey);
+      usedEndpoints.add(endpointKey);
+    }
+  };
+
+  tryPick(true);
+  tryPick(false);
+  return picked.slice(0, limit);
+}
+
+function directionBucket(from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (Math.abs(dx) > Math.abs(dy) * 1.7) return dx > 0 ? 'east' : 'west';
+  if (Math.abs(dy) > Math.abs(dx) * 1.7) return dy > 0 ? 'south' : 'north';
+  if (dx >= 0 && dy >= 0) return 'south-east';
+  if (dx >= 0 && dy < 0) return 'north-east';
+  if (dx < 0 && dy >= 0) return 'south-west';
+  return 'north-west';
+}
+
+function areaBucket(graph, node) {
+  const width = graph.size?.width || 1000;
+  const height = graph.size?.height || 620;
+  const col = Math.max(0, Math.min(2, Math.floor((node.x / width) * 3)));
+  const row = Math.max(0, Math.min(2, Math.floor((node.y / height) * 3)));
+  return `${col}${row}`;
+}
+
+function extremeNode(nodes, scoreFn) {
+  let best = null;
+  let bestScore = Infinity;
+  for (const node of nodes) {
+    const score = scoreFn(node);
+    if (score < bestScore) {
+      best = node;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function templeShortestPath(graph, startId, endId, mode = 'distance') {
+  const adjacency = buildTempleAdjacency(graph, mode);
+  const dist = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+  const prev = new Map();
+  const prevEdge = new Map();
+  const visited = new Set();
+  dist.set(startId, 0);
+
+  while (visited.size < graph.nodes.length) {
+    let current = null;
+    let best = Infinity;
+    for (const [id, value] of dist.entries()) {
+      if (!visited.has(id) && value < best) {
+        current = id;
+        best = value;
+      }
+    }
+    if (!current || current === endId) break;
+    visited.add(current);
+    for (const edge of adjacency.get(current) || []) {
+      const next = best + edge.weight;
+      if (next < dist.get(edge.to)) {
+        dist.set(edge.to, next);
+        prev.set(edge.to, current);
+        prevEdge.set(edge.to, edge);
+      }
+    }
+  }
+  return buildTempleRoute(graph, startId, endId, prev, prevEdge, visited.size, 'Dijkstra');
+}
+
+function templeAStarPath(graph, startId, endId, mode = 'distance') {
+  const adjacency = buildTempleAdjacency(graph, mode);
+  const gScore = new Map(graph.nodes.map((node) => [node.id, Infinity]));
+  const prev = new Map();
+  const prevEdge = new Map();
+  const open = new Set([startId]);
+  const closed = new Set();
+  gScore.set(startId, 0);
+
+  while (open.size > 0) {
+    let current = null;
+    let best = Infinity;
+    for (const id of open) {
+      const value = gScore.get(id) + templeHeuristic(graph, id, endId, mode);
+      if (value < best) {
+        best = value;
+        current = id;
+      }
+    }
+    if (!current || current === endId) break;
+    open.delete(current);
+    closed.add(current);
+    for (const edge of adjacency.get(current) || []) {
+      if (closed.has(edge.to)) continue;
+      const next = gScore.get(current) + edge.weight;
+      if (next < gScore.get(edge.to)) {
+        gScore.set(edge.to, next);
+        prev.set(edge.to, current);
+        prevEdge.set(edge.to, edge);
+        open.add(edge.to);
+      }
+    }
+  }
+  return buildTempleRoute(graph, startId, endId, prev, prevEdge, closed.size + open.size, 'A*');
+}
+
+function templeMultiPointPath(graph, ids, mode = 'distance') {
+  let order = nearestNeighborOrder(graph, ids, mode);
+  order = improveOrderByTwoOpt(graph, order, mode);
+  const path = [];
+  const steps = [];
+  let totalDist = 0;
+  let totalTime = 0;
+  for (let index = 0; index < order.length - 1; index += 1) {
+    const route = templeShortestPath(graph, order[index], order[index + 1], mode);
+    if (!route.reachable) return { reachable: false };
+    path.push(...(index === 0 ? route.path : route.path.slice(1)));
+    steps.push(...route.steps);
+    totalDist += route.totalDist;
+    totalTime += route.totalTime;
+  }
+  return {
+    reachable: true,
+    path,
+    steps,
+    order,
+    totalDist: Math.round(totalDist),
+    totalTime,
+    pathSpots: routeDisplayNodes(path, graph.nodeMap),
+    algorithm: 'NearestNeighbor + 2-opt',
+  };
+}
+
+function nearestNeighborOrder(graph, ids, mode) {
+  const remaining = new Set(ids.slice(1));
+  const order = [ids[0]];
+  while (remaining.size) {
+    const current = order[order.length - 1];
+    let best = null;
+    let bestCost = Infinity;
+    for (const id of remaining) {
+      const route = templeShortestPath(graph, current, id, mode);
+      const cost = mode === 'time' ? route.totalTime : route.totalDist;
+      if (route.reachable && cost < bestCost) {
+        best = id;
+        bestCost = cost;
+      }
+    }
+    if (!best) break;
+    remaining.delete(best);
+    order.push(best);
+  }
+  return order;
+}
+
+function improveOrderByTwoOpt(graph, order, mode) {
+  if (order.length < 4) return order;
+  let best = [...order];
+  let bestCost = orderCost(graph, best, mode);
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let i = 1; i < best.length - 2; i += 1) {
+      for (let j = i + 1; j < best.length - 1; j += 1) {
+        const candidate = [...best.slice(0, i), ...best.slice(i, j + 1).reverse(), ...best.slice(j + 1)];
+        const cost = orderCost(graph, candidate, mode);
+        if (cost < bestCost) {
+          best = candidate;
+          bestCost = cost;
+          improved = true;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function orderCost(graph, order, mode) {
+  let cost = 0;
+  for (let index = 0; index < order.length - 1; index += 1) {
+    const route = templeShortestPath(graph, order[index], order[index + 1], mode);
+    if (!route.reachable) return Infinity;
+    cost += mode === 'time' ? route.totalTime : route.totalDist;
+  }
+  return cost;
+}
+
+function buildTempleAdjacency(graph, mode) {
+  const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
+  for (const edge of graph.edges) {
+    const weight = mode === 'time' ? edgeTravelMinutes(edge) : edge.dist;
+    const item = { ...edge, weight, time: edgeTravelMinutes(edge) };
+    adjacency.get(edge.from)?.push({ ...item, to: edge.to });
+    adjacency.get(edge.to)?.push({ ...item, from: edge.to, to: edge.from });
+  }
+  return adjacency;
+}
+
+function buildTempleRoute(graph, startId, endId, prev, prevEdge, nodesExplored, algorithm) {
+  const path = [];
+  const steps = [];
+  let current = endId;
+  while (current) {
+    path.unshift(current);
+    if (current === startId) break;
+    const edge = prevEdge.get(current);
+    if (edge) steps.unshift(edge);
+    current = prev.get(current);
+  }
+  if (path[0] !== startId) return { reachable: false, path: [], steps: [], totalDist: 0, totalTime: 0, nodesExplored, algorithm };
+  return {
+    reachable: true,
+    path,
+    steps,
+    totalDist: Math.round(steps.reduce((sum, edge) => sum + edge.dist, 0)),
+    totalTime: steps.reduce((sum, edge) => sum + edge.time, 0),
+    nodesExplored,
+    pathSpots: routeDisplayNodes(path, graph.nodeMap),
+    algorithm,
+  };
+}
+
+function routeDisplayNodes(path, nodeMap) {
+  const nodes = path.map((id) => nodeMap.get(id)).filter(Boolean);
+  const keyNodes = nodes.filter((node, index) => index === 0 || index === nodes.length - 1 || !node.routingOnly);
+  const selected = keyNodes.length >= 2 ? keyNodes : nodes;
+  return selected.filter((node, index, list) => index === 0 || node.id !== list[index - 1]?.id);
+}
+
+function edgeTravelMinutes(edge) {
+  const speed = Math.max(1, (edge.idealSpeedKmh || 5) * (edge.congestion || 1));
+  return (edge.dist / 1000) / speed * 60;
+}
+
+function templeHeuristic(graph, fromId, toId, mode) {
+  const from = graph.nodeMap.get(fromId);
+  const to = graph.nodeMap.get(toId);
+  if (!from || !to) return 0;
+  const dist = Math.hypot(from.x - to.x, from.y - to.y) * 0.8;
+  return mode === 'time' ? (dist / 1000) / 5 * 60 : dist;
+}
+
+function formatTempleDistance(value) {
+  const meters = Math.round(Number(value) || 0);
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
+}
+
+function formatTempleDuration(minutes) {
+  const totalSeconds = Math.max(0, Math.round((Number(minutes) || 0) * 60));
+  if (totalSeconds < 60) return `${totalSeconds}秒`;
+  const min = Math.floor(totalSeconds / 60);
+  const sec = totalSeconds % 60;
+  return sec ? `${min}分${sec}秒` : `${min}分钟`;
 }
