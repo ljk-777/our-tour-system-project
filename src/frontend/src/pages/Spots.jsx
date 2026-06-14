@@ -27,7 +27,6 @@ const SORT_OPTIONS = [
   { key: 'interest', label: '兴趣', icon: Heart },
 ];
 const INTERESTS = ['历史', '文化', '自然', '高校', '博物馆', '古镇', '夜景', '园林', '美食', '亲子', '工科', '艺术'];
-
 const LIMIT = 16;
 
 export default function Spots() {
@@ -48,10 +47,11 @@ export default function Spots() {
   const [forYouTags, setForYouTags] = useState([]);
   const [forYouPersonalized, setForYouPersonalized] = useState(false);
   const suggestTimer = useRef(null);
-  const searchBoxRef = useRef(null);
 
   const city = searchParams.get('city') || '';
   const type = searchParams.get('type') || 'all';
+  const visibleSpots = useMemo(() => spots.slice(0, visibleCount), [spots, visibleCount]);
+  const hasMore = visibleCount < spots.length;
 
   useEffect(() => {
     if (dataSource !== 'local') {
@@ -61,8 +61,26 @@ export default function Spots() {
     loadRecommendations();
   }, [city, type, sortBy, interests, dataSource]);
 
-  const visibleSpots = useMemo(() => spots.slice(0, visibleCount), [spots, visibleCount]);
-  const hasMore = visibleCount < spots.length;
+  useEffect(() => {
+    if (!user) {
+      setForYou([]);
+      setForYouTags([]);
+      setForYouPersonalized(false);
+      return;
+    }
+
+    recommendForYou({ limit: 4 })
+      .then((res) => {
+        setForYou(res.data.data || []);
+        setForYouTags(res.data.preferredTags || []);
+        setForYouPersonalized(!!res.data.personalized);
+      })
+      .catch(() => {
+        setForYou([]);
+        setForYouTags([]);
+        setForYouPersonalized(false);
+      });
+  }, [user]);
 
   async function loadRecommendations() {
     setLoading(true);
@@ -109,27 +127,7 @@ export default function Spots() {
     setSortBy('interest');
   }
 
-  useEffect(() => {
-    if (!user) {
-      setForYou([]);
-      setForYouTags([]);
-      setForYouPersonalized(false);
-      return;
-    }
-    recommendForYou({ limit: 4 })
-      .then((res) => {
-        setForYou(res.data.data || []);
-        setForYouTags(res.data.preferredTags || []);
-        setForYouPersonalized(!!res.data.personalized);
-      })
-      .catch(() => {
-        setForYou([]);
-        setForYouTags([]);
-        setForYouPersonalized(false);
-      });
-  }, [user]);
-
-  const handleSearchQChange = (value) => {
+  function handleSearchQChange(value) {
     setSearchQ(value);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     if (!value.trim() || dataSource === 'amap') {
@@ -137,6 +135,7 @@ export default function Spots() {
       setShowSuggests(false);
       return;
     }
+
     suggestTimer.current = setTimeout(async () => {
       try {
         const res = await autocompleteSpots(value.trim());
@@ -147,9 +146,9 @@ export default function Spots() {
         setSuggests([]);
       }
     }, 200);
-  };
+  }
 
-  const handleSuggestSelect = (item) => {
+  function handleSuggestSelect(item) {
     setSearchQ(item.name);
     setSuggests([]);
     setShowSuggests(false);
@@ -163,9 +162,9 @@ export default function Spots() {
         setVisibleCount(LIMIT);
       })
       .finally(() => setLoading(false));
-  };
+  }
 
-  const handleSearch = async (event) => {
+  async function handleSearch(event) {
     event.preventDefault();
     setSuggests([]);
     setShowSuggests(false);
@@ -179,8 +178,9 @@ export default function Spots() {
           city,
           pageSize: 12,
         });
-        setSpots(res.data.data || []);
-        setTotal(res.data.data?.length || 0);
+        const list = res.data.data || [];
+        setSpots(list);
+        setTotal(list.length);
         setMeta({ algorithm: 'Amap POI search' });
       } else {
         const res = await searchSpots({ q: searchQ, mode: 'prefix' });
@@ -193,9 +193,9 @@ export default function Spots() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const resetFilters = () => {
+  function resetFilters() {
     setSearchQ('');
     setSearchParams({});
     setSortBy('popularity');
@@ -205,7 +205,7 @@ export default function Spots() {
       setTotal(0);
       setMeta(null);
     }
-  };
+  }
 
   return (
     <div className="glass-bg">
@@ -255,7 +255,7 @@ export default function Spots() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', fontFamily: 'Inter, sans-serif' }}>
-                鉁? 涓轰綘鎺ㄨ崘
+                ✨ 为你推荐
               </span>
               <span style={{ fontSize: '0.72rem', color: '#9aa0a6', fontFamily: 'Inter, sans-serif' }}>
                 {forYouPersonalized
@@ -279,7 +279,7 @@ export default function Spots() {
         )}
 
         <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-          <div ref={searchBoxRef} style={{ flex: 1, position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '0 16px' }}>
               <Search size={16} color="#64748b" />
               <input
@@ -429,7 +429,7 @@ export default function Spots() {
           </div>
         ) : spots.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
-            <div className="text-5xl mb-3">⌕</div>
+            <div className="text-5xl mb-3">∅</div>
             <p>没有找到相关景点或学校</p>
           </div>
         ) : dataSource === 'local' ? (
