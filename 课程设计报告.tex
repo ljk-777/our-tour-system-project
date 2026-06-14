@@ -1,0 +1,418 @@
+% !TEX program = xelatex
+% 数据结构课程设计报告 —— 旅游系统
+% 编译：xelatex 课程设计报告.tex（或 tectonic 课程设计报告.tex）
+\documentclass[UTF8,a4paper,12pt]{ctexart}
+
+\usepackage[fontset=windows]{ctex}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{listings}
+
+\definecolor{themeblue}{RGB}{37,99,235}
+\definecolor{lightgray}{RGB}{245,247,250}
+
+\titleformat{\section}{\Large\bfseries\color{themeblue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small 数据结构课程设计报告}
+\rhead{\small 旅游系统（第 21 组）}
+\cfoot{\thepage}
+
+\setlist{itemsep=2pt,topsep=3pt,parsep=0pt}
+\renewcommand{\arraystretch}{1.3}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{lightgray},
+  columns=fullflexible
+}
+
+\begin{document}
+
+% ===================== 封面 =====================
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries 数据结构课程设计报告\par}
+\vspace{1cm}
+{\LARGE 基于自研算法的旅游系统\par}
+\vspace{2.5cm}
+{\large
+\begin{tabular}{rl}
+组\quad 号： & 第 21 组 \\[6pt]
+组\quad 长： & 戴鸿 \\[6pt]
+组\quad 员： & 戴鸿、李佳坤、万子豪、缑文轩 \\[6pt]
+课程名称： & 数据结构课程设计 \\[6pt]
+学\quad 期： & 2025--2026 \\[6pt]
+\end{tabular}
+\par}
+\vfill
+{\large 二〇二六年六月\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ===================== 一、系统概述 =====================
+\section{系统概述与创新价值}
+
+\subsection{项目背景与定位}
+我们这次课程设计做的是一个旅游系统，核心目标是把数据结构课上学到的各种算法真正用到一个能跑起来、能演示的完整系统里，而不是把算法单独写一遍交上去就算完。系统覆盖了从“出行前选目的地”到“游览中规划路线、查附近设施、找吃的”，再到“游览后写日记、和同伴在群里协作”的完整旅游链路。整个系统是前后端分离的，前端用 React + Vite + Tailwind CSS，后端用 Node.js + Express，数据库用 PostgreSQL，地图能力接了高德地图，部分 AI 能力（日记润色、路线讲解、群组建议）接了 DeepSeek/OpenAI 兼容接口。
+
+我们一开始就定了一个原则：课程要求的核心算法（排序、最短路、查找、压缩等）必须是我们自己实现的，单独封装在算法模块里，能在页面上演示、能讲清楚复杂度；而高德、AI 这些外部服务只是锦上添花，用来提升真实体验，不参与核心算法的评分部分。
+
+\subsection{创新功能与实际价值}
+在课程要求的基础上，我们额外做了几个自认为有意义的创新点：
+
+\begin{itemize}
+\item \textbf{3D 地球首页}：可以用鼠标拖动旋转、缩放，地球上用弹幕的形式滚动展示真实游记的标题和点赞数，点弹幕能直接跳到那篇游记详情。这个把“看世界”和“看别人的游记”结合在了一起，比单纯的列表更有代入感。
+\item \textbf{AIGC 旅行回忆视频}：用户选几篇日记或几张照片，系统能生成一段旅行回忆短视频。前端用 Canvas 分析图片的亮度、颜色、视觉中心，做缩放、平移、转场、字幕、粒子等动画并录制成 WebM；服务端则用 \texttt{ffmpeg-static + fluent-ffmpeg} 合成带 Ken Burns 运镜效果的 MP4。这个功能把“记录”升级成了“可分享的成片”。
+\item \textbf{拥挤度感知的最短时间路线}：路网每条边都带“拥挤度”和“理想速度”两个属性，真实速度 = 拥挤度 $\times$ 理想速度。这样算出来的“最短时间”路线常常和“最短距离”路线不一样，更贴近真实出行。
+\item \textbf{室内导航}：手动标注了教学实验综合楼 1--5 层的室内路网（门、走廊、楼梯、电梯、卫生间、开水间、安全出口都是独立节点），支持跨楼层路径规划，还能选“最短路线 / 少爬楼梯 / 无障碍优先”三种偏好。
+\item \textbf{群组协作中枢}：群里可以 \texttt{@ai} 或 \texttt{@小迹}，AI 会结合行程、成员偏好、聊天记录和实时天气给建议，还能发“操作卡片”，成员确认后真的会改行程；再加上投票功能，投票结果能联动到行程上。
+\item \textbf{算法演示页（AlgoDemo）}：把 Dijkstra / A* / 2-opt / 堆 TopK / KMP / Trie 全部做成了可交互的网页 demo，用天坛公园的真实路线数据当默认示例，能直观对比堆排序和全排序的耗时、Dijkstra 和 A* 的探索节点数差异。
+\end{itemize}
+
+% ===================== 二、智能体开发环境 =====================
+\section{智能体开发环境与所开发的智能体}
+
+这次开发我们全程用 Claude Code 当主力工具，并且专门搭了一套“智能体协作 + 对抗测试”的开发环境，主要包括三部分。
+
+\subsection{自定义智能体}
+在 \texttt{.claude/agents/} 下定义了 4 个智能体：
+\begin{itemize}
+\item \textbf{dev-agent}：负责写代码、改代码；
+\item \textbf{review-agent}：对抗式审查员，在 dev-agent 改完代码后跑模糊测试、红队测试、混沌场景，输出 GREEN / YELLOW / RED 判定，判为 RED 时会阻断提交并把失败用例打回给 dev-agent 重写；
+\item \textbf{task-agent}：任务拆解和进度跟踪；
+\item \textbf{content-agent}：生成 PPT、处理音视频素材。
+\end{itemize}
+
+\subsection{自定义命令与 MCP 服务器}
+我们把几件重复性的工作固化成了 slash 命令：\texttt{/seed}（生成并校验种子数据）、\texttt{/algo-bench}（跑算法性能对比）、\texttt{/adversarial-run}（一键跑全套对抗测试）。
+
+另外搭了一个 MCP 服务器（\texttt{mcp/servers/tour-data-server}），把我们自己写的核心算法（Dijkstra、堆 TopK、KMP、Trie）和景点数据包装成了 7 个 MCP 工具：\texttt{get\_spots}、\texttt{get\_topk\_spots}、\texttt{find\_shortest\_path}、\texttt{find\_multi\_path}、\texttt{search\_spots}、\texttt{prefix\_search}、\texttt{fuzzy\_search}。这样 AI 在帮我们调试算法时可以直接调用真实函数验证结果，而不是凭空猜。
+
+\subsection{对抗式开发流程}
+我们的提交流程是对抗式的：改完功能后，由 review-agent 主动跑边界用例（不可达节点、空数据、超长查询字符串等）去找 bug，通过了才能提交。对应的用例放在 \texttt{adversarial/} 目录下，分红队测试、模糊测试、混沌场景三大类。后期还补了 \texttt{tests/robustness/} 和 \texttt{tests/concurrency/} 两套真实跑通的健壮性与并发脚本（见第七节）。
+
+% ===================== 三、系统架构 =====================
+\section{系统架构、模块与接口}
+
+\subsection{总体架构}
+系统采用前后端分离架构：
+
+\begin{itemize}
+\item \textbf{前端}：React + Vite + Tailwind CSS，页面在 \texttt{src/frontend} 下，包括首页、景点、路线规划、日记、美食、广场、个人中心、群组、3D 地球、算法演示、管理后台等。
+\item \textbf{后端}：Node.js + Express，入口在 \texttt{src/backend/src/index.js}，挂载了 \texttt{/api/spots}、\texttt{/api/routes}、\texttt{/api/diaries}、\texttt{/api/users}、\texttt{/api/foods}、\texttt{/api/amap}、\texttt{/api/groups}、\texttt{/api/health} 等模块。
+\item \textbf{数据层}：PostgreSQL，且业务代码里专门拆出了独立的仓储层（\texttt{repositories/}），把 SQL 和业务逻辑分开，便于维护。
+\item \textbf{算法层}：核心算法独立封装在 \texttt{src/backend/src/algorithms/} 下，和业务解耦，方便单独测试和复用。
+\end{itemize}
+
+\subsection{核心算法模块}
+\begin{longtable}{ll}
+\toprule
+\textbf{文件} & \textbf{职责} \\
+\midrule
+\endhead
+\texttt{dijkstra.js} & 单源最短路 + 多点路径（最近邻 + 2-opt）+ A* \\
+\texttt{heap.js} & MinHeap 与 TopK \\
+\texttt{kmp.js} & KMP 字符串匹配与高亮 \\
+\texttt{trie.js} & 前缀树 + 倒排索引 + 编辑距离模糊搜索 \\
+\texttt{compression.js} & Huffman / LZ77 / BWT+MTF+Huffman 无损压缩 \\
+\texttt{geo.js} & Haversine 地理距离计算 \\
+\bottomrule
+\end{longtable}
+
+\subsection{主要接口}
+路线模块有 \texttt{/api/routes/shortest}、\texttt{/api/routes/multi}、\texttt{/api/routes/nearby}、\texttt{/api/routes/graph-stats}、\texttt{/api/routes/describe} 等；日记模块有 \texttt{/api/diaries/search}、\texttt{/api/diaries/memory-video} 等；前后端统一通过 JSON 交互。数据库层已拆分为独立仓储层，便于维护和扩展。
+
+% ===================== 四、数据要求 =====================
+\section{数据要求完成情况}
+
+系统数据由种子脚本生成并人工补充真实地理数据，均通过 \texttt{/seed} 命令校验。各项数据量如下：
+
+\begin{longtable}{lr}
+\toprule
+\textbf{数据项} & \textbf{数量} \\
+\midrule
+\endhead
+景区 / 校园 / 建筑物 & 385 \\
+旅游日记（diaries） & 102 \\
+日记标签（diary\_tags） & 380 \\
+路网节点（local\_route\_nodes） & 33,127 \\
+路网边（local\_route\_edges） & 40,942 \\
+群组消息（group\_messages） & 84 \\
+系统用户 & 17 \\
+\bottomrule
+\end{longtable}
+
+对照课程要求：景区和校园数量、内部建筑物（不少于 20）、其它服务设施种类（不少于 10 种）和数量（不少于 50）、道路图边数（不少于 200）、用户数（不少于 10），各项均已满足且大幅超出。其中路网节点 3.3 万、路网边 4 万的规模，使得最短路、多点路径等算法是在“真有数据量”的图上跑的，性能表现更有说服力。
+
+% ===================== 五、各功能模块与算法分析 =====================
+\section{各功能模块、核心算法与性能分析}
+
+\subsection{旅游推荐}
+
+\subsubsection{完成的功能}
+\begin{itemize}
+\item 景点列表浏览、分页、按城市 / 类型 / 省份多条件筛选；
+\item 三种推荐策略：旅游热度、评价、个人兴趣；
+\item 首页热门推荐（综合热度打分 TopK）；
+\item “为你推荐”个性化推荐（基于用户收藏的标签 / 类型偏好画像）；
+\item 收藏 / 取消收藏；
+\item 前缀自动补全、模糊搜索（编辑距离容错）、全文检索。
+\end{itemize}
+
+\subsubsection{核心算法}
+主算法是\textbf{基于小顶堆的 TopK 推荐算法}。思路是不对所有候选景点完整排序，而是维护一个大小为 $K$ 的小顶堆：遍历候选地点时，堆没满就直接放入；堆满后，如果当前地点比堆顶更值得推荐，就弹出堆顶、放入当前地点；遍历结束后堆里就是分数最高的 $K$ 个，最后只对这 $K$ 个排序得到前 10 顺序。时间复杂度 $O(N\log K)$，其中 $N$ 是候选数量、$K$ 是推荐数量。
+
+搜索方面用 Trie 前缀树做自动补全，配合编辑距离做模糊纠错，用倒排索引（FullTextIndex）做多字段全文检索。个性化推荐则先统计用户收藏景点的标签 / 类型频次形成偏好画像，再做加权 TopK。
+
+\subsubsection{选择依据与性能分析}
+用户通常只关心前 10 个推荐，没必要把全部候选完整排序。相比完整排序的 $O(N\log N)$，$O(N\log K)$ 在 $K \ll N$ 时优势明显，而且推荐是每次请求实时重新建堆的，景点评分、标签一旦变化，下一次请求立刻反映，完全支持数据动态变化，不依赖任何预排序缓存。个性化推荐还做了冷启动处理——新用户没有收藏记录时自动退回到通用热度 TopK，保证任何用户都能拿到结果。
+
+\subsection{旅游路线规划}
+
+\subsubsection{完成的功能}
+\begin{itemize}
+\item 单点最短路径：选起点终点，在本地路网中算最优路线，支持“最短距离”和“最短时间”两种权重；
+\item 多点路径：选多个途经景点，系统自动规划游览顺序并生成完整路线，适合“一天游多个景点”；
+\item 图形化 UI 地图工作台：路网节点和边可视化、路径高亮、拖拽缩放，支持上传 / 编辑本地路网；
+\item 多交通工具：步行、自行车、电瓶车，以及混合交通下的最短时间；
+\item 室内导航：教学实验综合楼 1--5 层完整室内路网导航，支持 A* / Dijkstra 切换和三种路线偏好；
+\item 此外还接入高德真实导航，支持步行、驾车、骑行、公交等真实路线查询。
+\end{itemize}
+
+\subsubsection{核心算法}
+\begin{enumerate}
+\item \textbf{Dijkstra 最短路径算法}：解决单源最短路问题，内部用小顶堆（MinHeap）维护待扩展节点，每次取出当前距离最小的节点，复杂度 $O((V+E)\log V)$。
+\item \textbf{A* 启发式搜索}：用 Haversine 地理距离做启发函数，优先扩展更接近终点的节点，并统计探索节点数（\texttt{nodesExplored}）和 Dijkstra 对比。
+\item \textbf{多点路径（最近邻 + 2-opt）}：先用 Dijkstra 预计算途经点两两之间的最短距离，再用最近邻贪心生成初始游览顺序，最后用 2-opt 局部优化减少路径交叉和绕路，近似求解 TSP。
+\item \textbf{交通工具过滤}：\texttt{buildGraph} 按交通方式（walk / bike / electric）过滤可通行边，自行车只走允许骑行的路，电瓶车只走指定路线。
+\end{enumerate}
+
+\subsubsection{选择依据与性能分析}
+最短路是路线规划的本质问题，Dijkstra 适合非负权图且能配合小顶堆优化；A* 在有明确终点时通过启发函数能显著减少探索节点数（这一点在 AlgoDemo 里能直接看到数字对比）。多景点游览本质是 TSP，暴力枚举是阶乘级不可接受，最近邻 + 2-opt 能在多项式时间内给出质量不错的近似解。
+
+线路策略上我们完整覆盖了课程要求：
+\begin{itemize}
+\item \textbf{最短距离}：以边长度为权重；
+\item \textbf{最短时间}：每条边带拥挤度（$\le 1$ 的正数）和理想速度，真实速度 = 拥挤度 $\times$ 理想速度，以通行时间为权重，会主动避开拥堵路段；
+\item \textbf{交通工具最短时间}：按交通工具过滤可通行边后再算最短时间，支持多种交通工具混合；
+\item \textbf{室内导航策略}：完整覆盖“大门到电梯、楼层间电梯、楼层内到房间”的全流程。每层路网区分门口、走廊、楼梯、电梯、安全出口、卫生间、开水间；楼层间通过电梯 / 楼梯节点连接，建模成跨楼层的“竖直边”；并提供“最短路线 / 少爬楼梯 / 无障碍优先”三种偏好，电梯和楼梯被赋予不同代价（无障碍优先模式下楼梯代价大幅提高，优先走电梯）。
+\end{itemize}
+
+\subsection{场所查询}
+
+\subsubsection{完成的功能}
+\begin{itemize}
+\item 在景点详情页查看附近的周边场所（厕所、停车场、游客中心、纪念品店等）；
+\item 按道路距离展示附近场所，可按名称或类型筛选；
+\item 查询结果可点击进入场所详情；
+\item 同时展示高德附近 POI 作为真实地图数据补充。
+\end{itemize}
+
+\subsubsection{核心算法与依据}
+后端 \texttt{/api/routes/nearby} 接口用 Dijkstra 从当前景点出发，计算到道路图中其它场所的真实道路最短距离（\texttt{roadDist}），再按距离升序排序返回最近的若干个。最关键的一点是：\textbf{排序依据是真实道路距离而不是经纬度直线距离}，接口返回结果里明确标注“距离为道路距离（米），非直线距离”。这是课程要求里特别强调的“不能根据直线距离”，因为在真实景区里，直线很近的两个点可能隔着河、隔着围墙，道路距离才是用户真正要走的。室内和室外的附近查询用的是同一套 Dijkstra 思路，逻辑统一、容易讲清楚。
+
+\subsection{旅游日记管理（含旅游日记交流）}
+
+\subsubsection{完成的功能}
+\begin{itemize}
+\item 日记发布：支持文字、图片、视频，统一存储到日记、标签、媒体表中；
+\item 日记列表与详情、点赞、取消点赞、评分、评论、浏览量统计；
+\item 多种排序：按点赞数、浏览量、评分、发布时间；推荐排序按综合热度；
+\item 按目的地（spotName）筛选搜索；
+\item 精确关键词搜索（KMP，带 \texttt{<mark>} 高亮）；
+\item 全文检索模式（倒排索引，多关键词 AND 查询）；
+\item 日记正文无损压缩分析（压缩率、耗时、可压缩性）；
+\item AI 日记草稿生成与润色；
+\item AIGC 旅行回忆视频生成；
+\item 旅行动态广场（热门 / 最新日记、排行榜）；
+\item 群组交流协作：群聊、\texttt{@ai} 回复、行程偏好、天气建议、投票、冲突协调分析、AI 操作卡片应用到行程。
+\end{itemize}
+
+\subsubsection{核心算法}
+\begin{enumerate}
+\item \textbf{KMP 字符串匹配}：用失配函数实现 $O(n+m)$ 的精确查找，用于日记标题、正文、目的地多字段搜索，并生成 \texttt{<mark>} 高亮结果。
+\item \textbf{倒排索引全文检索}：用 Map 建立 token 到文档集合的映射，支持多关键词 AND 查询，命中即返回。
+\item \textbf{三种无损压缩对比}：实现了 Huffman 编码（按频率建哈夫曼树生成最优前缀码）、LZ77（滑动窗口找最长匹配做字典压缩）、BWT+MTF+Huffman（Burrows-Wheeler 变换 + move-to-front + 哈夫曼联合压缩），三种都输出压缩后大小、压缩率、耗时和验证结果，可以横向对比。
+\item \textbf{点赞去重与评分聚合}：点赞通过 \texttt{user\_likes} 表记录用户与日记关系，且该表以 \texttt{(user\_id, diary\_id)} 为主键，从数据库层面杜绝同一用户重复点赞；评分通过 \texttt{diary\_ratings} 表的 \texttt{ON CONFLICT (diary\_id, user\_id) DO UPDATE} 实现“一人一评、可覆盖”，并重新计算平均分和评分人数。
+\item \textbf{AIGC 视频生成}：服务端用 \texttt{ffmpeg-static + fluent-ffmpeg} 合成 MP4，支持 Ken Burns 缩放运镜、标题字幕和多日记幻灯片拼接；前端则用 Canvas 分析图片并录制 WebM。
+\end{enumerate}
+
+\subsubsection{选择依据与性能分析}
+课程要求里日记的精确查找特别强调“日记数量大、变化快”的高效查找，KMP 的 $O(n+m)$ 不会因为多次匹配重复回退，正好契合；全文检索用倒排索引是因为它把“扫描所有文档”变成了“查 token 对应的文档集合再求交集”，多关键词查询更快。压缩部分我们没有只做一种，而是把三种思路都实现出来做对比，体现对不同无损压缩方法的理解。点赞和投票的一致性靠主键约束和 \texttt{ON CONFLICT} 兜底，这一点在并发写测试里得到了验证（见第七节）。
+
+\subsection{美食推荐}
+
+\subsubsection{完成的功能}
+\begin{itemize}
+\item 在美食页选择游览景点或学校作为出发 / 参考地点；
+\item 按热度、评价、距离三种方式推荐餐厅；
+\item 按菜系 / 标签过滤（北京菜、北京烤鸭、火锅、清真、小吃、老字号等）；
+\item 按美食名称、菜系、饭店名、窗口名等模糊搜索；
+\item 默认展示前 10 个推荐，点“更多”继续展示且保持同一排序逻辑；
+\item 餐厅卡片展示图片、评分、距离、热度、描述、标签、营业时间。
+\end{itemize}
+
+\subsubsection{核心算法与依据}
+\begin{enumerate}
+\item \textbf{MinHeap TopK 推荐}：用小顶堆从候选餐厅中选前 $K$ 个，避免完整排序，复杂度 $O(N\log K)$，依据和旅游推荐一致——用户通常只看前 10 个。
+\item \textbf{热度评分}：根据评分和标签计算热度分，必吃、老字号、北京烤鸭、北京菜、清真等标签会额外加权，比单纯按评分更贴近真实推荐。
+\item \textbf{距离计算}：用户选定景点 / 学校后，用 Haversine 公式算餐厅到所选地点的球面距离；选多个地点时取最近距离（\texttt{nearestDistance}）。
+\item \textbf{模糊搜索}：综合 Trie 前缀匹配、倒排索引全文检索、KMP 精确匹配和编辑距离，匹配名称、城市、省份、描述、营业时间和标签，比简单的 \texttt{includes} 命中率高得多。
+\item \textbf{统一排序比较函数}：后端用统一的 \texttt{compareForDisplay} 处理热度 / 评分 / 距离排序，保证前 10 和“更多”用同一套规则，展示逻辑稳定。
+\end{enumerate}
+
+\subsection{群组功能}
+
+\subsubsection{完成的功能}
+群组创建 / 加入 / 退出 / 删除（支持群组码）、成员与角色管理、群聊（普通消息 / 系统消息 / AI 回复）、群行程管理、成员偏好填写、AI 生成群行程、冲突协调分析、天气提醒、群路线预览（高德 + 本地 Dijkstra）、群投票与结果联动行程、AI 操作卡片确认后真实写入行程。
+
+\subsubsection{核心算法与依据}
+\begin{enumerate}
+\item \textbf{偏好冲突分析}：对成员的预算、体力、节奏、拍照等偏好取最大值、最小值和平均值，根据差值判断冲突等级并给出协调建议——多人旅行的核心矛盾就是偏好不一致，用差值量化最直观。
+\item \textbf{Dijkstra + 多点路径}：群行程里活动若绑定了景点 ID，就调用本地图算法算多点最短路线；多景点路线用最近邻 + 2-opt 优化，减少绕路。
+\item \textbf{智能出行方式选择}：根据两点距离和天气自动选步行 / 骑行 / 驾车，天气差时会降低步行 / 骑行距离阈值，让建议更贴近真实出游。
+\item \textbf{投票统计与行程联动}：群成员投票后统计选项得票，并支持把结果应用到行程备注或交通安排，投票一致性由数据库 \texttt{ON CONFLICT (poll\_id, user\_id)} 保证“每人一票、可改票”。
+\end{enumerate}
+
+% ===================== 六、AI 开发模式 =====================
+\section{AI 开发模式总结}
+
+这次课设我们是真把 AI 当“开发搭档”在用，而不是只问几句代码怎么写。我们的开发模式可以概括成“AI 辅助生成 + 人工校验 + 对抗测试回归”：
+
+\begin{itemize}
+\item \textbf{AI 辅助生成}：AI 主要用于接口草稿、前端页面初版、文案生成、算法解释和功能联调，帮我们快速搭出可运行的骨架；
+\item \textbf{人工校验}：需求判断、边界修正、最终验收由人来把关，AI 写的东西我们都会读懂、改对再用；
+\item \textbf{对抗测试回归}：用前面说的 dev-agent / review-agent 双角色对抗循环，dev-agent 写完，review-agent 立刻拿对抗用例去打，发现问题就打回重写，这样代码的鲁棒性比我们自己手写几个测试要高；
+\item \textbf{能力暴露给 AI}：通过 MCP 把真实算法函数暴露出来，AI 调试路线算法时能直接调用真实 Dijkstra / 堆 TopK 验证结果，不是凭空猜；
+\item \textbf{工作固化}：用 slash 命令把生成种子数据、跑性能对比、跑对抗测试这些重复工作固化下来，每次迭代一键复现。
+\end{itemize}
+
+整个过程是“小步快跑 + 持续验证”：每加一个功能就跑一遍对抗测试和构建检查，保证主干一直可运行。
+
+% ===================== 七、系统测试与性能分析（重点） =====================
+\section{系统测试与性能分析}
+
+这一节是我们这次课设花了不少功夫的地方。我们没有止步于“功能能跑”，而是专门针对\textbf{健壮性}和\textbf{并发能力}做了系统性测试。测试脚本都放在仓库里，可以现场复跑：
+
+\begin{itemize}
+\item \texttt{tests/robustness/http\_resilience\_checks.js}——异常输入回归；
+\item \texttt{tests/concurrency/http\_read\_load.js}——并发读压测；
+\item \texttt{tests/concurrency/http\_write\_race.js}——并发写竞态一致性。
+\end{itemize}
+
+测试环境：后端 Node.js + Express，数据库 PostgreSQL，测试地址 \texttt{http://127.0.0.1:3001}。
+
+\subsection{健壮性测试}
+健壮性测试的目的是：当用户输入异常参数、空参数、超长关键词或非法内容时，系统会不会直接崩或返回 500。我们覆盖了 8 类场景：路线规划缺参、路线规划传入不可达节点、多点路径点数不足、日记评分超出 1--5、评论内容为空、群组码无效、美食搜索关键词超长（把“景点”重复 300 次）、景点搜索里夹带 \texttt{<script>} 脚本片段。
+
+结果：上述场景全部被正确处理，接口返回了合理的 400 / 404 或可解释的 200，\textbf{没有出现任何 500 级错误，也没有服务崩溃}。说明系统对异常输入有较好的容错能力。
+
+\subsection{并发读测试}
+并发读测试验证推荐、搜索、路线类接口在多用户同时访问时的稳定性和响应速度。我们分三个强度等级逐步加压。
+
+\begin{longtable}{lrrr}
+\toprule
+\textbf{接口} & \textbf{常规并发} & \textbf{增强并发} & \textbf{高强度并发} \\
+\midrule
+\endhead
+景点推荐 & 40 并发 $\times$ 3 轮 & 120 并发 $\times$ 4 轮 & 200 并发 $\times$ 5 轮 \\
+美食推荐 & 40 并发 $\times$ 3 轮 & 120 并发 $\times$ 4 轮 & 200 并发 $\times$ 5 轮 \\
+日记搜索 & 30 并发 $\times$ 3 轮 & 90 并发 $\times$ 4 轮 & 150 并发 $\times$ 5 轮 \\
+路线图统计 & 25 并发 $\times$ 3 轮 & 75 并发 $\times$ 4 轮 & 125 并发 $\times$ 5 轮 \\
+\bottomrule
+\end{longtable}
+
+\textbf{成功率方面，三个强度等级下所有接口都保持 100\% 成功率}，没有出现接口失败、超时或服务中断。响应时间随并发上升而变化，典型表现如下：
+
+\begin{longtable}{lll}
+\toprule
+\textbf{接口} & \textbf{常规并发平均} & \textbf{高强度并发表现} \\
+\midrule
+\endhead
+景点推荐 & 58--70 ms & 平均最高约 1836 ms，P95 约 2243 ms \\
+美食推荐 & 50--57 ms & 高压轮次约 2431 ms，最重轮次约 4113 ms \\
+日记搜索 & 144--157 ms & 维持在 422--509 ms \\
+路线图统计 & 35--56 ms & 维持在 125--144 ms \\
+\bottomrule
+\end{longtable}
+
+可以看出，日记搜索和路线图统计这类接口即使在高并发下响应时间也比较平稳，而推荐类接口（景点 / 美食推荐）在 120--200 级别的高并发下延迟上升明显。我们分析原因是推荐接口每次请求都要实时遍历候选、建堆、打分排序，计算量比纯查询大；后续可以通过加缓存、加索引、优化查询路径来提升吞吐。这里我们没有掩盖这个瓶颈，而是如实记录——功能正确性和服务可用性在高压下是保住了的，性能优化是明确的后续方向。
+
+\subsection{并发写测试}
+并发写测试是这次测试里最有意思的部分，验证高并发下点赞、取消点赞、群组投票会不会发生重复计数、脏写或数据不一致。我们同样分三个强度等级，最后一级直接读数据库里的真实用户（共 17 人）来打。
+
+\begin{longtable}{lll}
+\toprule
+\textbf{测试项} & \textbf{操作} & \textbf{最终结果} \\
+\midrule
+\endhead
+同一用户重复点赞 & 并发点赞同一篇日记 120 次 & 最终点赞数 = 1 \\
+多用户点赞汇聚 & 17 个真实用户共 510 次并发点赞 & 最终点赞数 = 17 \\
+多用户取消点赞 & 17 个真实用户共 510 次并发取消 & 最终点赞数 = 0 \\
+多用户并发投票 & 17 个真实用户共 306 次并发投票 & 最终总票数 = 17 \\
+\bottomrule
+\end{longtable}
+
+也就是说，在 300--500 级别的写请求冲击下，\textbf{点赞和投票的最终结果始终和“唯一用户数”严格一致，没有出现重复累计、票数膨胀、脏写或数据错乱}。背后的机制是：\texttt{user\_likes} 表用 \texttt{(user\_id, diary\_id)} 做主键，同一用户即使并发提交多次点赞，数据库也只会保留一条，多余的插入会失败并被业务层优雅捕获，不会触发计数 +1；群组投票则用 \texttt{ON CONFLICT (poll\_id, user\_id) DO UPDATE} 实现“每人一票、可覆盖更新”。这说明数据库约束和业务写入逻辑能有效支撑多用户并发交互。
+
+\subsection{测试结论与成本分析}
+综合三轮测试：
+\begin{enumerate}
+\item 系统具备较好的健壮性，对缺参、越界、非法群组码、超长关键词、特殊字符等异常输入都能给出合理响应，无 500 级错误；
+\item 系统具备较好的并发稳定性，在 25--200 并发的读请求下各核心接口均保持 100\% 成功率；
+\item 系统具备较好的写一致性，在 300--500 级别并发写请求下点赞和投票都没有数据错误；
+\item 当前主要优化方向是推荐类接口的高压性能，可通过索引、缓存和查询路径优化继续提升。
+\end{enumerate}
+
+从成本角度看，本系统单实例 Node.js 服务即可支撑课程设计场景下的多用户访问；真正的资源压力集中在推荐类接口的 CPU 计算和数据库查询上。若要面向更大规模，合理的投入顺序是：先给热点查询加数据库索引和接口层缓存（边际成本低、收益大），再考虑推荐结果的异步预计算和水平扩容（成本较高）。这样能在性能和成本之间取得平衡。
+
+% ===================== 八、实践反思 =====================
+\section{实践反思}
+
+做完这次课设，最大的收获是把数据结构和算法真正用进了一个实际系统，而不是只为了交作业写一遍。比如堆，以前只知道它能做优先队列，这次自己写了 TopK 才直观感受到“为什么不用全排序”——当候选集很大但只要前 $K$ 个时，$O(N\log K)$ 比 $O(N\log N)$ 的优势是实打实能在性能对比页面上看到的。Dijkstra 和 A* 也一样，加了启发函数后探索节点数明显变少，这个对比我们直接做成了页面上的数字展示，很有成就感。
+
+过程里也踩了不少坑。室内导航最开始想用直线距离凑合，后来发现完全不合理（电梯和楼梯的代价差很多），于是专门给跨楼层的边设计了不同的代价模型，按三种偏好动态调整。AIGC 视频生成本地一开始没装 ffmpeg 一直报错，换成 \texttt{ffmpeg-static} 这种自带二进制的包才解决，这让我们意识到部署环境和开发环境的差异本身就是要处理的工程问题。还有并发测试，一开始我们以为“功能能跑就行”，真正写了并发脚本去打才发现，算法能跑通不代表系统就稳，依赖安装、异常输入、跨楼层建模、真实接口联调、并发一致性都需要额外处理——\textbf{工程化验证和算法本身同样重要}。
+
+关于 AI 开发模式的反思：AI 大幅提升了我们搭骨架和写样板代码的速度，但它写的东西必须经过人工读懂和校验才能用，尤其是边界条件和并发场景，AI 容易给出“看起来对”但经不起对抗测试的代码。所以我们觉得比较好的方式是让 AI 负责生成和解释、让人负责判断和把关、再用对抗测试和并发测试兜底。这套“人机协作 + 对抗回归”的模式，是我们这次课设之外更想保留下来的经验。
+
+% ===================== 九、组员分工 =====================
+\section{组员分工与贡献}
+
+下面的分工依据各成员在代码仓库中的真实提交记录整理，四人围绕“前端可视化、后端服务、数据算法、平台工具”各有侧重，相互补位完成了整个系统。
+
+\begin{longtable}{p{2cm}p{3.6cm}p{7.4cm}}
+\toprule
+\textbf{姓名} & \textbf{负责方向} & \textbf{主要贡献} \\
+\midrule
+\endhead
+戴鸿（组长） & 前端可视化与系统集成 & 3D 地球首页与地球弹幕（Earth3D、GlobeOverlay、globeData）、首页与导航栏、AI 宠物助手、算法演示页（AlgoDemo）、AIGC 旅行回忆视频、全局状态管理与前端路由、API 封装整合，并负责项目统筹、自评表与课程设计报告统稿 \\
+缑文轩 & 后端服务与核心功能页 & API 层封装与后端服务入口、数据库表结构（schema）设计、景点页与路线规划页、室内导航面板（IndoorNavigationPanel）、日记 AI 草稿服务、群组详情与群聊协作、高德地图路线服务与真实导航地图组件 \\
+李佳坤 & 数据、算法与景点模块 & 核心算法模块的实现与维护（小顶堆 TopK、最短路等）、景点数据集与景点仓储层、数据库种子数据脚本与表结构初始化、景点列表 / 详情 / 景点卡片，以及健壮性测试与并发读写测试脚本的编写与执行 \\
+万子豪 & 管理后台与平台工具 & 管理后台数据总览 / 筛选 / CSV 导出（Admin）、校园地图工作台路网编辑与可视化（MapWorkspace）、用户系统与登录态及个人主页接口、旅行动态广场社区页（Plaza），并参与路线规划等多模块的前端联调 \\
+\bottomrule
+\end{longtable}
+
+% ===================== 十、总结 =====================
+\section{总结}
+
+本项目围绕一个真实可用的旅游系统，完整实现了课程要求的旅游推荐、旅游路线规划、场所查询、旅游日记管理（含交流）、美食推荐五大模块，并额外做了群组协作、3D 地球、AIGC 回忆视频、室内导航等创新功能。核心算法（排序 / 最短路 / 查找 / 压缩）全部自研、独立封装、可演示、可分析复杂度。数据规模上，385 个景区 / 校园 / 建筑物、3.3 万路网节点、4 万路网边、17 个用户、102 篇日记，均满足并大幅超出课程要求。在工程质量上，我们通过健壮性测试、三级并发读测试和三级并发写测试，验证了系统在异常输入下不崩溃、在 200 级并发读下 100\% 成功、在 500 级并发写下数据严格一致，同时如实指出了推荐类接口在高压下的性能优化方向。整体来看，这次课设让我们既练了算法，也练了把算法落进真实系统并验证其可靠性的完整工程能力。
+
+\end{document}
